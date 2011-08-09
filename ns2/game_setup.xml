@@ -1,0 +1,10 @@
+<game>
+	<name>ns2</name>
+	<description>Natural Selection 2</description>
+	<client>lua/Client.lua</client>
+	<server>lua/Server.lua</server>
+	<locale>enUS</locale>
+	<locale>deDE</locale>
+	<locale>koKR</locale>
+	<locale>seSW</locale>
+</game>
