@@ -33,8 +33,6 @@ Script.Load("lua/InfestationMap.lua")
 Server.dbgTracer = DbgTracer()
 Server.dbgTracer:Init()
 
-Server.targetCache = TargetCache():Init()
-
 Server.infestationMap = InfestationMap():Init()
 
 Server.readyRoomSpawnList = {}

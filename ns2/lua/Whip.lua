@@ -71,12 +71,11 @@ function Whip:OnInit()
     self:SetUpdates(true)
  
     if Server then    
-        self.targetSelector = Server.targetCache:CreateSelector(
+        self.targetSelector = TargetSelector():Init(
                 self,
                 Whip.kRange,
                 true, 
-                TargetCache.kAmtl, 
-                TargetCache.kAstl)
+                { kAlienStaticTargets, kAlienMobileTargets })      
     end
    
 end
@@ -84,6 +83,12 @@ end
 // Used for targeting
 function Whip:GetFov()
     return Whip.kFov
+end
+/**
+ * Put the eye up roughly 180 cm.
+ */
+function Whip:GetViewOffset()
+    return self:GetCoords().yAxis * 1.8
 end
 
 function Whip:GetIsAlienStructure()

@@ -43,6 +43,7 @@
             <intensity>intensity</intensity>
             <casts_shadows>casts_shadows</casts_shadows>
 			<shadow_fade_rate>shadow_fade_rate</shadow_fade_rate>
+			<specular>specular</specular>
         </point_light>    
         
         <sphere>
@@ -50,7 +51,8 @@
         </sphere>
         
         <parameter name="casts_shadows" type="boolean" label="Casts Shadows" default="false"/>
-	<parameter name="shadow_fade_rate" type="real" label="Shadow Fade Rate" default="0.25"/>
+		<parameter name="shadow_fade_rate" type="real" label="Shadow Fade Rate" default="0.25"/>
+		<parameter name="specular" type="boolean" label="Specular" default="true"/>
 		
     </class>
     
@@ -67,7 +69,8 @@
             <outer_angle>outerAngle</outer_angle>
             <atmospheric>atmospheric</atmospheric>
             <casts_shadows>casts_shadows</casts_shadows>
-	     <shadow_fade_rate>shadow_fade_rate</shadow_fade_rate>
+			<shadow_fade_rate>shadow_fade_rate</shadow_fade_rate>
+			<specular>specular</specular>
         </spot_light>
                 
         <cone_radius>
@@ -89,7 +92,8 @@
         <parameter name="outerAngle" type="angle" label="Outer Angle" default="40.0"/>
         <parameter name="atmospheric" type="boolean" label="Atmospheric" default="false"/>
         <parameter name="casts_shadows" type="boolean" label="Casts Shadows" default="true"/>
-	<parameter name="shadow_fade_rate" type="real" label="Shadow Fade Rate" default="0.25"/>
+		<parameter name="shadow_fade_rate" type="real" label="Shadow Fade Rate" default="0.25"/>
+		<parameter name="specular" type="boolean" label="Specular" default="true"/>
                         
     </class>    
 

@@ -15,7 +15,7 @@ kExosuitHealth = 100    kExosuitArmor = 200    kExosuitPointValue = 10
 kSkulkHealth = 70    kSkulkArmor = 5    kSkulkPointValue = 5
 kGorgeHealth = 150    kGorgeArmor = 50    kGorgePointValue = 7
 kLerkHealth = 125    kLerkArmor = 30    kLerkPointValue = 15
-kFadeHealth = 300    kFadeArmor = 50    kFadePointValue = 20
+kFadeHealth = 200    kFadeArmor = 50    kFadePointValue = 20
 kOnosHealth = 700    kOnosArmor = 600    kOnosPointValue = 30
         
 kEggHealth = 250    kEggArmor = 0    kEggPointValue = 2
@@ -41,7 +41,7 @@ kAlienArmorAbsorption3 = 1.2
 // Damage types        
 kHealthPointsPerArmorLight = 4        
 kHealthPointsPerArmorHeavy = 1        
-kPuncturePlayerDamageScalar = 1.3        
+kPuncturePlayerDamageScalar = 1.5
 kStructuralDamageScalar = 2        
         
 kExosuitAbsorption = 0.95        

@@ -13,6 +13,7 @@ Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/EnergyMixin.lua")
 Script.Load("lua/BuildingMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/TargetMixin.lua")
 
 class 'MAC' (LiveScriptActor)
 
@@ -73,6 +74,9 @@ function MAC:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    if Server then
+        InitMixin(self, TargetMixin)
+    end
  
     // Create the controller for doing collision detection.
     self:CreateController(PhysicsGroup.CommanderUnitGroup)

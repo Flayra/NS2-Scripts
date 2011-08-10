@@ -35,6 +35,8 @@ Blink.kBlinkEnergyCost = kBlinkEnergyCost
 Blink.kBlinkDistance = 20
 Blink.kOrientationScanRadius = 2.5
 Blink.kStartEtherealForce = 15
+Blink.kStartBlinkEnergyCost = .1    // Separate out initial blink cost from continous cost to promote fewer, more significant blinks
+
 // The amount of time that must pass before the player can enter the ether again.
 Blink.kMinEnterEtherealTime = 0.5
 
@@ -430,6 +432,9 @@ function Blink:SetEthereal(player, state)
             local velocity = player:GetVelocity() 
             local newVelocity = /*velocity * .3 +*/ initialBoostDirection * Blink.kStartEtherealForce            
             player:SetVelocity(newVelocity)
+            
+            // Deduct blink start energy amount
+            player:DeductAbilityEnergy(Blink.kStartBlinkEnergyCost)
 
         else
         

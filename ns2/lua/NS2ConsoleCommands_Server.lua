@@ -752,6 +752,29 @@ function OnCommandCyst(client, cmd)
     end
 end
 
+/**
+ * Show debug info for the closest entity that has a self.targetSelector
+ */
+function OnCommandTarget(client, cmd)
+
+    if client ~= nil and (Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
+        local player = client:GetControllingPlayer()
+        local origin = player:GetOrigin()
+        local structs = GetEntitiesWithinRange("Structure", origin, 5)
+        local sel, selRange = nil,nil
+        for _, struct in ipairs(structs) do
+            if struct.targetSelector then
+                local r = (origin - struct:GetOrigin()):GetLength()
+                if not sel or r < selRange then
+                    sel,selRange = struct,r
+                end
+            end
+        end
+        if sel then                    
+            sel.targetSelector:Debug(cmd)
+        end
+    end
+end
 
 // GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
@@ -823,3 +846,4 @@ Event.Hook("Console_setgameeffect",         OnCommandSetGameEffect)
 
 Event.Hook("Console_eject",                 OnCommandEject)
 Event.Hook("Console_cyst",                  OnCommandCyst)
+Event.Hook("Console_target",                OnCommandTarget)

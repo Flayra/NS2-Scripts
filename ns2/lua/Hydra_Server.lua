@@ -87,6 +87,8 @@ end
 
 function Hydra:OnThink()
 
+    PROFILE("Hydra:OnThink")
+
     Structure.OnThink(self)
     
     if self:GetIsBuilt() and self:GetIsAlive() then    
@@ -140,12 +142,11 @@ function Hydra:OnInit()
    
     self:SetNextThink(Hydra.kThinkInterval)
     
-    self.targetSelector = Server.targetCache:CreateSelector(
+    self.targetSelector = TargetSelector():Init(
             self,
             Hydra.kRange, 
             true,
-            TargetCache.kAmtl, 
-            TargetCache.kAstl)           
+            { kAlienStaticTargets, kAlienMobileTargets })           
 end
 
 function Hydra:OnDestroy()

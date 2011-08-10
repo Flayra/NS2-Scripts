@@ -218,7 +218,7 @@ function ARC:UpdateMode()
     if self.desiredMode ~= self.mode then
 
         if (self.desiredMode ==  ARC.kMode.UndeployedStationary) and (self.mode == ARC.kMode.Deployed) then
-            self.targetSelector:InvalidateStaticCache()
+            self.targetSelector:AttackerMoved()
         end
     
         // Look at desired state transitions with a target of this desired mode and move us toward it

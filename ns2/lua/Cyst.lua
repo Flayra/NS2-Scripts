@@ -232,17 +232,6 @@ function Cyst:OnDestroy()
     Structure.OnDestroy(self)    
 end
 
-function Cyst:OnConstructionComplete()
-
-    Structure.OnConstructionComplete(self)
-    
-    self:SpawnInfestation()
-    
-    if Server then
-        self.lastUpdateTime = Shared.GetTime()
-    end
-end
-
 
 function Cyst:GetIsAlienStructure()
     return true

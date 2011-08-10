@@ -17,6 +17,8 @@ Script.Load("lua/TooltipMixin.lua")
 Script.Load("lua/WeaponOwnerMixin.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/TargetMixin.lua")
+
 
 /**
  * Player should not be instantiated directly. Only instantiate a Player through
@@ -230,6 +232,9 @@ function Player:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    if Server then
+        InitMixin(self, TargetMixin)
+    end
     
     self:SetLagCompensated(true)
     

@@ -81,27 +81,22 @@ function Whip:GetClosestAttackPoint(target)
     
 end
 
-function Whip:StrikeTarget()
+function Whip:StrikeTarget(target)
 
-    local target = self:GetTarget()
-    if(target ~= nil) then
-
-        // Hit main target
-        self:DamageTarget(target)
+    // Hit main target
+    self:DamageTarget(target)
+    
+    // Try to hit other targets close by
+    local closestAttackPoint = self:GetClosestAttackPoint(target)
+    local nearbyEnts = self.targetSelector:AcquireTargets(1000, Whip.kAreaEffectRadius, closestAttackPoint)
+    for index, ent in ipairs(nearbyEnts) do
+    
+        if ent ~= target then
         
-        // Try to hit other targets close by
-        local closestAttackPoint = self:GetClosestAttackPoint(target)
-        local nearbyEnts = self.targetSelector:AcquireTargets(1000, Whip.kAreaEffectRadius, closestAttackPoint)
-        for index, ent in ipairs(nearbyEnts) do
-        
-            if ent ~= target then
+            local direction = ent:GetModelOrigin() - closestAttackPoint
+            direction:Normalize()
             
-                local direction = ent:GetModelOrigin() - closestAttackPoint
-                direction:Normalize()
-                
-                ent:TakeDamage(Whip.kDamage, self, self, closestAttackPoint, direction)
-                
-            end
+            ent:TakeDamage(Whip.kDamage, self, self, closestAttackPoint, direction)
             
         end
         
@@ -141,7 +136,7 @@ function Whip:UpdateMode(deltaTime)
             self:SetMode(Whip.kMode.Unrooting)
             // when we move, our static targets becomes invalid. As we can't attack until we are rooted again,
             // we don't need to do anything further
-            self.targetSelector:InvalidateStaticCache()
+            self.targetSelector:AttackerMoved()
             
             // If we are moving we need to remove out current location from the Pathing mesh
             self:RemoveFromMesh()
@@ -212,22 +207,17 @@ end
 function Whip:UpdateAttack(deltaTime)
 
     // Check if alive because map-placed structures don't die when killed
-    if self:GetIsBuilt() and self:GetIsAlive() then
-        
-        local target = self:GetTarget()
-        local targetValid = self.targetSelector:ValidateTarget(target)
-        if targetValid then
 
-            // Check to see if it's time to fire again
-            local time = Shared.GetTime()
-                    
-            if not self.timeOfLastAttack or (time > (self.timeOfLastAttack + Whip.kScanThinkInterval)) then
-            
+    if self:GetIsBuilt() and self:GetIsAlive() then
+        // Check to see if it's time to fire again
+        local time = Shared.GetTime()
+        if not self.timeOfLastAttack or (time > (self.timeOfLastAttack + Whip.kScanThinkInterval)) then        
+            local target = self:GetTarget()
+            local targetValid = self.targetSelector:ValidateTarget(target)
+            if targetValid then
                 local delay = self:AdjustFuryFireDelay(Whip.kROF)
-                if(self.timeOfLastStrikeStart == nil or (time > self.timeOfLastStrikeStart + delay)) then
-                
+                if(self.timeOfLastStrikeStart == nil or (time > self.timeOfLastStrikeStart + delay)) then                
                     self:AttackTarget()
-                    
                 end
                 
                 // Update our attackYaw to aim at our current target
@@ -247,20 +237,33 @@ function Whip:UpdateAttack(deltaTime)
                 
                 self.timeOfLastAttack = time
                 
+            else
+                self:AcquireTarget()            
             end
+
             
         end
         
         if self.timeOfNextStrikeHit ~= nil then
         
+            local target = self:GetTarget()
+            
             if Shared.GetTime() > self.timeOfNextStrikeHit then
-                self:StrikeTarget()
+            
+                if self.targetSelector:ValidateTarget(target) then
+                
+                    self:StrikeTarget(target)
+                    
+                else
+                
+                    self:AcquireTarget()
+                    
+                    self.timeOfNextStrikeHit = nil
+                    
+                end
+                
             end
-            
-        elseif not targetValid then
-        
-            self:AcquireTarget()
-            
+               
         end
         
     end

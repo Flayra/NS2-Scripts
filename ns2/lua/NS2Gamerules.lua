@@ -307,7 +307,6 @@ function NS2Gamerules:OnEntityChange(oldId, newId)
     self.team1:OnEntityChange(oldId, newId)
     self.team2:OnEntityChange(oldId, newId)
     self.spectatorTeam:OnEntityChange(oldId, newId)
-    Server.targetCache:OnEntityChange(oldId, newId)
 
     // Keep server map entities up to date    
     local index = table.find(Server.mapLoadLiveEntityValues, oldId)
@@ -379,8 +378,6 @@ function NS2Gamerules:OnKill(targetEntity, damage, attacker, doer, point, direct
     self.team2:OnKill(targetEntity, damage, attacker, doer, point, direction)
     self.worldTeam:OnKill(targetEntity, damage, attacker, doer, point, direction)
     self.spectatorTeam:OnKill(targetEntity, damage, attacker, doer, point, direction)
-    
-    Server.targetCache:OnKill(targetEntity)
     
 end
 

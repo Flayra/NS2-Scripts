@@ -4,18 +4,41 @@
 //
 //    Created by:   Mats Olsson (mats.olsson@matsotech.se)
 //
+// Allows for fast target selection for AI units such as hydras and sentries. 
+// 
+// Gains most of its speed by using the fact that the majority of potential targets don't move
+// (static) while a minority is mobile. 
+//
+// To speed things up even further, the concept of TargetType is used. Each TargetType maintains a
+// dictionary of created entities that match its own type. This allows for a quick filtering away of
+// uninterresting targets, without having to check their type or team.
+//
+// The static targets are kept in a per-attacker cache. Usually, this table is empty, meaning that
+// 90% of all potential targets are ignored at zero cpu cost. The remaining targets are found by
+// using the fast ranged lookup (Shared.GetEntitiesWithinRadius()) and then using the per type list
+// to quickly ignore any non-valid targets, only then checking validity, range and visibility. 
+//
+// The TargetSelector is the main interface. It is configured, one per attacker, with the targeting
+// requriements (max range, if targets must be visible, what targetTypes, filters and prioritizers).
+//
+// Once configured, new targets may be acquired using AcquireTarget or AcquireTargets, and the validity
+// of a current target can be check by ValidateTarget().
+//
+// Filters are used to reject targets that are not to valid. 
+//
+// Prioritizers are used to prioritize among targets. The default prioritizer chooses targets that
+// can damage the attacker before other targets.
+// 
 Script.Load("lua/NS2Gamerules.lua") 
-Script.Load("lua/TargetCache_Commands.lua")
 
 //
-// TargetFilters are used to check targets before presenting them to the prioritizers
+// TargetFilters are used to remove targets before presenting them to the prioritizers
 // 
 
 //
 // Removes targets that are not inside the maxPitch
 //
 function PitchTargetFilter(attacker, minPitchDegree, maxPitchDegree)
-    local lastPitch = 0
     return function(target, targetPoint)
         local origin = GetEntityEyePos(attacker)
         local viewCoords = GetEntityViewAngles(attacker):GetCoords()
@@ -26,13 +49,12 @@ function PitchTargetFilter(attacker, minPitchDegree, maxPitchDegree)
         result = pitch >= minPitchDegree and pitch <= maxPitchDegree
         // Log("filter %s for %s, v %s, pitch %s, result %s (%s,%s)", target, attacker, v, pitch, result, minPitchDegree, maxPitchDegree)
         return result
-    end    
+    end
 end
 
-function CloakCamoTargetFilter()
+function CloakTargetFilter()
     return  function(target, targetPoint)
-                local hidden = (HasMixin(target, "Cloakable") and target:GetIsCloaked()) or (HasMixin(target, "Camouflage") and target:GetIsCamouflaged())
-                return not hidden
+                return not HasMixin(target, "Cloakable") or not target:GetIsCloaked()
             end
 end 
 
@@ -52,7 +74,7 @@ end
 // Prioritizers are used to prioritize one kind of target over others
 // When selecting targets, the range-sorted list of targets are run against each supplied prioritizer in turn
 // before checking if the target is visible. If the prioritizer returns true for the target, the target will
-// be selected if it is visible. If not visible, the selection process continues.
+// be selected if it is visible (if required). If not visible, the selection process continues.
 // 
 // Once all user-supplied prioritizers have run, a final run through will select the closest visible target.
 // 
@@ -80,574 +102,397 @@ end
 
 
 
+class 'TargetType'
 
-class 'TargetCache'
-
-TargetCache.kMstl = 1 // marine static target list index
-TargetCache.kMmtl = 2 // marine mobile target list index
-TargetCache.kAstl = 3 // alien static target list index
-TargetCache.kAmtl = 4 // alien mobile target list index
-TargetCache.kAshtl = 5 // alien static heal target list. Adds infestation to marine static target list, used by Crags when healing
-
-TargetCache.kTargetListNames = { 
-    "MarineStaticTargets",
-    "MarineMobileTargets",
-    "AlienStaticTargets",
-    "AlienMobileTargets",
-    "AlienStaticHealTargets"
-}
-
-TargetCache.kTargetListNamesShort = { 
-    "MarineStat",
-    "MarineMob",
-    "AlienStat",
-    "AlienMob",
-    "AlienStatHeal"
-}
-
-// Used as final step if all other prioritizers fail
-TargetCache.allPrioritizer = AllPrioritizer()
-
-// called from NS2GameRules. This is not an Entity, so OnCreate doesn't exists. 
-
-function TargetCache:Init() 
-    self.targetListCache = {}
-    self.tlcVersions = {}
-    self.zombieList = {}
-    for i,_ in ipairs(TargetCache.kTargetListNames) do
-        self.targetListCache[i] = {}
-        self.tlcVersions[i] = 0
+function TargetType:Init(name, classList)
+    self.name = name
+    self.classMap = {}
+    for _,className in ipairs(classList) do
+        self.classMap[className] = true
     end
-    self.salVersion = 0
-    self.tlcSalVersion = -1   
-    
-    self.logTable = { }
-    self.log = Logger("log", self.logTable)
-    self.logDetail = Logger("detail", self.logTable)
-    self.logTarget = Logger("target", self.logTable)
-    self.logStats = Logger("stats", self.logTable)
-    
-    self.log("TargetCache initialized")
 
-    self.stats = TcStats()
-    self.stats:Init(self.logStats, 60)
+    // the entities that have been selected by their TargetType. A proper hashtable, not a list.
+    self.entityIdMap = {}
+        
     return self
 end
 
-    
-//
-// called by NS2Gamerules when it entities change
-//
-function TargetCache:OnEntityChange(oldId, newId)
-    if oldId ~= nil then 
-        self:_RemoveEntity(Shared.GetEntity(oldId))
-        self.stats.entityCount = self.stats.entityCount - 1;
-    end
-    if newId ~= nil then
-        self:_InsertEntity(Shared.GetEntity(newId))
-        self.stats.entityCount = self.stats.entityCount + 1;
+
+/**
+ * Notification that a new entity id has been added
+ */
+function TargetType:EntityAdded(entity)
+    if self:ContainsType(entity) and not self.entityIdMap[entity:GetId()] then
+        Log("%s: added %s", self.name, entity) 
+        self.entityIdMap[entity:GetId()] = true
+        self:OnEntityAdded(entity)
     end
 end
 
-//
-// Some entities goes into a zombie stage when killed (power nodes)
-// 
-function TargetCache:OnKill(entity)
-    // On kill we could handle by simply removing the entity. The problem is
-    // that powernodes may become alive again, and there is no OnAlive() call made
-    // So we add them to the zombieList. Once per tick, we check the zombielist to see
-    // if they are alive. 
-    self:_RemoveEntity(entity)
-    // note ordering - remove entity will remove from zombie list.
-    table.insert(self.zombieList,entity)
+/**
+ * True if we contain the type of the given entity
+ */
+function TargetType:ContainsType(entity)
+    return self.classMap[entity:GetClassName()]
 end
 
-//
-// Check if any zombies are up and running again
-
-function TargetCache:_VerifyZombieList()
-    local now = Shared.GetTime()
-    if now ~= self.lastZombieCheckTime and #self.zombieList > 0 then
-        self.lastZombieCheckTime = now
-        // check zombielist for going alives. Iterate in reverse order to allow removals to work
-        for i = #self.zombieList, 1, -1 do
-            local zombie = self.zombieList[i]
-            if self:_IsPossibleTarget(zombie, self:_IsMobile(zombie)) then
-                self.logDetail("It's ALIVE! (%s)", zombie)
-                table.remove(self.zombieList, i)
-                self:_InsertEntity(zombie)
-            end
-        end
+/**
+ * Notification that an entity id has been removed. 
+ */
+function TargetType:EntityRemoved(entity)
+    if entity and self.entityIdMap[entity:GetId()] then
+        self.entityIdMap[entity:GetId()] = nil
+        Log("%s: removed %s", self.name, entity) 
+        self:OnEntityRemoved(entity)    
     end
 end
 
 
-//
-// insert the given entity into the given list and increment its version
-//
-function TargetCache:_InsertInTargetList(listIndex, entity)
-    local list = self.targetListCache[listIndex]
-    table.insertunique(list,  entity)
-    self.tlcVersions[listIndex] = self.tlcVersions[listIndex] + 1
-    self.log("Insert %s, added to %s, vers %d, len %d", entity,TargetCache.kTargetListNames[listIndex],self.tlcVersions[listIndex],table.maxn(list))
-    if self.logTable.detail then
-        for i,target in ipairs(list) do  
-            self.logDetail("%d : %s", i, target)
-        end
-    end
-end
-//
-// Call when the insertEntity has been added to the newScriptActorList
-//
-function TargetCache:_InsertEntity(insertedEntity)
-    if self:_IsCacheInvalid() then
-        // cache is already invalid, so just return
-        return 
-    end
-    local listIndex = self:_ClassifyEntity(insertedEntity)
-    if listIndex ~= 0 then
-        self:_InsertInTargetList(listIndex, insertedEntity)
-        // special case: alien static heal list is the marine static target list + infestations
-        if listIndex == TargetCache.kMstl then
-            self:_InsertInTargetList(TargetCache.kAshtl, insertedEntity)
-        end
-    else
-        self.logDetail("Insert ignoring %s", insertedEntity)
-    end
+/**
+ * Attach a target selector to this TargetType. 
+ * 
+ * The returned object must be supplied whenever an acquire target is made 
+ */
+function TargetType:AttachSelector(selector)
+    assert(false, "Attach must be overridden")
 end
 
-//
-// Call when the scriptActorList has changed due to deletion of the given entity.
-//
-function TargetCache:_RemoveEntity(deletedEntity)
-    // always clear the zombie list
-    table.removevalue(self.zombieList, deletedEntity)
-
-    if self:_IsCacheInvalid() then
-        // cache is already invalid, so just return
-        return 
-    end
-
-    // a deleted entity may not maintain a status as a valid target, so the classification
-    // may not work for it any longer. Go through all the lists and see if the entity was in it
-    local found = false
-    for i,list in ipairs(self.targetListCache) do
-        local index = table.find(list,deletedEntity)
-        if index then
-            table.remove(list,index)
-            self.stats:ChangeMainList(i)
-            self.tlcVersions[i] = self.tlcVersions[i] + 1
-            self.log("Remove %s from %s, vers %d, len %d", deletedEntity, TargetCache.kTargetListNames[i], self.tlcVersions[i], table.maxn(list))
-            if self.logTable.detail then
-                for i,target in ipairs(list) do  
-                    self.logDetail("%d : %s",i,target)
-                end
-            end
-            found = true
-        end
-    end
-    if not found then
-        self.logDetail("Remove ignored %s", deletedEntity)
-    end
+/**
+ * Allow subclasses to react to the adding of a new entity id
+ */
+function TargetType:OnEntityAdded(id)
 end
 
-//
-// return to which list the given target belongs, or zero if it belongs to none
-//
-function TargetCache:_ClassifyEntity(target)
-    // infestations are healed by Crags
-    if target:isa("Infestation") then
-        return TargetCache.kAshtl
-    end
-    local mobile = self:_IsMobile(target)
-    if self:_ValidTarget(kAlienTeamType, target, mobile) then
-        if mobile then    
-            return TargetCache.kMmtl
+/**
+ * Allow subclasses to react to the adding of a new entity id. 
+ */
+function TargetType:OnEntityRemoved(id)
+end
+
+/**
+ * Handle static targets
+ */
+class 'StaticTargetType' (TargetType)
+
+function StaticTargetType:Init(name, classList)
+    self.cacheMap = {}
+    return TargetType.Init(self, name, classList)
+end
+
+function StaticTargetType:AttachSelector(selector)
+    // key in cacheMap is the attackers entityId. This allows us to detect when the entity is gone.
+    self.cacheMap[selector.attacker:GetId()] = StaticTargetCache():Init(self, selector)
+    return self.cacheMap[selector.attacker:GetId()]
+end
+
+function StaticTargetType:VisitCaches(fun)
+    // go through whole cache and add the entity id to all of them
+    local toBeRemoved = {}
+    for id,cache in pairs(self.cacheMap) do
+        if Shared.GetEntity(id) then
+            fun(cache)
         else
-            return TargetCache.kMstl
-        end
-    elseif self:_ValidTarget(kMarineTeamType, target, mobile) then
-        if mobile then    
-            return TargetCache.kAmtl
-        else
-            return TargetCache.kAstl
-        end        
-    end
-    return 0
-end
-
-function TargetCache:_IsPossibleTarget(target, mobile) 
-    if target == nil then
-        return false
-    end
-    local isStruct = target:isa("Structure")
-    local validType = isStruct or mobile
-    local validAndAlive = validType and (isStruct or target:GetIsAlive())
-    return validAndAlive and target:GetCanTakeDamage()
-end
-
-
-// true if the target belongs to the given team and is valid
-function TargetCache:_ValidTarget(enemyTeamType, target, mobile)
-    return self:_IsPossibleTarget(target, mobile) and enemyTeamType == target:GetTeamType()
-end
-    
-
-// players can move, and drifters, and MACs, and whips
-// should really ask the entities instead...
-TargetCache.kMobileClasses = { "Player", "Drifter", "MAC", "Whip", "ARC" }
-
-// true if the target is able to move. Should really be a method on the object instead, but
-// I don't want to mess around with changes in multiple files.
-function TargetCache:_IsMobile(target)
-     for i,mobileCls in ipairs(TargetCache.kMobileClasses) do
-         if target:isa(mobileCls) then 
-            return true
-         end
-     end
-     return false
-end
-
-
-function TargetCache:_UpdateTargetListCaches() 
-    local newLists = {}
-    for i,_ in ipairs(TargetCache.kTargetListNames) do
-        newLists[i] = {}
-    end 
-
-    // insert the possible targets into the correct list
-    // static targets are those that don't move, mobile targets are those that can move
-    // valid targets are those that can be damaged (enemies that can be hurt)
-    for i,target in ientitylist(Shared.GetEntitiesWithClassname("ScriptActor")) do
-        local listIndex = self:_ClassifyEntity(target)
-        if listIndex ~= 0 then
-            table.insert(newLists[listIndex], target)
-            // kAshtl is a superset of kMstl
-            if listIndex == TargetCache.kMstl then
-                table.insert(newLists[TargetCache.kAshtl], target)    
-            end
-        end 
-    end
-
-    // make sure we get a consistent ordering
-    function idSort(ent1, ent2)
-        return ent1:GetId() < ent2:GetId()
-    end
-    
-    // simpler cmpTable, as we know that neither t1 nor t2 is nil or contains holes, and that they are both sorted
-    function cmpTable(t1, t2)
-        if #t1 ~= #t2 then
-            return false
-        end
-        for i,e1 in ipairs(t1) do
-            if e1 ~= t2[i] then
-                 return false
-            end
-        end   
-        return true  
-    end 
-   
-    // check if the new versions of each list changes, and change the version number if they do
-    for i,newTable in ipairs(newLists) do
-        table.sort(newTable,idSort)
-        if not cmpTable(newTable, self.targetListCache[i]) then
-            self.targetListCache[i] = newTable
-            self.tlcVersions[i] = self.tlcVersions[i] + 1
-            self.log("Updating %s, vers %d, len %d",TargetCache.kTargetListNames[i], self.tlcVersions[i],table.maxn(newTable))
-            if self.logTable.detail then
-                for i,t in ipairs(newTable) do
-                    self.logDetail("%d : %s ", i, t)
-                end
-            end 
-       end
-    end
-    // mark as uptodate
-    self.tlcSalVersion = self.salVersion
-end
-
-function TargetCache:_IsCacheInvalid() 
-    return self.tlcSalVersion ~= self.salVersion
-end
-
-function TargetCache:VerifyTargetingListCache()
-    self:_VerifyZombieList()
-    if self:_IsCacheInvalid() then
-        self:_UpdateTargetListCaches()
-    end
-end
-
-function TargetCache:GetTargetList(listType)
-    self:VerifyTargetingListCache()
-    return self.targetListCache[listType]
-end
-
-//
-// filter the targetList, returning a list of (target,sqRange) tuples inside the given range.
-//  
-// If visibilityRequired is true, each target is also traced to to verify if it is visible.
-//
-function TargetCache:RebuildStaticTargetList(attacker, range, visibilityRequired, targetList)
-     // static target list has changed. Rebuild it for the given entity
-    local result = {}
-    local sqRange = range * range
-    local origin = GetEntityEyePos(attacker)
-    local traceCount = 0
-
-    for i,target in ipairs(targetList) do
-        local targetPoint = target:GetEngagementPoint()
-        local sqR = (origin - targetPoint):GetLengthSquared()
-        if (sqR <= sqRange) then
-            if (visibilityRequired) then
-                traceCount = traceCount + 1
-                // trace as a bullet, but only register hits on target
-               local trace = Shared.TraceRay(origin, targetPoint, PhysicsMask.Bullets, EntityFilterOnly(target))
-                if trace.entity ~= target then
-                    target = nil
-                end
-            end
-            if target then 
-                table.insert(result, { target, sqR })
-            end
-        end
-    end
-    self.stats:RebuiltStatic(attacker, traceCount, result)
-    return result
-end
-
-
-function TargetCache:_logRebuild(attacker, list, listType, version)
-    self.logDetail("Rebuilt %s for %s, vers %d, len %d",TargetCache.kTargetListNames[listType], attacker, version , table.maxn(list))
-    if self.logTable.detail then
-        for i,targetAndSqRange in ipairs(list) do 
-            local target, sqRange = unpack(targetAndSqRange)      
-            self.logDetail("%d : %s at range %.2f", i, target, math.sqrt(sqRange))
-        end
-    end
-end
-//
-// Check and recalculate a static target list of the given type.
-//
-function TargetCache:_GetStaticTargets(listType, attacker, range, visibilityRequired, list, version)
-    self:VerifyTargetingListCache()
-    local newVersion = self.tlcVersions[listType]
-    if version ~= newVersion then        
-        list = self:RebuildStaticTargetList(attacker, range, visibilityRequired, self.targetListCache[listType])
-        version = newVersion
-        self:_logRebuild(attacker, list, listType, version)
-    end
-    return list,version
-end
-
-
-//
-// Return true if the target is acceptable to all filters
-//
-function TargetCache:_ApplyFilters(target, targetPoint, attacker, filters)
-    if filters then
-        for _, filter in ipairs(filters) do
-            if not filter(target, targetPoint, attacker) then
-                return false
-            end
-        end
-    end
-    return true
-end
-
-//
-// Check if the given targets fultills the demands to be a possible target. 
-// The standard criteria for a target to be valid is that it isn't the attacker, that it is alive, 
-// can take damage and are inside range. 
-// If these criteria is fulfilled, then the filters are applied to see if they accept the target as well.
-// 
-// if range to target is unknown, sqRange may be nil 
-function TargetCache:PossibleTarget(attacker, origin, sqMaxRange, target, sqRange, filters)
-    // use true for mobile; we know its either a mobile/struct because that hasn't changed since it was targeted
-    if target ~= nil and attacker ~= target and self:_IsPossibleTarget(target, self:_IsMobile(target)) then 
-        local targetPoint = target:GetEngagementPoint()
-        sqRange = sqRange or (origin - targetPoint):GetLengthSquared()     
-        if sqRange < sqMaxRange and self:_ApplyFilters(target, targetPoint, attacker, filters) then
-            return true, sqRange
-        end
-    end            
-    return false, -1
-end
-
-function TargetCache:ValidateTarget(attacker, origin, sqMaxRange, target, sqRange, filters)
-    local result = false
-    if self:PossibleTarget(attacker, origin, sqMaxRange, target, sqRange, filters) then
-        Server.dbgTracer.seeEntityTraceEnabled = true
-        result = attacker:GetCanSeeEntity(target)
-        Server.dbgTracer.seeEntityTraceEnabled = true
-        self.stats:ValidateTarget(attacker, target)
-    end
-    return result       
-end
-
-        
-
-function TargetCache:_GetRawTargetList(attacker, range, visibilityRequired, mobileListType, staticListType, staticList, staticListVersion, filters) 
-    self:VerifyTargetingListCache() 
-    local result = {}
-    local sqMaxRange = range * range
-    local origin = GetEntityEyePos(attacker)
-
-    // filter the mobile targets
-    if mobileListType then
-        for i,target in ipairs(self.targetListCache[mobileListType]) do
-            local valid, sqRange = self:PossibleTarget(attacker, origin, sqMaxRange, target, nil, filters)
-            if valid then
-                table.insert(result, {target, sqRange })
-            end
-        end
-    end
-    
-    if staticListType then
-        // make sure the the list of static targets are uptodate
-        staticList, staticListVersion = self:_GetStaticTargets(staticListType, attacker, range, visibilityRequired, staticList, staticListVersion)
-        self.stats:UseStatic(attacker, staticList)
-        
-        // add in the static targets
-        for i,targetAndSqRange in ipairs(staticList) do
-            local target, sqRange = unpack(targetAndSqRange)
-            local valid, sqRange = self:PossibleTarget(attacker, origin, sqMaxRange, target, sqRange, filters)
-            if valid then
-                table.insert(result, targetAndSqRange)
-            end
+            toBeRemoved[id] = true
         end
     end
  
-    function sortTargets(eR1, eR2)
-        local ent1, r1 = unpack(eR1)
-        local ent2, r2 = unpack(eR2)
-        if r1 ~= r2 then
-            return r1 < r2
-        end
-        // Make deterministic in case that distances are equal
-        return ent1:GetId() < ent2:GetId()
+    // remove caches that belongs to no-longer valid entities
+    for id,_ in pairs(toBeRemoved) do
+        self.cacheMap[id] = nil
     end
-    // sort them closest first
-    table.sort(result,sortTargets)
+end
+
+function StaticTargetType:OnEntityAdded(entity)
+    self:VisitCaches(function (cache) cache:OnEntityAdded(entity) end)
+end
+
+function StaticTargetType:OnEntityRemoved(entity)
+    self:VisitCaches(function (cache) cache:OnEntityRemoved(entity) end)
+end
+
+class 'StaticTargetCache'
+
+function StaticTargetCache:Init(targetType, selector)
+    self.targetType = targetType
+    self.selector = selector
+    self.targetIdToRangeMap = nil 
+    self.addedEntityIds = {}
+
+    return self
+end
+
+function StaticTargetCache:Log(formatString, ...)
+    if self.selector.debug then
+        formatString = "%s[%s]: " .. formatString
+        Log(formatString, self.selector.attacker, self.targetType.name, ...)
+    end
+end
+
+function StaticTargetCache:OnEntityAdded(entity)
+    if self.targetIdToRangeMap then
+        table.insert(self.addedEntityIds, entity:GetId())
+    end
+end
+
+function StaticTargetCache:OnEntityRemoved(entity)
+    if self.targetIdToRangeMap then
+        // just clear any info we might have had on that id
+        self.targetIdToRangeMap[entity:GetId()] = nil
+        table.removevalue(self.addedEntityIds, entity:GetId())
+    end
+end
+
+function StaticTargetCache:ValidateCache()
+    if not self.targetIdToRangeMap then 
+        self.targetIdToRangeMap = {}
+        local origin = self.selector.attacker:GetEyePos()
+        entityIds = {}
+        Shared.GetEntitiesWithinRadius(origin, self.selector.range, entityIds)
+        self:MaybeAddTargets(origin, entityIds)
+    end
+    // add in any added entities. Need to do it with a delay
+    // because when an entity is added, it isn't fully initialized
+    if #self.addedEntityIds > 0 then
+        self:MaybeAddTargets(self.selector.attacker:GetEyePos(), self.addedEntityIds)
+        self.addedEntityIds = {}
+    end
+end
+
+/**
+ * Append possible targets, range pairs to the targetList
+ */
+function StaticTargetCache:AddTargetsWithRange(selector, targets)
+    self:ValidateCache(selector)
     
-    return result,staticList,staticListVersion
-end 
-
-
-//
-// Insert valid target into the resultTable until it is full.
-// 
-// Let a selector work on a target list. If a selector selects a target, a trace is made 
-// and if successful, that target and range is inserted in the resultsTable.
-// 
-// Once the resultTable size reaches maxTargets, the method returns. 
-// 
-// If the trace fails, the sqRange of that entry in the targets list is set to -1 to mark
-// is as ineligible for further selectors. 
-//
-function TargetCache:_InsertTargets(resultTable, checkedTable, attacker, prioritizer, targets, maxTargets, visibilityRequired)
-    local resultTarget, resultRange
-    local traceCount = 0
-    for index, targetAndSqRange in ipairs(targets) do
-        local target, sqRange = unpack(targetAndSqRange)
-        local include = false
-        if not checkedTable[target] and prioritizer(target, sqRange) then
-            if visibilityRequired then 
-                traceCount = traceCount + 1
-                include = attacker:GetCanSeeEntity(target) 
-            else
-                include = true
-            end
-            checkedTable[target] = true
-        end            
-        if include then
-            table.insert(resultTable, target)
-            if #resultTable >= maxTargets then
-                break
-            end
-        end                       
+    for targetId, range in pairs(self.targetIdToRangeMap) do
+        local target = Shared.GetEntity(targetId)
+        
+        if target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, target:GetEngagementPoint()) then
+            table.insert(targets, {target, range})
+            //Log("%s: static target %s at range %s", selector.attacker, target, range)
+        end
     end
-    return traceCount
+end
+
+/**
+ * If the attacker moves, the cache has to be invalidated. 
+ */
+function StaticTargetCache:AttackerMoved()
+    self.targetIdToRangeMap = nil    
+end
+
+/**
+ * Check if the target is a possible target for us
+ *
+ * Make sure its id is in our map, and that its inside range
+ */
+function StaticTargetCache:PossibleTarget(target, origin, range)
+    self:ValidateCache()
+    local r = self.targetIdToRangeMap[target:GetId()]
+    return r and r <= range
+end
+
+function StaticTargetCache:MaybeAddTarget(target, origin)
+    local inRange = false
+    local visible = false
+    local range = -1
+    local rightType = self.targetType.entityIdMap[target:GetId()]
+    if rightType then
+        local targetPoint = target:GetEngagementPoint()
+        range = (origin - targetPoint):GetLength()
+        inRange = range <= self.selector.range
+        if inRange then
+            visible = true
+            if (self.selector.visibilityRequired) then
+                // trace as a bullet, but ignore everything but the target.
+                local trace = Shared.TraceRay(origin, targetPoint, PhysicsMask.Bullets, EntityFilterOnly(target))
+                self:Log("f %s, e %s", trace.fraction, trace.entity)       
+                visible = trace.entity == target or trace.fraction == 1
+                if visible and trace.entity == target then
+                    range = range * trace.fraction
+                end
+                Server.dbgTracer:TraceTargeting(self.selector.attacker, target, origin, trace)
+            end
+        end          
+    end
+    if inRange and visible then 
+        // save the target and the range to it
+        self.targetIdToRangeMap[target:GetId()] = range
+        self:Log("%s added at range %s", target, range)
+    else
+        if not rightType then
+            self:Log("%s rejected, wrong type", target) 
+        else
+            self:Log("%s rejected, range %s, inRange %s, visible %s", target, range, inRange, visible)
+        end
+    end  
+end
+
+function StaticTargetCache:MaybeAddTargets(origin, targetList)
+    for i,targetId in ipairs(targetList) do
+        self:MaybeAddTarget(Shared.GetEntity(targetId), origin)
+    end
+end
+
+function StaticTargetCache:Debug(selector, full)
+    Log("%s :", self.targetType.name)
+    self:ValidateCache(selector)
+    local origin = GetEntityEyePos(selector.attacker)
+    // go through all static targets, showing range and curr
+    for targetId, range in pairs(self.targetType.entityIdMap) do
+        local target = Shared.GetEntity(targetId)
+        local targetPoint = target:GetEngagementPoint()
+        local range = (origin - targetPoint):GetLength()
+        local inRange = range <= selector.range
+        if full or inRange then
+            local valid = target:GetIsAlive() and target:GetCanTakeDamage()
+            local unfiltered = selector:_ApplyFilters(target, targetPoint)
+            local visible = true
+            if selector.visibilityRequired then
+                local trace = Shared.TraceRay(origin, targetPoint, PhysicsMask.Bullets, EntityFilterOnly(target))
+                visible = trace.entity == target or trace.fraction == 1
+                Server.dbgTracer:TraceTargeting(selector.attacker,target,origin, trace)
+            end
+            local inCache = self.targetIdToRangeMap[targetId] ~= nil
+            local shouldBeInCache = inRange and visible
+            local cacheTxt = (inCache == shouldBeInCache and "") or (string.format(", CACHE %s != shouldBeInCache %s!", ToString(inCache), ToString(shouldBeInCache)))
+            Log("%s: in range %s, valid %s, unfiltered %s, visible %s%s", target, inRange, valid, unfiltered, visible, cacheTxt)
+        end
+    end
+end
+
+/**
+ * Handle mobile targets
+ */
+class 'MobileTargetType' (TargetType)
+
+function MobileTargetType:AttachSelector(selector)
+    // we don't do any caching on a per-selector basis, so just return ourselves
+    return self
+end
+
+
+function MobileTargetType:AddTargetsWithRange(selector, targets)
+    local origin = GetEntityEyePos(selector.attacker)
+    local entityIds = {}
+
+    Shared.GetEntitiesWithinRadius(origin, selector.range, entityIds)
+    for _, id in ipairs(entityIds) do
+        if self.entityIdMap[id] then
+            local target = Shared.GetEntity(id)
+            local targetPoint = target:GetEngagementPoint()
+            local range = (origin - targetPoint):GetLength()             
+            if range <= selector.range and target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, targetPoint) then
+                table.insert(targets, { target, range })
+                // Log("%s: mobile target %s at range %s", selector.attacker, target, range)
+            end
+        end
+    end
+end
+
+function MobileTargetType:AttackerMoved()  
+    // ignore: notings cached here
+end
+
+function MobileTargetType:PossibleTarget(target, origin, range)
+    local r = nil
+    if self.entityIdMap[target:GetId()] then
+        r = (origin - target:GetEngagementPoint()):GetLength()
+    end
+    return r and r <= range
+end
+
+
+function MobileTargetType:Debug(selector, full)
+    // go through all mobile targets, showing range and curr
+    local origin = GetEntityEyePos(selector.attacker)
+    local idsInRadius = { }
+    Shared.GetEntitiesWithinRadius(origin, selector.range, idsInRadius)
+
+    Log("%s : %s entities inside %s range (%s)", self.name, #idsInRadius, selector.range, idsInRadius)
+    
+    for id,_ in pairs(self.entityIdMap) do
+        local target = Shared.GetEntity(id)
+        local targetPoint = target:GetEngagementPoint()
+        local range = (origin - targetPoint):GetLength()      
+        local inRange = range <= selector.range 
+        if full or inRange then
+            local valid = target:GetIsAlive() and target:GetCanTakeDamage()
+            local unfiltered = selector:_ApplyFilters(target, targetPoint)
+            Server.dbgTracer.seeEntityTraceEnabled = true
+            local visible = selector.attacker:GetCanSeeEntity(target)
+            Server.dbgTracer.seeEntityTraceEnabled = false
+            local inRadius = table.contains(idsInRadius, target:GetId())
+            Log("%s, in range %s (%s), in radius %s, valid %s, unfiltered %s, visible %s", target, range, inRange, inRadius, valid, unfiltered, visible)
+        end
+    end
 end
 
 //
-// AcquireTargets with maxTarget set to 1, and returning the selected target
+// Note that we enumerate each individual instantiated class here. Adding new structures means that these must be updated.
 //
-function TargetCache:AcquireTarget(attacker, range, visibilityRequired, mobileListType, staticListType, staticList, staticListVersion, filters, prioritizers)
+/** Static targets for marines */
+kMarineStaticTargets = StaticTargetType():Init( "MarineStatic", { "Hydra", "Cyst", "MiniCyst", "Crag", "Shade", "Harvester", "Hive", "Embryo", "Egg" })
+/** Arc targets are the same + the Whip */
+kMarineARCTargets = StaticTargetType():Init( "MarineArc", { "Hydra", "Cyst", "MiniCyst", "Crag", "Shade", "Harvester", "Hive", "Embryo", "Egg", "Whip" })
+/** Mobile targets for marines */
+kMarineMobileTargets = MobileTargetType():Init( "MarineMobile", { "Skulk", "Lerk", "Fade", "Gorge", "Onos", "Drifter", "Whip" })
+/** Static targets for aliens */
+kAlienStaticTargets = StaticTargetType():Init( "AlienStatic", { "Sentry", "PowerPack", "PowerPoint", "CommandStation", "Extractor", "InfantryPortal", "PhaseGate", "RoboticsFactory", "Observatory", "AdvancedArmory", "ArmsLab", "Armory", })
+/** Mobile targets for aliens */
+kAlienMobileTargets = MobileTargetType():Init( "AlienMobile", { "Marine", "MAC", "ARC" } )
+/** Alien static heal targets */
+kAlienStaticHealTargets = kMarineStaticTargets
+/** Alien mobile heal targets */
+kAlienMobileHealTargets = kMarineMobileTargets
 
-    local result, staticList, staticListVersion = self:AcquireTargets(attacker, 1, range, visibilityRequired, mobileListType, staticListType, staticList, staticListVersion, filters, prioritizers)
+// Used as final step if all other prioritizers fail
+TargetType.kAllPrioritizer = AllPrioritizer()
 
-    if #result > 0 then  
-        return result[1], staticList, staticListVersion
+// List all target class
+TargetType.kAllTargetTypees = {
+    kMarineStaticTargets, 
+    kMarineMobileTargets,
+    kAlienStaticTargets, 
+    kAlienMobileTargets
+}
+
+    
+//
+// called by TargetMixin when targetable units are created or destroyed
+//
+function TargetType.OnDestroyEntity(entity)
+    for _,tc in ipairs(TargetType.kAllTargetTypees) do
+        tc:EntityRemoved(entity)
     end
-
-    return nil, staticList, staticListVersion
-
 end
 
-//
-// Acquire a certain number of targets using filters to reject targets and prioritizers to prioritize them
-//
-// Arguments: See TargetCache:CreateSelector for missing argument descriptions
-// - maxTarget - maximum number of targets to acquire
-// - staticList - the current list of static targets used by the attacker
-// - staticListVersion - the version of the base static target list the staticList is based on
-//
-// Return a tripple:
-// - the chosen target
-// - a list of static targets (the given staticList if version is unchanged, else a new one)
-// - the version of the static list
-//
-function TargetCache:AcquireTargets(attacker, maxTargets, range, visibilityRequired, mobileListType, staticListType, staticList, staticListVersion, filters, prioritizers)
-    PROFILE("TargetCache:AcquireTargets")
-    local targets
-    targets, staticList, staticListVersion = self:_GetRawTargetList(
-            attacker,
-            range, 
-            visibilityRequired,
-            mobileListType, 
-            staticListType, 
-            staticList, 
-            staticListVersion,
-            filters) 
-
-    local traceCount = 0
-    local result = {}
-    local checkedTable = {} // already checked entities
-    local finalRange = nil
-    
-    Server.dbgTracer.seeEntityTraceEnabled = true
-    // go through the prioritizers until we have filled up on targets
-    if prioritizers then 
-        for _, selector in ipairs(prioritizers) do
-            traceCount = traceCount + self:_InsertTargets(result, checkedTable, attacker, selector, targets, maxTargets,visibilityRequired)
-            if #result >= maxTargets then
-                break
-            end
-        end
+function TargetType.OnCreateEntity(entity)
+    for _,tc in ipairs(TargetType.kAllTargetTypees) do
+        tc:EntityAdded(entity)
     end
-    
-    // final run through with an all-selector
-    if #result < maxTargets then
-        traceCount = traceCount + self:_InsertTargets(result, checkedTable, attacker, TargetCache.allPrioritizer, targets, maxTargets,visibilityRequired)
-    end
-    Server.dbgTracer.seeEntityTraceEnabled = false
-    
-    if #result > 0 and self.logTable.detail then
-        local msg = nil
-        for _,target in ipairs(result) do
-            msg = msg and (msg .. ", " .. ToString(target)) or ToString(target)
-        end
-        self.logTarget("%s targets %s", attacker, msg)
-    end
-    
-    self.stats:AcqTarget(attacker, #targets, traceCount)
-    
-    return result,staticList,staticListVersion
 end
+
+
+//
+// ----- TargetSelector - simplifies using the TargetCache. --------------------
+//
+// It wraps the static list handling and remembers how targets are selected so you can acquire and validate
+// targets using the same rules. 
+//
+// After creating a target selector in the initialization of the attacker, you only then need to call the AcquireTarget()
+// to scan for a new target and ValidateTarget(target) to validate it.
+// While the TargetSelector assumes that you don't move, if you do move, you must call AttackerMoved().
+//
+
+class "TargetSelector"
 
 //
 // Setup a target selector.
 //
 // A target selector allows one attacker to acquire and validate targets. 
+//
+// The attacker should stay in place. If the attacker moves, the AttackerMoved() method MUST be called.
 //
 // Arguments: 
 // - attacker - the attacker.
@@ -656,73 +501,35 @@ end
 //
 // - visibilityRequired - true if the target must be visible to the attacker
 //
-// - mobileListType - a TargetCache.kXxxx value indicating the kind of list used for mobile targets
-//
-// - staticListType - a TargetCache.kXxxx value indicating the kind of list used for static targets
+// - targetTypeList - list of targetTypees to use
 //
 // - filters - a list of filter functions (nil ok), used to remove alive and in-range targets. Each filter will
-//             be called with the target and the targeted point on that target. If any filter returnstrue, then the target is inadmissable.
+//             be called with the target and the targeted point on that target. If any filter returns true, then the target is inadmissable.
 //
 // - prioritizers - a list of selector functions, used to prioritize targets. The range-sorted, filtered
 //               list of targets is run through each selector in turn, and if a selector returns true the
-//               target is then checked for visibility, and if seen, that target is selected.
+//               target is then checked for visibility (if visibilityRequired), and if seen, that target is selected.
 //               Finally, after all prioritizers have been run through, the closest visible target is choosen.
 //               A nil prioritizers will default to a single HarmfulPrioritizer
 //
-function TargetCache:CreateSelector(attacker, range, visibilityRequired, mobileListType, staticListType, filters, prioritizers)
-    return TargetSelector():Init(self, attacker, range, visibilityRequired, mobileListType, staticListType, filters, prioritizers)
-end
-
-//
-// ----- TargetSelector - simplifies using the TargetCache. --------------------
-//
-// It wraps the static list handling and remembers how targets are selected so you can acquire and validate
-// targets using the same rules. 
-//
-// After setting up a target selector (preferably using TargetCache:CreateSelector()) in the initialization of
-// the attacker, you only then need to call the AcquireTarget() to scan for a new target and
-// ValidateTarget(target) to validate it.
-//
-
-class "TargetSelector"
-
-//
-// Setup a target selector.AbortResearch
-//
-// A target selector allows one attacker to acquire and validate targets. It wraps the use of the
-// targetCache.
-//
-// Arguments: See TargetCache:CreateSelector for missing argument descriptions
-// - cache - the target cache
-//
-function TargetSelector:Init(cache, attacker, range, visibilityRequired, mobileListType, staticListType, filters, prioritizers)
-    self.cache = cache
+function TargetSelector:Init(attacker, range, visibilityRequired, targetTypeList, filters, prioritizers)
     self.attacker = attacker
     self.range = range
     self.visibilityRequired = visibilityRequired
-    self.mobileListType = mobileListType
-    self.staticListType = staticListType
     self.filters = filters
     self.prioritizers = prioritizers or { HarmfulPrioritizer() }
-    self.staticList = {}
-    self.staticListVersion = -1
+
+    self.targetTypeMap = {}
+    for _, tc in ipairs(targetTypeList) do
+        self.targetTypeMap[tc] = tc:AttachSelector(self)
+    end
+    
+    self.debug = false 
+    // Log("created ts for %s, tcmap %s", attacker, self.targetTypeMap)
+    
     return self
 end
 
-function TargetSelector:AcquireTarget() 
-    local target
-    target, self.staticList, self.staticListVersion = self.cache:AcquireTarget(
-            self.attacker,
-            self.range,
-            self.visibilityRequired, 
-            self.mobileListType, 
-            self.staticListType, 
-            self.staticList, 
-            self.staticListVersion,
-            self.filters,
-            self.prioritizers)
-    return target
-end
 
 
 //
@@ -735,238 +542,209 @@ end
 // Note that no targets can be selected outside the fixed target selector range.
 //
 function TargetSelector:AcquireTargets(maxTargets, rangeOverride, originOverride)
-    local filters = self.filters
+    local savedFilters = self.filters
     if rangeOverride then
-        filters = {}
+        local filters = {}
         if self.filters then
             table.copy(self.filters, filters)
         end
         local origin = originOverride or GetEntityEyePos(self.attacker)
         table.insert(filters, RangeTargetFilter(origin, rangeOverride))
+        self.filters = filters
     end
+
     // 1000 targets should be plenty ...
     maxTargets = maxTargets or 1000
 
-    local targets
-    targets, self.staticList, self.staticListVersion = self.cache:AcquireTargets(
-            self.attacker,
-            maxTargets,
-            self.range,
-            self.visibilityRequired,
-            self.mobileListType, 
-            self.staticListType,
-            self.staticList, 
-            self.staticListVersion,
-            filters,
-            self.prioritizers)
+    local targets = self:_AcquireTargets(maxTargets)
     return targets
 end
 
 //
-// Validate the target. 
-// Returns { validflag, sqRange }
+// Return true if the target is acceptable to all filters
 //
-function TargetSelector:ValidateTarget(target)
-    if target then
-        self.cache:VerifyTargetingListCache()
-        local sqMaxRange = self.range * self.range
-        local origin = GetEntityEyePos(self.attacker)
-        return self.cache:ValidateTarget(self.attacker, origin, sqMaxRange, target, nil, self.filters)
+function TargetSelector:_ApplyFilters(target, targetPoint)
+    //Log("%s: _ApplyFilters on %s, %s", self.attacker, target, targetPoint)
+    if self.filters then
+        for _, filter in ipairs(self.filters) do
+            if not filter(target, targetPoint) then
+                //Log("%s: Reject %s", self.attacker, target)
+                return false
+            end
+            //Log("%s: Accept %s", self.attacker, target)
+        end
     end
-    return false, -1
+    return true
 end
 
-function TargetSelector:HasStaticTargets()
-    self.staticList, self.staticListVersion = self.cache:_GetStaticTargets(
-            self.staticListType, 
-            self.attacker,
-            self.range, 
-            self.visibilityRequired, 
-            self.staticList,
-            self.staticListVersion)
-    return #self.staticList > 0
+//
+// Check if the target is possible. 
+//
+function TargetSelector:_PossibleTarget(target)
+    if target and self.attacker ~= target and target:GetIsAlive() and target:GetCanTakeDamage() then
+        local origin = self.attacker:GetEyePos()
+        
+        local possible = false
+        for tc,tcCache in pairs(self.targetTypeMap) do
+            possible = possible or tcCache:PossibleTarget(target, origin, self.range) 
+        end
+        if possible then
+            local targetPoint = target:GetEngagementPoint()
+            if self:_ApplyFilters(target, targetPoint) then
+                return true
+            end
+        end
+    end            
+    return false
 end
+
+function TargetSelector:ValidateTarget(target)
+    local result = false
+    if target then
+        result = self:_PossibleTarget(target)
+        if result and self.visibilityRequired then
+            Server.dbgTracer.seeEntityTraceEnabled = true
+            result = self.attacker:GetCanSeeEntity(target)
+            Server.dbgTracer.seeEntityTraceEnabled = true
+        end
+        self:Log("validate %s -> %s", target, result)
+    end
+    return result       
+end
+
+
+//
+// AcquireTargets with maxTarget set to 1, and returning the selected target
+//
+function TargetSelector:AcquireTarget()
+    return self:_AcquireTargets(1)[1]
+end
+
+//
+// Acquire a certain number of targets using filters to reject targets and prioritizers to prioritize them
+//
+// Arguments: See TargetCache:CreateSelector for missing argument descriptions
+// - maxTarget - maximum number of targets to acquire
+//
+// Return:
+// - the chosen targets
+//
+function TargetSelector:_AcquireTargets(maxTargets)
+    PROFILE("TargetSelector:_AcquireTargets")
+    local targets = self:_GetRawTargetList() 
+
+    local result = {}
+    local checkedTable = {} // already checked entities
+    local finalRange = nil
+    
+    Server.dbgTracer.seeEntityTraceEnabled = true
+    // go through the prioritizers until we have filled up on targets
+    if self.prioritizers then 
+        for _, prioritizer in ipairs(self.prioritizers) do
+            self:_InsertTargets(result, checkedTable, prioritizer, targets, maxTargets)
+            if #result >= maxTargets then
+                break
+            end
+        end
+    end
+    
+    // final run through with an all-selector
+    if #result < maxTargets then
+        self:_InsertTargets(result, checkedTable, TargetType.kAllPrioritizer, targets, maxTargets)
+    end
+    Server.dbgTracer.seeEntityTraceEnabled = false
+  
+    if self.debug and #result > 0 then
+        Log("%s: found %s targets (%s)", self.attacker, #result, result[1])
+    end
+    return result
+end
+
+
+/**
+ * Return a sorted list of alive and GetCanTakeDamage'able targets, sorted by range. 
+ */
+function TargetSelector:_GetRawTargetList()
+
+    local result = {}
+
+    // get potential targets from all targetTypees
+    for tc,tcCache in pairs(self.targetTypeMap) do
+        tcCache:AddTargetsWithRange(self, result)
+    end
+
+    function sortTargets(eR1, eR2)
+        local ent1, r1 = unpack(eR1)
+        local ent2, r2 = unpack(eR2)
+        if r1 ~= r2 then
+            return r1 < r2
+        end
+        // Make deterministic in case that distances are equal
+        return ent1:GetId() < ent2:GetId()
+    end
+    // sort them closest first
+    table.sort(result,sortTargets)
+    
+    return result
+end 
+
+//
+// Insert valid target into the resultTable until it is full.
+// 
+// Let a selector work on a target list. If a selector selects a target, a trace is made 
+// and if successful, that target and range is inserted in the resultsTable.
+// 
+// Once the results size reaches maxTargets, the method returns. 
+//
+function TargetSelector:_InsertTargets(foundTargetsList, checkedTable, prioritizer, targets, maxTargets)
+    for _, targetAndRange in ipairs(targets) do
+        local target, range = unpack(targetAndRange)
+        // Log("%s: check %s, range %s, ct %s, prio %s", self.attacker, target, range, checkedTable[target], prioritizer(target,range))
+        local include = false
+        if not checkedTable[target] and prioritizer(target, range) then
+            if self.visibilityRequired then 
+                include = self.attacker:GetCanSeeEntity(target) 
+            else
+                include = true
+            end
+            checkedTable[target] = true
+        end            
+        if include then
+            //Log("%s targets %s", self.attacker, target)
+            table.insert(foundTargetsList,target)
+            if #foundTargetsList >= maxTargets then
+                break
+            end
+        end                       
+    end
+end
+
 
 //
 // if the location of the unit doing the target selection changes, its static target list
 // must be invalidated. 
 //
-function TargetSelector:InvalidateStaticCache()
-    self.staticListVersion = -1
+function TargetSelector:AttackerMoved()
+    for tc,tcCache in pairs(self.targetTypeMap) do
+        tcCache:AttackerMoved()
+    end
 end
 
 //
-// ----- TcStats - statistics class section --------------------
+// Dump debugging info for this TargetSelector
 //
-
-class "TcStats"
-
-function TcStats:Init(logger, windowSize)
-    self.log = logger
-    self.windowSize = windowSize
-    self.entityCount = 0
-    self:Reset()
-end
-
-function TcStats:Reset()
-    self.time = Shared.GetTime()
-    self.startTime = Shared.GetTime()
-
-    self.mainListChangeCount = { 0, 0, 0, 0, 0 }
-    self.localListStats = {}
-    self.tickStats = {}
-    self.tick = self:NewTick()
-end
-
-function TcStats:NewTick()
-    return { acqCount = 0, validateCount = 0, rebuildTraceCount = 0,  targetTraceCount = 0, targetCount= 0 }
-end
-
-function TcStats:AcqTarget(attacker, targetCount, traceCount)
-    self.tick.acqCount = self.tick.acqCount + 1
-    self.tick.targetTraceCount = self.tick.targetTraceCount + traceCount
-    self.tick.targetCount = self.tick.targetCount + targetCount
-end
-
-function TcStats:ValidateTarget(attacker, target)
-    self.tick.validateCount = self.tick.validateCount + 1
-    self.tick.targetTraceCount = self.tick.targetTraceCount + 1
-    self.tick.targetCount = self.tick.targetCount + 1
-end
-
-function TcStats:RebuiltStatic(attacker, traceCount, list)
-    self.tick.rebuildTraceCount = self.tick.rebuildTraceCount + 1
-    local key = ToString(attacker)
-    local llStat = self.localListStats[key]
-    if not llStat then
-        llStat ={ rebuildCount = 0, length = 0 }
-        self.localListStats[key] = llStat
-    end
-    llStat.rebuildCount = llStat.rebuildCount + 1
-    llStat.length = #list 
-end
-
-function TcStats:UseStatic(attacker, list)
-    local key = ToString(attacker)
-    local llStat = self.localListStats[key]
-    if not llStat then
-        llStat ={ rebuildCount = 0, length = 0 }
-        self.localListStats[key] = llStat
-    end
-    llStat.length = #list     
-end
-
-
-
-function TcStats:ChangeMainList(listIndex)
-     self.mainListChangeCount[listIndex] = self.mainListChangeCount[listIndex] + 1
-end
-
-
-//
-// analyze statistics and dump them
-// We show how much work we did per tick
-//
-function TcStats:LogStats()
-    // first dump the total stats to the session
-    // length of each main list
-    // number of times each main list has changed 
-    // number of local static lists
-    // distribution of their lengths
-    // how many times the local lists have been rebuilt
-    // number of traces used to rebuild static lists
-    // number of traces used to acquire targets
-    // number of target acquistions made
-    // 
-    local tc = Server.targetCache
-    local nameCount = nil
-    for i,name in ipairs(TargetCache.kTargetListNamesShort) do
-        local tmp = name .. ":" .. #tc.targetListCache[i] .. "[" .. self.mainListChangeCount[i] .. "]"
-        nameCount = nameCount and nameCount .. ", " .. tmp or tmp 
-    end
-    self.log("TcStats %s:%s", string.format("%.2f(%.2f)", Shared.GetTime(), (Shared.GetTime() - self.startTime)), nameCount)
-    
-    local maxLen, totalLen, totalRebuilds, numLocals, counts = 0, 0, 0, 0, {}
-    for id, llstat in pairs(self.localListStats) do
-        totalLen = totalLen + llstat.length
-        totalRebuilds = totalRebuilds + llstat.rebuildCount
-        self:Inc(counts, "key-" .. llstat.length)     
-        maxLen = math.max(maxLen, llstat.length)
-        numLocals = numLocals + 1
-    end
-    local distrib = nil
-    for i = 0, maxLen do
-        local count = counts["key-" .. i]
-        if count then 
-            local tmp = i .. ":" .. count
-            distrib = (distrib and (distrib .. ", " .. tmp)) or tmp
-        end
-    end
-    self.log("    - Local: count %s, total len %s, rebuilds %s, distrib: %s" , numLocals, totalLen, totalRebuilds, distrib)
-    
-    // work distribution over ticks
-    local bucketSize = 5
-    local workTable = {}
-    local maxSlot = 0
-    local totalRebuildTraceCount, totalTargetTraceCount, totalTargetCount = 0,0,0
-    for i, tick in ipairs(self.tickStats) do
-        // slot 1 == 0, slot 2 == 1-5 etc
-        local slot = 1 + math.floor((tick.acqCount + bucketSize -1)/ bucketSize)
-        self:Inc(workTable, slot)
-        //Shared.Message("inc " .. slot .. " to " .. workTable[slot] .. ", acq " .. tick.acqCount)
-        maxSlot = math.max(maxSlot, slot)
-
-        totalRebuildTraceCount = totalRebuildTraceCount + tick.rebuildTraceCount
-        totalTargetTraceCount = totalTargetTraceCount + tick.targetTraceCount
-        totalTargetCount = totalTargetCount + tick.targetCount
-    end
-    
-    // total work
-    self.log("    - Traces: %s rebuild, %s targeting. Total targets checked: %s", totalRebuildTraceCount, totalTargetTraceCount, totalTargetCount)
-
-    // work distribution over ticks
-    local workMsg = string.format("0:%d", workTable[1] or 0)
-    for i = 2, maxSlot do
-        local count = workTable[i]
-        if count then
-            local tmp = ( 1 + (i-2) * bucketSize) .. "-" .. ((i-1)*bucketSize) .. ":" .. count
-            workMsg = (workMsg and (workMsg .. ", " .. tmp)) or tmp
-        end
-    end
-    self.log("    - Work (target acq, bucketsize %d): %s", bucketSize, workMsg) 
-end
-
-function TcStats:CheckTickTime()
-    if self.gameStarted then
-        local now = Shared.GetTime()
-        if now ~= self.time then
-            if now - self.startTime > self.windowSize then
-                self:LogStats()
-                self:Reset()
-            end
-            table.insert(self.tickStats, self.tick)
-            self.tick = self:NewTick()
-            self.time = now
-        end
-    end
-    if GetGamerules():GetGameStarted() ~= self.gameStarted then
-        self.gameStarted = GetGamerules():GetGameStarted()
-        self:Reset()
+function TargetSelector:Debug(cmd)
+    local full = cmd == "full" // list all possible targets, even those out of range
+    self.debug = cmd == "log" and not self.debug or self.debug // toggle logging for this selector only
+    Log("%s : target debug (full=%s, log=%s)", self.attacker, full, self.debug)
+    for tc,tcCache in pairs(self.targetTypeMap) do
+        tcCache:Debug(self, full)
     end
 end
 
-function TcStats:Add(tab, key, amount)
-    amount = amount or 1
-    tab[key] = (tab[key] and tab[key] + amount) or amount
+function TargetSelector:Log(formatString, ...)
+    if self.debug then
+        formatString = "%s: " .. formatString
+        Log(formatString, self.attacker, ...)
+    end
 end
-
-function TcStats:Inc(tab, key)
-    self:Add(tab, key, 1)
-end
-
-function OnUpdateServer()
-    Server.targetCache.stats:CheckTickTime()
-end
-
-Event.Hook("UpdateServer", OnUpdateServer)
-

@@ -143,13 +143,12 @@ function Sentry:OnInit()
     
     if Server then 
         // configure how targets are selected and validated
-        self.targetSelector = Server.targetCache:CreateSelector(
+        self.targetSelector = TargetSelector():Init(
             self,
             Sentry.kRange, 
             true,
-            TargetCache.kMmtl, 
-            TargetCache.kMstl, 
-            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakCamoTargetFilter() })
+            { kMarineStaticTargets, kMarineMobileTargets },
+            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter() })
     end
 end
 

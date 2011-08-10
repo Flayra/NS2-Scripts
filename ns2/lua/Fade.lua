@@ -5,6 +5,13 @@
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com) and
 //                  Max McGuire (max@unknownworlds.com)
 //
+// Role: Surgical striker, harassment
+//
+// The Fade should be a fragile, deadly-sharp knife. Wielded properly, it's force is undeniable. But
+// used clumsily or without care will only hurt the user. Make sure Fade isn't better than the Skulk 
+// in every way (notably, vs. Structures). To harass, he must be able to stay out in the field
+// without continually healing at base, and needs to be able to use blink often.
+//
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Utility.lua")
 Script.Load("lua/Weapons/Alien/SwipeBlink.lua")
@@ -39,7 +46,7 @@ Fade.kJumpHeight = 1
 Fade.kMaxSpeed = 6.5
 Fade.kStabSpeed = .5
 Fade.kEtherealSpeed = 20
-Fade.kEtherealAcceleration = 50
+Fade.kEtherealAcceleration = 60
 
 if(Server) then
     Script.Load("lua/Fade_Server.lua")

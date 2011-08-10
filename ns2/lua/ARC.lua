@@ -12,6 +12,7 @@
 Script.Load("lua/LiveScriptActor.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/TargetMixin.lua")
 
 class 'ARC' (LiveScriptActor)
 
@@ -69,6 +70,9 @@ function ARC:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    if Server then
+        InitMixin(self, TargetMixin)
+    end
     
     // Create the controller for doing collision detection.
     self:CreateController(PhysicsGroup.CommanderUnitGroup)
@@ -83,12 +87,11 @@ function ARC:OnInit()
     self:SetModel(ARC.kModelName)
     
     if Server then
-        self.targetSelector = Server.targetCache:CreateSelector(
+        self.targetSelector = TargetSelector():Init(
                 self,
                 ARC.kFireRange,
                 false, 
-                TargetCache.kMstl, 
-                TargetCache.kMmtl,
+                { kMarineStaticTargets, kMarineMobileTargets },
                 { self.FilterTarget(self) })
                 
         self:SetPhysicsType(Actor.PhysicsType.Kinematic)
@@ -118,6 +121,18 @@ end
 
 function ARC:GetDeathIconIndex()
     return kDeathMessageIcon.ARC
+end
+
+
+/**
+ * Put the eye up 1 m.
+ */
+function ARC:GetViewOffset()
+    return self:GetCoords().yAxis * 1.0
+end
+
+function ARC:GetEyePos()
+    return self:GetOrigin() + self:GetViewOffset()
 end
 
 function ARC:PerformActivation(techId, position, normal, commander)
@@ -215,7 +230,8 @@ function ARC:GetEffectParams(tableParams)
 end
 
 function ARC:FilterTarget()
-  return function (target, targetPosition, attacker) return attacker:GetCanFireAtTarget(target, targetPosition) end
+    local attacker = self
+    return function (target, targetPosition) return attacker:GetCanFireAtTarget(target, targetPosition) end
 end
 
 function ARC:GetCanFireAtTarget(target, targetPoint)    

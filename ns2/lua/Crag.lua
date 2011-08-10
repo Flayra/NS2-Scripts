@@ -28,8 +28,8 @@ Crag.kHealAmount = 10
 Crag.kMaxTargets = 3
 Crag.kThinkInterval = .25
 Crag.kHealInterval = 2.0
-Crag.kUmbraDuration = 8
-Crag.kUmbraRadius = 5
+Crag.kUmbraDuration = 12
+Crag.kUmbraRadius = 10
 
 // Umbra blocks 1 out of this many bullet
 Crag.kUmbraBulletChance = 2
@@ -203,12 +203,11 @@ function Crag:OnInit()
     Structure.OnInit(self) 
 
     if Server then 
-        self.targetSelector = Server.targetCache:CreateSelector(
+        self.targetSelector = TargetSelector():Init(
                 self,
                 Crag.kHealRadius, 
                 false, // we heal targets we don't have a los to
-                TargetCache.kMmtl, // yea, we heal what the marines wants to hurt
-                TargetCache.kAshtl,// marine static targets + infestations
+                { kAlienStaticHealTargets, kAlienMobileHealTargets },
                 { HealableTargetFilter() }, // filter away unhurt targets
                 { IsaPrioritizer("Player") }) // and prioritize players
     end

@@ -550,8 +550,7 @@ function PlayingTeam:ComputeLOS()
     
     // Get list of entities that can see (players and AI builder units). Do it this
     // way to avoid unnecessarily iterating over all the entities in the world.
-    local seeingUnits = {}
-    local entities = {}
+    local seeingUnits = {}    
     local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
     local enemyEnts = GetEntitiesForTeam("ScriptActor", enemyTeamNumber)
     for index, unit in ipairs(enemyEnts) do
@@ -595,10 +594,11 @@ function PlayingTeam:ComputeLOS()
             maxDistance = Scan.kScanDistance
        else       
             maxDistance = PlayingTeam.kUnitMaxLOSDistance
-       end     
+       end
+      local entities = {}    
       Shared.GetEntitiesWithinRadius(seeingUnit:GetOrigin(), maxDistance, entities)
       for entIndex, entityId in ipairs(entities) do      
-        local entity = Shared.GetEntity(entityId)       
+        local entity = Shared.GetEntity(entityId)         
         if (entity ~= nil and entity:GetTeamNumber() == enemyTeamNumber) then            
             entity.sighted = false 
             local distance = seeingUnit:GetDistanceXZ(entity) 

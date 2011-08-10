@@ -10,6 +10,7 @@
 Script.Load("lua/Balance.lua")
 Script.Load("lua/LiveScriptActor.lua")
 Script.Load("lua/CloakableMixin.lua")
+Script.Load("lua/TargetMixin.lua")
 
 class 'Structure' (LiveScriptActor)
 
@@ -71,6 +72,9 @@ function Structure:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, CloakableMixin)
+    if Server then
+        InitMixin(self, TargetMixin)
+    end
     
     self:SetLagCompensated(true)
     

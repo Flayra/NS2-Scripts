@@ -333,10 +333,10 @@ kSporesDamageType = kDamageType.Gas
 kSporesFireDelay = 0.8
 kSporesEnergyCost = 20
 
-kSwipeDamage = 85
+kSwipeDamage = 70
 kSwipeDamageType = kDamageType.Puncture
-kSwipeFireDelay = 0.75
-kSwipeEnergyCost = 14
+kSwipeFireDelay = 0.65
+kSwipeEnergyCost = 7
 
 kStabDamage = 160
 kStabDamageType = kDamageType.Puncture
