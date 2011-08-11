@@ -1206,39 +1206,20 @@ function Player:UpdateViewAngles(input)
 
     PROFILE("Player:UpdateViewAngles")
     
-    if(self.desiredPitch ~= nil or self.desiredRoll ~= nil) then
+    if (self.desiredRoll ~= 0) then
     
+        local angles = Angles(self:GetAngles())        
         local kRate = input.time * 10
-    
-        local angles = Angles(self:GetAngles())
-        
-        if(self.desiredRoll ~= nil) then
-            angles.roll = SlerpRadians(angles.roll, self.desiredRoll, kRate)
-            self:SetAngles(angles)
-        end
-        
-        local viewAngles = Angles(input.pitch, input.yaw, 0)
-        
-        /*
-        if(self.desiredRoll ~= nil) then
-            viewAngles.roll = SlerpRadians(viewAngles.roll, 0 + self.desiredRoll, kRate)
-        end
-        
-        if(self.desiredPitch ~= nil) then
-            viewAngles.pitch = SlerpRadians(viewAngles.pitch, input.pitch + self.desiredPitch, kRate)
-        end
-        */
-                
-        self:SetViewAngles(viewAngles)
+        angles.roll = SlerpRadians(angles.roll, self.desiredRoll, kRate)
+       
+        self:SetAngles(angles)
 
-    else
-    
-        // Update to the current view angles.    
-        local viewAngles = Angles(input.pitch, input.yaw, 0)
-        self:SetViewAngles(viewAngles)
+    end
         
-    end    
-    
+    // Update to the current view angles.    
+    local viewAngles = Angles(input.pitch, input.yaw, 0)
+    self:SetViewAngles(viewAngles)
+        
     // Update view offset from crouching
     local viewY = self:GetMaxViewOffsetHeight()
     viewY = viewY - viewY * self:GetCrouchShrinkAmount() * self:GetCrouchAmount()

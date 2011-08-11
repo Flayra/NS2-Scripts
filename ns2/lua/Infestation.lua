@@ -41,6 +41,8 @@ local networkVars =
 
 function Infestation:OnCreate()
 
+    InitMixin(self, PathingMixin)
+
     LiveScriptActor.OnCreate(self)
     
     self.health = Infestation.kInitialHealth
@@ -74,16 +76,14 @@ function Infestation:OnCreate()
         self.lastUpdateThinkTime = 0
     end
     
-    self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)
-    
+    self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)    
 end
 
 function Infestation:SetGrowthRateScalar(scalar)
     self.growthRateScalar = scalar
 end
 
-function Infestation:OnDestroy()
-
+function Infestation:OnDestroy()    
     LiveScriptActor.OnDestroy(self)
 
     if Client then
@@ -93,6 +93,7 @@ function Infestation:OnDestroy()
         Server.infestationMap:RemoveInfestation(self)
     end
 
+   // self:ClearPathingFlags(Pathing.PolyFlag_Infestation)
 end
 
 function Infestation:OnInit()
@@ -105,8 +106,7 @@ function Infestation:OnInit()
         self:TriggerEffects("spawn")
     end
     
-    self:SetNextThink(0.01)
-    
+    self:SetNextThink(0.01)        
 end
 
 function Infestation:GetRadius()
@@ -114,7 +114,7 @@ function Infestation:GetRadius()
 end
 
 function Infestation:SetMaxRadius(radius)
-    self.maxRadius = radius
+    self.maxRadius = radius        
 end
 
 function Infestation:GetMaxRadius()
@@ -148,7 +148,8 @@ function Infestation:OnThink()
     if self.radius ~= self.maxRadius then
         LiveScriptActor.OnUpdate(self, deltaTime)
         self:SetNextThink(0.01) // update on every tick while we are changing the radius
-        self.lastThinkTime = now
+        self.lastThinkTime = now 
+        self:SetPathingFlags(Pathing.PolyFlag_Infestation)     
     else
         LiveScriptActor.OnThink(self)
         // avoid clumping and vary the thinkTime individually for each infestation patch (with 0-100ms)
@@ -184,6 +185,10 @@ function Infestation:GetIsPointOnInfestation(point)
     
     return onInfestation
    
+end
+
+function Infestation:GetPathingFlagOverride(position, extents, flags)
+    return position, Vector(self.radius, Infestation.kDecalVerticalSize, self.radius), flags
 end
 
 if Client then

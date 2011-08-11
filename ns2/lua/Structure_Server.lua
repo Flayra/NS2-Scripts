@@ -316,10 +316,6 @@ function Structure:Replace(className)
 
 end
 
-function Structure:GetAddToPathing()
-  return true
-end
-
 function Structure:OnInit()    
 
     InitMixin(self, EnergyMixin)
@@ -376,10 +372,6 @@ function Structure:OnInit()
     end
     
     self:SetPhysicsGroup(PhysicsGroup.StructuresGroup)
-    if (self:GetAddToPathing()) then
-      self:AddToMesh()     
-    end
-    
 end
 
 /**
@@ -461,25 +453,6 @@ function Structure:OnDestroy()
     self:RemoveFromMesh()
     
     LiveScriptActor.OnDestroy(self)
-    
-end
-
-function Structure:OnKill(damage, killer, doer, point, direction)
-
-    if(self:GetIsAlive()) then
-    
-        self.buildTime = 0
-        self.buildFraction = 0
-        self.constructionComplete = false
-    
-        self:SetIsAlive(false)
-   
-        self:ClearAttached()
-        self:AbortResearch()
-        
-        LiveScriptActor.OnKill(self, damage, killer, doer, point, direction)
-        
-    end
     
 end
 

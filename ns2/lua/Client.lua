@@ -217,7 +217,11 @@ function OnMapLoadEntity(className, groupName, values)
     elseif (className == "pathing_settings") then
         ParsePathingSettings(values)
     else
-        
+        // $AS FIXME: We are special caasing techPoints for pathing right now :/ 
+        if (className == "tech_point") then
+            local coords = values.angles:GetCoords(values.origin)
+            Pathing.CreatePathingObject(TechPoint.kModelName, coords)
+        end
         // Allow the MapEntityLoader to load it if all else fails.
         LoadMapEntity(className, groupName, values)
         

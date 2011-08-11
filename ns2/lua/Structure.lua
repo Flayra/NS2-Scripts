@@ -72,6 +72,8 @@ function Structure:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, CloakableMixin)
+    InitMixin(self, PathingMixin)
+    
     if Server then
         InitMixin(self, TargetMixin)
     end
@@ -87,7 +89,36 @@ function Structure:OnCreate()
     
     self.timeWarmupComplete = 0
 
+    if (self:GetAddToPathing()) then
+      self:AddToMesh()     
+    end
+    
+    self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
 end
+
+function Structure:OnKill(damage, killer, doer, point, direction)
+if Server then
+    if(self:GetIsAlive()) then
+    
+        self.buildTime = 0
+        self.buildFraction = 0
+        self.constructionComplete = false
+    
+        self:SetIsAlive(false)
+   
+        self:ClearAttached()
+        self:AbortResearch()        
+    end        
+end
+
+    self:ClearPathingFlags(Pathing.PolyFlag_NoBuild)
+    LiveScriptActor.OnKill(self, damage, killer, doer, point, direction)    
+end
+
+function Structure:GetAddToPathing()
+  return true
+end
+
 
 /**
  * The eye position for a structure is where it "sees" other entities from for

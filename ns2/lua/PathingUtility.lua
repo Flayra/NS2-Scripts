@@ -11,6 +11,13 @@
 Script.Load("lua/Table.lua")
 Script.Load("lua/Utility.lua")
 
+// Script based pathing flags
+
+kLastFlag = Pathing.PolyFlag_Infestation
+
+Pathing.PolyFlag_Infestation =  bit.lshift(Pathing.PolyFlag_NoBuild, 2)
+
+
 // Global Pathing Options
 local gPathingOptions = {}
 

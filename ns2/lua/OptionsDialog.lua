@@ -147,6 +147,15 @@ function OptionsDialogUI_SetMusicVolume(volume)
     Client.SetMusicVolume( volume / 100 )
 end
 
+function OptionsDialogUI_SetVoiceVolume(volume)
+    Client.SetOptionInteger( kVoiceVolumeOptionsKey, volume )
+    Client.SetVoiceVolume( volume / 100 )
+end
+
+function OptionsDialogUI_GetVoiceVolume()
+    return Client.GetOptionInteger( kVoiceVolumeOptionsKey, 90 )
+end
+
 
 /**
  * Get all the values from the form

@@ -188,7 +188,7 @@ function PathingMixin:_GetPathingInfo()
   end
   
   if (self.GetPathingInfoOverride) then
-    self.GetPathingInfoOverride(position, radius, height)
+    self:GetPathingInfoOverride(position, radius, height)
   end
   
   return position, radius, 1000
@@ -343,25 +343,38 @@ end
 function PathingMixin:SetPathingFlags(flags)
   local model = Shared.GetModel(self.modelIndex) 
   local extents = nil
+  local position = self:GetOrigin()
   
   if (model ~= nil) then
     local min, max = model:GetExtents()
     extents = max
   end
+  
+  if (self.GetPathingFlagOverride) then
+    position, extents, flags = self:GetPathingFlagOverride(position, extents, flags)
+  end
+  
   if (extents ~= nil) then
-    Pathing.SetPolyFlags(self:GetOrigin(), extents, flags)
+    Pathing.SetPolyFlags(position, extents, flags)
   end  
 end
 
 function PathingMixin:ClearPathingFlags(flags)
   local model = Shared.GetModel(self.modelIndex) 
   local extents = nil
+  local position = self:GetOrigin()
+
   
   if (model ~= nil) then
     local min, max = model:GetExtents()
     extents = max
   end
+  
+  if (self.GetPathingFlagOverride) then
+    position, extents, flags = self.GetPathingFlagOverride(position, extents, flags)
+  end
+  
   if (extents ~= nil) then
-    Pathing.ClearPolyFlags(self:GetOrigin(), extents, flags)
+    Pathing.ClearPolyFlags(position, extents, flags)
   end  
 end

@@ -58,13 +58,17 @@ local function LoadLight(className, groupName, values)
     local renderLight = Client.CreateRenderLight()
     local coords = values.angles:GetCoords(values.origin)
     
+    if values.specular == nil then
+        values.specular = true
+    end        
+    
     if className == "light_spot" then
     
         renderLight:SetType(RenderLight.Type_Spot)
         renderLight:SetOuterCone(values.outerAngle)
         renderLight:SetInnerCone(values.innerAngle)
         renderLight:SetCastsShadows(values.casts_shadows)
-        renderLight:SetSpecular(values.specular or true)
+        renderLight:SetSpecular(values.specular)
         
         if values.shadow_fade_rate ~= nil then
             renderLight:SetShadowFadeRate(values.shadow_fade_rate)
@@ -74,7 +78,7 @@ local function LoadLight(className, groupName, values)
     
         renderLight:SetType(RenderLight.Type_Point)
         renderLight:SetCastsShadows(values.casts_shadows)
-        renderLight:SetSpecular(values.specular or true)
+        renderLight:SetSpecular(values.specular)
 
         if values.shadow_fade_rate ~= nil then
             renderLight:SetShadowFadeRate(values.shadow_fade_rate)

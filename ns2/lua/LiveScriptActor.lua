@@ -77,7 +77,6 @@ function LiveScriptActor:OnInit()
     InitMixin(self, LiveMixin, { kHealth = LiveScriptActor.kHealth, kArmor = LiveScriptActor.kArmor })
     InitMixin(self, OrdersMixin, { kMoveToDistance = LiveScriptActor.kMoveToDistance })
     InitMixin(self, FireMixin)
-    InitMixin(self, PathingMixin)
     
     ScriptActor.OnInit(self)
     

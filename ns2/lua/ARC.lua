@@ -70,6 +70,8 @@ function ARC:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, PathingMixin)
+    
     if Server then
         InitMixin(self, TargetMixin)
     end

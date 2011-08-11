@@ -123,7 +123,7 @@ end
  */
 function TargetType:EntityAdded(entity)
     if self:ContainsType(entity) and not self.entityIdMap[entity:GetId()] then
-        Log("%s: added %s", self.name, entity) 
+//        Log("%s: added %s", self.name, entity) 
         self.entityIdMap[entity:GetId()] = true
         self:OnEntityAdded(entity)
     end
@@ -142,7 +142,7 @@ end
 function TargetType:EntityRemoved(entity)
     if entity and self.entityIdMap[entity:GetId()] then
         self.entityIdMap[entity:GetId()] = nil
-        Log("%s: removed %s", self.name, entity) 
+  //      Log("%s: removed %s", self.name, entity) 
         self:OnEntityRemoved(entity)    
     end
 end
@@ -306,7 +306,7 @@ function StaticTargetCache:MaybeAddTarget(target, origin)
             if (self.selector.visibilityRequired) then
                 // trace as a bullet, but ignore everything but the target.
                 local trace = Shared.TraceRay(origin, targetPoint, PhysicsMask.Bullets, EntityFilterOnly(target))
-                self:Log("f %s, e %s", trace.fraction, trace.entity)       
+//                self:Log("f %s, e %s", trace.fraction, trace.entity)       
                 visible = trace.entity == target or trace.fraction == 1
                 if visible and trace.entity == target then
                     range = range * trace.fraction
@@ -318,12 +318,12 @@ function StaticTargetCache:MaybeAddTarget(target, origin)
     if inRange and visible then 
         // save the target and the range to it
         self.targetIdToRangeMap[target:GetId()] = range
-        self:Log("%s added at range %s", target, range)
+//        self:Log("%s added at range %s", target, range)
     else
         if not rightType then
-            self:Log("%s rejected, wrong type", target) 
+  //          self:Log("%s rejected, wrong type", target) 
         else
-            self:Log("%s rejected, range %s, inRange %s, visible %s", target, range, inRange, visible)
+    //        self:Log("%s rejected, range %s, inRange %s, visible %s", target, range, inRange, visible)
         end
     end  
 end
@@ -335,7 +335,7 @@ function StaticTargetCache:MaybeAddTargets(origin, targetList)
 end
 
 function StaticTargetCache:Debug(selector, full)
-    Log("%s :", self.targetType.name)
+//    Log("%s :", self.targetType.name)
     self:ValidateCache(selector)
     local origin = GetEntityEyePos(selector.attacker)
     // go through all static targets, showing range and curr
@@ -356,7 +356,7 @@ function StaticTargetCache:Debug(selector, full)
             local inCache = self.targetIdToRangeMap[targetId] ~= nil
             local shouldBeInCache = inRange and visible
             local cacheTxt = (inCache == shouldBeInCache and "") or (string.format(", CACHE %s != shouldBeInCache %s!", ToString(inCache), ToString(shouldBeInCache)))
-            Log("%s: in range %s, valid %s, unfiltered %s, visible %s%s", target, inRange, valid, unfiltered, visible, cacheTxt)
+//            Log("%s: in range %s, valid %s, unfiltered %s, visible %s%s", target, inRange, valid, unfiltered, visible, cacheTxt)
         end
     end
 end
@@ -607,7 +607,7 @@ function TargetSelector:ValidateTarget(target)
             result = self.attacker:GetCanSeeEntity(target)
             Server.dbgTracer.seeEntityTraceEnabled = true
         end
-        self:Log("validate %s -> %s", target, result)
+//        self:Log("validate %s -> %s", target, result)
     end
     return result       
 end

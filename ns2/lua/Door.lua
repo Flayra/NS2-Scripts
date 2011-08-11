@@ -57,9 +57,9 @@ local networkVars   = {
 }
 
 function Door:OnInit()
-
+      
     LiveScriptActor.OnInit(self)
-    
+       
     if (Server) then
     
         self:SetModel(Door.kModelName)  
@@ -98,8 +98,14 @@ function Door:OnInit()
     
     self:SetIsAlive(true)
     
-    self:SetState(Door.kState.Closed)   
+    self:SetState(Door.kState.Closed)    
+end
 
+function Door:OnCreate()
+    LiveScriptActor.OnCreate(self)
+    
+    InitMixin(self, PathingMixin) 
+    self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
 end
 
 // Only hackable by marine commander

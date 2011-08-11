@@ -182,6 +182,14 @@ function OnCommandSetMusicVolume(volume)
     end
 end
 
+function OnCommandSetVoiceVolume(volume)
+    if(volume == nil) then
+        Print("Voice volume is (0-100): %s",  OptionsDialogUI_GetVoiceVolume())
+    else
+        OptionsDialogUI_SetVoiceVolume( tonumber(volume) )
+    end
+end
+
 function OnCommandSetMouseSensitivity(sensitivity)
     if(sensitivity == nil) then
         Print("Mouse sensitivity is (0-100): %s",  OptionsDialogUI_GetMouseSensitivity())
@@ -251,6 +259,8 @@ Event.Hook("Console_setsoundvolume",            OnCommandSetSoundVolume)
 // Just a shortcut.
 Event.Hook("Console_ssv",                       OnCommandSetSoundVolume)
 Event.Hook("Console_setmusicvolume",            OnCommandSetMusicVolume)
+Event.Hook("Console_setvoicevolume",            OnCommandSetVoiceVolume)
+Event.Hook("Console_setvv",                     OnCommandSetVoiceVolume)
 Event.Hook("Console_setsensitivity",            OnCommandSetMouseSensitivity)
 
 Client.HookNetworkMessage("Ping",               OnCommandPing)
