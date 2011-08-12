@@ -26,7 +26,15 @@ Spikes.kZoomedSensScalar = 0.25
 Spikes.kSpikeEnergy = kSpikeEnergyCost
 Spikes.kSnipeEnergy = kSpikesAltEnergyCost
 Spikes.kSnipeDamage = kSpikesAltDamage
-Spikes.kSpread2Degrees = Vector( 0.01745, 0.01745, 0.01745 )
+Spikes.kRange = kSpikeMinDamageRange
+Spikes.kMinDamageRange = kSpikeMaxDamageRange
+Spikes.kMaxDamageRange = kSpikeMinDamageRange
+Spikes.kSpread = Math.Radians(6)
+Spikes.kNumSpikesOnSecondary = 5
+
+// Does full damage up close then falls off over the max distance
+Spikes.kMaxDamage = kSpikeMaxDamage
+Spikes.kMinDamage = kSpikeMinDamage
 
 local networkVars =
 {
@@ -95,77 +103,85 @@ function Spikes:PerformPrimaryAttack(player)
     // Alternate view model animation to fire left then right
     self.fireLeftNext = not self.fireLeftNext
 
+    /*
     if not self.zoomedIn then
+    */
     
-        self:FireSpikeProjectile(player)        
-        
+        self:FireSpike(player)        
+
+    /*        
     else
     
         // Snipe them!
         self:PerformZoomedAttack(player)
         
     end
+    */
 
     player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
     
     return true
 end
 
-function Spikes:FireSpikeProjectile(player)
+function Spikes:FireSpike(player)
 
-    // On server, create projectile
-    if(Server) then
+    local viewAngles = player:GetViewAngles()
+    local viewCoords = viewAngles:GetCoords()
     
-        // trace using view coords, but back off the given distance to make sure we don't miss any walls
-        local backOffDist = 0.5
-        // fire from one meter in front of the lerk, to avoid the lerk flying into his own projectils (the projectile
-        // will only start moving on the NEXT tick, and the lerk might be updated before the projectile. considering that
-        // a lerk has a topspeed of 5-10m/sec, and a slow server update might be 100ms, you are looking at a lerk movement
-        // per tick of 0.5-1m ... 1m should be good enough.
-        local firePointOffs = 1.0
-        // seems to be a bug in trace; make sure any entity indicate as hit are inside this range. 
-        local maxTraceLen = backOffDist + firePointOffs
+    local startPoint = player:GetEyePos()
         
-        local viewCoords = player:GetViewAngles():GetCoords()
-        local alternate = (self.fireLeftNext and -.1) or .1
-        local firePoint = player:GetEyePos() + viewCoords.zAxis * firePointOffs - viewCoords.yAxis * .1 + viewCoords.xAxis * alternate
-        
-        // To avoid the lerk butting his face against a wall and shooting blindly, trace and move back the firepoint
-        // if hitting a wall
-        local startTracePoint = player:GetEyePos() - viewCoords.zAxis * backOffDist + viewCoords.xAxis * alternate
-        local trace = Shared.TraceRay(startTracePoint, firePoint, PhysicsMask.Bullets, EntityFilterOne(player))
-        if trace.fraction ~= 1 and (trace.entity == nil or (trace.entity:GetOrigin() - startTracePoint):GetLength() < maxTraceLen) then
-            local offset = math.max(backOffDist, trace.fraction * maxTraceLen)
-            firePoint = startTracePoint + (viewCoords.zAxis * offset)
-        end
-        
-        local spike = CreateEntity(Spike.kMapName, firePoint, player:GetTeamNumber())
-        
-        // Add slight randomness to start direction. Gaussian distribution.
-        local x = (NetworkRandom() - .5) + (NetworkRandom() - .5)
-        local y = (NetworkRandom() - .5) + (NetworkRandom() - .5)
-        
-        local spread = Spikes.kSpread2Degrees 
-        local direction = viewCoords.zAxis + x * spread.x * viewCoords.xAxis + y * spread.y * viewCoords.yAxis
-
-        spike:SetVelocity(direction * 20)
-        
-        spike:SetOrientationFromVelocity()
-        
-        spike:SetGravityEnabled(true)
-        
-        // Set spike parent to player so we don't collide with ourselves and so we
-        // can attribute a kill to us
-        spike:SetOwner(player)
-        
-        spike:SetIsVisible(true)
-        
-        spike:SetUpdates(true)
-        
-        spike:SetDeathIconIndex(self:GetDeathIconIndex())
-                
+    // Filter ourself out of the trace so that we don't hit ourselves.
+    local filter = EntityFilterTwo(player, self)
+       
+    if Client then
+        DbgTracer.MarkClientFire(player, startPoint)
     end
+    
+    // Calculate spread for each shot, in case they differ    
+    local randomAngle  = NetworkRandom() * math.pi * 2
+    local randomRadius = NetworkRandom() * NetworkRandom() * math.tan(Spikes.kSpread)    
+    local fireDirection = viewCoords.zAxis + (viewCoords.xAxis * math.cos(randomAngle) + viewCoords.yAxis * math.sin(randomAngle)) * randomRadius
+    fireDirection:Normalize()
+   
+    local endPoint = startPoint + fireDirection * Spikes.kRange    
+    local trace = Shared.TraceRay(startPoint, endPoint, PhysicsMask.Bullets, filter)
+    
+    if Server then
+        Server.dbgTracer:TraceBullet(player, startPoint, trace)  
+    end
+    
+    if trace.fraction < 1 and trace.entity then
+    
+        if trace.entity:isa("LiveScriptActor") and Server and GetGamerules():CanEntityDoDamageTo(self, trace.entity) then
+        
+            // Do max damage for short time and then fall off over time to encourage close quarters combat instead of 
+            // hanging back and sniping
+            local damageScalar = ConditionalValue(player:GetHasUpgrade(kTechId.Piercing), kPiercingDamageScalar, 1)
+            local distToTarget = (trace.endPoint - startPoint):GetLength()
+            
+            // Have damage increase to reward close combat
+            local damageDistScalar = Clamp(1 - (distToTarget / Spikes.kRange), 0, 1)
+            local damage = Spikes.kMinDamage + damageDistScalar * (Spikes.kMaxDamage - Spikes.kMinDamage)            
+            local direction = (trace.endPoint - startPoint):GetUnit()
+            trace.entity:TakeDamage(damage * damageScalar, player, self, self:GetOrigin(), direction)
+            
+        end
 
+
+        // If we are far away from our target, trigger a private sound so we can hear we hit something
+        if (trace.endPoint - player:GetOrigin()):GetLength() > 5 then
+            
+            player:TriggerEffects("hit_effect_local", {surface = trace.surface})
+            
+        end
+            
+    end
+    
+    // Play hit effects on ground, on target or in the air if it missed
+    local impactPoint = trace.endPoint
+    local surfaceName = trace.surface
+    TriggerHitEffects(self, trace.entity, impactPoint, surfaceName)
+    
 end
 
 function Spikes:PerformZoomedAttack(player)
@@ -199,8 +215,6 @@ function Spikes:PerformZoomedAttack(player)
     
     player:SetActivityEnd(player:AdjustFuryFireDelay(Spikes.kSnipeDelay))
     
-    
-    
 end
 
 function Spikes:SetZoomState(player, zoomedIn)
@@ -227,8 +241,13 @@ function Spikes:PerformSecondaryAttack(player)
 
     if(player:GetCanNewActivityStart()) then
     
-        self:SetZoomState(player, not self.zoomedIn)
-                
+        //self:SetZoomState(player, not self.zoomedIn)
+        
+        // Fire a burst of bullets
+        for index = 1, Spikes.kNumSpikesOnSecondary do
+            self:FireSpike(player)        
+        end
+    
         player:SetActivityEnd(player:AdjustFuryFireDelay(Spikes.kZoomDelay))
         
         return true
@@ -276,7 +295,7 @@ function Spikes:GetSecondaryAttackRequiresPress()
 end
 
 function Spikes:GetSecondaryEnergyCost(player)
-    return 0
+    return kSpikesAltEnergyCost
 end
 
 function Spikes:GetEffectParams(tableParams)

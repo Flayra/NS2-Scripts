@@ -581,7 +581,7 @@ end
 // Check if the target is possible. 
 //
 function TargetSelector:_PossibleTarget(target)
-    if target and self.attacker ~= target and target:GetIsAlive() and target:GetCanTakeDamage() then
+    if target and self.attacker ~= target and (target.GetIsAlive and target:GetIsAlive()) and target:GetCanTakeDamage() then
         local origin = self.attacker:GetEyePos()
         
         local possible = false

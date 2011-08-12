@@ -316,22 +316,27 @@ kBileBombDamageType = kDamageType.StructuresOnly
 kBileBombFireDelay = 1
 kBileBombEnergyCost = 15
 
-kSpikeMaxDamage = 30
-kSpikeMinDamage = 8
+kSpikeMaxDamage = 24
+kSpikeMinDamage = 20
 kSpikeDamageType = kDamageType.Light
-kSpikeFireDelay = 0.1
+kSpikeFireDelay = 0.08
 kSpikeEnergyCost = 1.5
+kSpikeMinDamageRange = 16
+kSpikeMaxDamageRange = 2
 kPiercingDamageScalar = 1.4
 
 kSpikesAltDamage = 90
-kSpikesAltDamageType = kDamageType.Normal
-kSpikesAltFireDelay = 1
-kSpikesAltEnergyCost = 30
+kSpikesAltDamageType = kDamageType.Heavy
+kSpikesAltFireDelay = 0.5
+kSpikesAltEnergyCost = 25
 
 kSporesDamagePerSecond = 7
 kSporesDamageType = kDamageType.Gas
-kSporesFireDelay = 0.8
-kSporesEnergyCost = 20
+kSporesDustDamagePerSecond = 18
+kSporesDustFireDelay = 0.18
+kSporesCloudFireDelay = 0.8
+kSporesDustEnergyCost = 7
+kSporesCloudEnergyCost = 20
 
 kSwipeDamage = 70
 kSwipeDamageType = kDamageType.Puncture
@@ -367,9 +372,6 @@ kDrifterAttackFireDelay = 0.6
 kMelee1DamageScalar = 1.1
 kMelee2DamageScalar = 1.2
 kMelee3DamageScalar = 1.3
-
-
-
 
 
 
@@ -537,7 +539,7 @@ kMetabolizeCost = 25
 
 kObservatoryInitialEnergy = 25  kObservatoryMaxEnergy = 100
 kObservatoryScanCost = 20  
-kObservatoryDistressBeaconCost = 50
+kObservatoryDistressBeaconCost = 50  
 
 kDrifterCost = 30  
 

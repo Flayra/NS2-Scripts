@@ -21,8 +21,28 @@ kClientEffectData =
             
             // Destroy it if not spinning
             {stop_cinematic = "cinematics/marine/infantryportal/spin.cinematic", classname = "InfantryPortal", active = false, done = true},
+            
+            // Create dust trail (alt-mode true for alt-fire spore cloud, false for trail)
+            {cinematic = "cinematics/alien/lerk/spore_trail.cinematic", classname = "SporeCloud", alt_mode = false, done = true},
+            
+            // Fire spore cloud
+            {sound = "sound/ns2.fev/alien/lerk/spores_hit", classname = "SporeCloud", alt_mode = true},
+            {cinematic = "cinematics/alien/lerk/spore_impact.cinematic", classname = "SporeCloud", alt_mode = true, done = true},
         },
     },  
+    
+    on_destroy =
+    {
+        destroyEffects = 
+        {
+            // Dust trail
+            {stop_cinematic = "cinematics/alien/lerk/spore_trail.cinematic", classname = "SporeCloud", alt_mode = false, done = true},
+            
+            // Spore cloud
+            {stop_cinematic = "cinematics/alien/lerk/spore_impact.cinematic", classname = "SporeCloud", alt_mode = true, done = true},
+
+        },
+    },
 
     // Called on client only, whenever the "active" state of a structure is changed (currently only the IP)
     client_active_changed =
@@ -52,6 +72,23 @@ kClientEffectData =
             {stop_cinematic = "cinematics/alien/metabolize_small.cinematic", cloaked = false, done = true},
         },
     },
+    
+    /*
+    client_spore_trail_create =
+    {
+        sporeCloudEffects =
+        {
+            {cinematic = "cinematics/alien/lerk/spore_trail.cinematic"},
+        }
+    },
+    
+    client_spore_trail_destroy =
+    {
+        sporeCloudEffects =
+        {
+            {stop_cinematic = "cinematics/alien/lerk/spore_trail.cinematic"},
+        }
+    },*/
 
 }
 

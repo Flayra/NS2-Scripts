@@ -13,14 +13,17 @@ class 'SporeCloud' (ScriptActor)
 SporeCloud.kMapName = "sporecloud"
 
 // Damage per think interval (from NS1)
-SporeCloud.kThinkInterval = .5  // From NS1
-SporeCloud.kDamage = kSporesDamagePerSecond * SporeCloud.kThinkInterval
-SporeCloud.kDamageRadius = 3    // 5.7 in NS1
-SporeCloud.kLifetime = 6.0      // From NS1
+SporeCloud.kThinkInterval = .25  // .5 in NS1, reducing to make sure sprinting machines take damage
 
 // Keep table of entities that have been hurt by spores to make
 // spores non-stackable. List of {entityId, time} pairs.
 gHurtBySpores = {}
+
+SporeCloud.networkVars =
+{
+    radius = "float",
+    altMode = "boolean",
+}
 
 function GetEntityRecentlyHurt(entityId, time)
 
@@ -57,8 +60,8 @@ end
 // Have damage radius grow to maximum non-instantly
 function SporeCloud:GetDamageRadius()
     
-    local scalar = Clamp(((Shared.GetTime() - self.createTime) / SporeCloud.kLifetime) * 12, 0, 1)
-    return scalar * SporeCloud.kDamageRadius
+    local scalar = Clamp((Shared.GetTime() - self.createTime) * 3, 0, 1)
+    return scalar * self.radius
     
 end
 
@@ -84,7 +87,7 @@ function SporeCloud:OnThink()
                 local trace = Shared.TraceRay(self:GetOrigin(), targetPosition, PhysicsMask.Bullets, filterNonDoors)
                 if trace.fraction == 1.0 or trace.entity == entity then
                 
-                    entity:TakeDamage(SporeCloud.kDamage, self:GetOwner(), self)
+                    entity:TakeDamage(self.damage * SporeCloud.kThinkInterval, self:GetOwner(), self)
                     
                     // Spores can't hurt this entity for SporeCloud.kThinkInterval
                     SetEntityRecentlyHurt(entity:GetId())
@@ -97,7 +100,7 @@ function SporeCloud:OnThink()
         
     end
     
-    if Shared.GetTime() > (self.createTime + SporeCloud.kLifetime) then
+    if Shared.GetTime() > (self.createTime + self.lifetime) then
         DestroyEntity(self)        
     else
         self:SetNextThink(SporeCloud.kThinkInterval)
@@ -109,19 +112,32 @@ function SporeCloud:OnInit()
 
     ScriptActor.OnInit(self)
     
-    self:SetUpdates(true)
-
     if Server then
         self:SetNextThink(SporeCloud.kThinkInterval)
     end
     
     /* For debugging damage radius */    
-    /*if Client then
+    /*
+    if Client then
         self:SetUpdates(true)
-    end*/
+    end
+    */
     
     self.createTime = Shared.GetTime()
+    self.altMode = false
     
+end
+
+function SporeCloud:SetLifetime(lifetime)
+    self.lifetime = lifetime
+end
+
+function SporeCloud:SetDamage(damage)
+    self.damage = damage
+end
+
+function SporeCloud:SetRadius(radius)
+    self.radius = radius
 end
 
 /* For debugging damage radius */       
@@ -131,7 +147,19 @@ function SporeCloud:OnUpdate(deltaTime)
         local damageRadius = self:GetDamageRadius()
         DebugCapsule(self:GetOrigin(), self:GetOrigin(), damageRadius, 0, deltaTime)
     end
-end
-*/
+end*/
 
-Shared.LinkClassToMap("SporeCloud", SporeCloud.kMapName, {} )
+function SporeCloud:GetEffectParams(tableParams)
+
+    ScriptActor.GetEffectParams(self, tableParams)
+
+    tableParams[kEffectFilterInAltMode] = self.altMode
+        
+end
+
+// Used on client to play effects for either dust cloud or regular cloud
+function SporeCloud:SetAltMode(altMode)
+    self.altMode = altMode
+end
+
+Shared.LinkClassToMap("SporeCloud", SporeCloud.kMapName, SporeCloud.networkVars )

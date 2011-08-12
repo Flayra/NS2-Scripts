@@ -13,10 +13,6 @@ class 'Spike' (Projectile)
 Spike.kMapName            = "spike"
 Spike.kModelName          = PrecacheAsset("models/alien/lerk/lerk_view_spike.model")
 
-// Does full damage up close then falls off over time 
-Spike.kMaxDamage             = kSpikeMaxDamage
-Spike.kMinDamage             = kSpikeMinDamage
-
 // Seconds
 Spike.kDamageFalloffInterval = 1
 

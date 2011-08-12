@@ -232,6 +232,15 @@ function Team:PlayPrivateTeamSound(soundName, origin, commandersOnly, excludePla
     
 end
 
+function Team:TriggerEffects(eventName)
+
+    local function TriggerEffects(player)
+        player:TriggerEffects(eventName)
+    end
+    
+    self:ForEachPlayer(TriggerEffects)
+end
+
 function Team:SetFrozenState(state)
 
     local function SetFrozen(player)
