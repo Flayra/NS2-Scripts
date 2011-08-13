@@ -117,16 +117,60 @@ function TargetType:Init(name, classList)
     return self
 end
 
+// GetEngagementPoint is incredibly costly, as it needs traverse the model to find the
+// current "target" attachement point. For most entities, the engagementpoint is fixed 
+// most of the time (players can change it by crounching), so we cache it for the purpose
+// of targeting.
+
+function EngagementPointCache(entity)
+    local offset = nil
+    return function() 
+        if not offset then 
+            offset = entity:GetEngagementPoint() - entity:GetOrigin() 
+        end
+        return entity:GetOrigin() + offset
+    end 
+end
+
+function PlayerEngagmentPointCache(player)
+    local offset = nil
+    return function()
+        // wait to store the offset until the player isn't crouching
+        if not offset and not player:GetCrouching() then
+            offset = player:GetEngagementPoint() - player:GetOrigin()
+        end
+        if not offset then
+            return player:GetEngagementPoint()
+        end
+        return player:GetOrigin() + offset * (player:GetCrouching() and player:GetCrouchAmount() or 1)
+    end
+end
+
+
 
 /**
  * Notification that a new entity id has been added
  */
 function TargetType:EntityAdded(entity)
-    if self:ContainsType(entity) and not self.entityIdMap[entity:GetId()] then
-//        Log("%s: added %s", self.name, entity) 
-        self.entityIdMap[entity:GetId()] = true
-        self:OnEntityAdded(entity)
+    if self:ContainsType(entity) then
+        if not self.entityIdMap[entity:GetId()] then
+            Log("%s: added %s", self.name, entity) 
+            self.entityIdMap[entity:GetId()] = entity:isa("Player") and PlayerEngagmentPointCache(entity) or EngagementPointCache(entity) 
+            self:OnEntityAdded(entity)
+        else
+            Log("%s: already added %s", self.name, entity)
+        end
     end
+end
+
+function TargetType:GetEngagementPoint(entity)
+    PROFILE("TargetType:GetEngagementPoint")
+    local fun = self.entityIdMap[entity:GetId()]
+    if not fun then
+        Log("Unable to find %s in %s?", entity,self.name)
+        return entity:GetEngagementPoint() 
+    end 
+    return fun()
 end
 
 /**
@@ -145,6 +189,20 @@ function TargetType:EntityRemoved(entity)
   //      Log("%s: removed %s", self.name, entity) 
         self:OnEntityRemoved(entity)    
     end
+end
+
+function TargetType:GetEntityIdsInRange(origin, range)
+    PROFILE("TargetType:GetEntityIdsInRange")
+    local entityIds = {}
+    Shared.GetEntitiesWithinRadius(origin, range, entityIds)
+    // clean out stuff not belong to us
+    local result = {}
+    for _,id in ipairs(entityIds) do
+        if self.entityIdMap[id] then
+            table.insert(result, id)
+        end
+    end
+    return result
 end
 
 
@@ -246,8 +304,7 @@ function StaticTargetCache:ValidateCache()
     if not self.targetIdToRangeMap then 
         self.targetIdToRangeMap = {}
         local origin = self.selector.attacker:GetEyePos()
-        entityIds = {}
-        Shared.GetEntitiesWithinRadius(origin, self.selector.range, entityIds)
+        local entityIds = selt.targetType:GetEntityIdsInRange(origin, self.selector.range)
         self:MaybeAddTargets(origin, entityIds)
     end
     // add in any added entities. Need to do it with a delay
@@ -267,7 +324,7 @@ function StaticTargetCache:AddTargetsWithRange(selector, targets)
     for targetId, range in pairs(self.targetIdToRangeMap) do
         local target = Shared.GetEntity(targetId)
         
-        if target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, target:GetEngagementPoint()) then
+        if target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, self.targetType:GetEngagementPoint(target)) then
             table.insert(targets, {target, range})
             //Log("%s: static target %s at range %s", selector.attacker, target, range)
         end
@@ -288,8 +345,11 @@ end
  */
 function StaticTargetCache:PossibleTarget(target, origin, range)
     self:ValidateCache()
-    local r = self.targetIdToRangeMap[target:GetId()]
-    return r and r <= range
+    local range = self.targetIdToRangeMap[target:GetId()]
+    if range then
+        return range, self.targetType:GetEngagementPoint(target)
+    end
+    return false, nil
 end
 
 function StaticTargetCache:MaybeAddTarget(target, origin)
@@ -298,7 +358,7 @@ function StaticTargetCache:MaybeAddTarget(target, origin)
     local range = -1
     local rightType = self.targetType.entityIdMap[target:GetId()]
     if rightType then
-        local targetPoint = target:GetEngagementPoint()
+        local targetPoint = self.targetType:GetEngagementPoint(target)
         range = (origin - targetPoint):GetLength()
         inRange = range <= self.selector.range
         if inRange then
@@ -335,15 +395,18 @@ function StaticTargetCache:MaybeAddTargets(origin, targetList)
 end
 
 function StaticTargetCache:Debug(selector, full)
-//    Log("%s :", self.targetType.name)
+
     self:ValidateCache(selector)
     local origin = GetEntityEyePos(selector.attacker)
+    local targetIds = self.targetType:GetEntityIdsInRange(origin, selector.range)
+    Log("%s: %s targets in range %s (%s)", self.targetType.name, #targetIds, selector.range, targetIds )
     // go through all static targets, showing range and curr
-    for targetId, range in pairs(self.targetType.entityIdMap) do
+    for targetId,_ in pairs(self.targetType.entityIdMap) do
         local target = Shared.GetEntity(targetId)
-        local targetPoint = target:GetEngagementPoint()
+        local targetPoint = self.targetType:GetEngagementPoint(target)
         local range = (origin - targetPoint):GetLength()
         local inRange = range <= selector.range
+        local inRadius = table.contains(targetIds, targetId)
         if full or inRange then
             local valid = target:GetIsAlive() and target:GetCanTakeDamage()
             local unfiltered = selector:_ApplyFilters(target, targetPoint)
@@ -356,7 +419,7 @@ function StaticTargetCache:Debug(selector, full)
             local inCache = self.targetIdToRangeMap[targetId] ~= nil
             local shouldBeInCache = inRange and visible
             local cacheTxt = (inCache == shouldBeInCache and "") or (string.format(", CACHE %s != shouldBeInCache %s!", ToString(inCache), ToString(shouldBeInCache)))
-//            Log("%s: in range %s, valid %s, unfiltered %s, visible %s%s", target, inRange, valid, unfiltered, visible, cacheTxt)
+            Log("%s: in range %s(%s), inRadius %s, valid %s, unfiltered %s, visible %s%s", target, inRange, range, inRadius, valid, unfiltered, visible, cacheTxt)
         end
     end
 end
@@ -372,20 +435,19 @@ function MobileTargetType:AttachSelector(selector)
 end
 
 
-function MobileTargetType:AddTargetsWithRange(selector, targets)
-    local origin = GetEntityEyePos(selector.attacker)
-    local entityIds = {}
 
-    Shared.GetEntitiesWithinRadius(origin, selector.range, entityIds)
+function MobileTargetType:AddTargetsWithRange(selector, targets)
+    PROFILE("MobileTargetType:AddTargetsWithRange")
+    local origin = GetEntityEyePos(selector.attacker)
+    local entityIds = self:GetEntityIdsInRange(origin, selector.range)
+
     for _, id in ipairs(entityIds) do
-        if self.entityIdMap[id] then
-            local target = Shared.GetEntity(id)
-            local targetPoint = target:GetEngagementPoint()
-            local range = (origin - targetPoint):GetLength()             
-            if range <= selector.range and target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, targetPoint) then
-                table.insert(targets, { target, range })
-                // Log("%s: mobile target %s at range %s", selector.attacker, target, range)
-            end
+        local target = Shared.GetEntity(id)
+        local targetPoint = self:GetEngagementPoint(target)
+        local range = (origin - targetPoint):GetLength()             
+        if range <= selector.range and target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, targetPoint) then
+            table.insert(targets, { target, range })
+            // Log("%s: mobile target %s at range %s", selector.attacker, target, range)
         end
     end
 end
@@ -395,25 +457,23 @@ function MobileTargetType:AttackerMoved()
 end
 
 function MobileTargetType:PossibleTarget(target, origin, range)
-    local r = nil
+    local range, targetPoint = nil, nil
     if self.entityIdMap[target:GetId()] then
-        r = (origin - target:GetEngagementPoint()):GetLength()
+        targetPoint = self:GetEngagementPoint(target)
+        range = (origin - targetPoint):GetLength()
     end
-    return r and r <= range
+    return range and range <= range, targetPoint
 end
 
 
 function MobileTargetType:Debug(selector, full)
     // go through all mobile targets, showing range and curr
     local origin = GetEntityEyePos(selector.attacker)
-    local idsInRadius = { }
-    Shared.GetEntitiesWithinRadius(origin, selector.range, idsInRadius)
-
+    local idsInRadius = self:GetEntityIdsInRange(origin, selector.range)
     Log("%s : %s entities inside %s range (%s)", self.name, #idsInRadius, selector.range, idsInRadius)
-    
     for id,_ in pairs(self.entityIdMap) do
         local target = Shared.GetEntity(id)
-        local targetPoint = target:GetEngagementPoint()
+        local targetPoint = self:GetEngagementPoint(target)
         local range = (origin - targetPoint):GetLength()      
         local inRange = range <= selector.range 
         if full or inRange then
@@ -422,7 +482,7 @@ function MobileTargetType:Debug(selector, full)
             Server.dbgTracer.seeEntityTraceEnabled = true
             local visible = selector.attacker:GetCanSeeEntity(target)
             Server.dbgTracer.seeEntityTraceEnabled = false
-            local inRadius = table.contains(idsInRadius, target:GetId())
+            local inRadius = table.contains(idsInRadius, id)
             Log("%s, in range %s (%s), in radius %s, valid %s, unfiltered %s, visible %s", target, range, inRange, inRadius, valid, unfiltered, visible)
         end
     end
@@ -564,6 +624,7 @@ end
 // Return true if the target is acceptable to all filters
 //
 function TargetSelector:_ApplyFilters(target, targetPoint)
+    PROFILE("TargetSelector:_ApplyFilters")
     //Log("%s: _ApplyFilters on %s, %s", self.attacker, target, targetPoint)
     if self.filters then
         for _, filter in ipairs(self.filters) do
@@ -584,24 +645,24 @@ function TargetSelector:_PossibleTarget(target)
     if target and self.attacker ~= target and (target.GetIsAlive and target:GetIsAlive()) and target:GetCanTakeDamage() then
         local origin = self.attacker:GetEyePos()
         
-        local possible = false
+        local possible, targetPoint = false, nil
         for tc,tcCache in pairs(self.targetTypeMap) do
-            possible = possible or tcCache:PossibleTarget(target, origin, self.range) 
-        end
-        if possible then
-            local targetPoint = target:GetEngagementPoint()
-            if self:_ApplyFilters(target, targetPoint) then
-                return true
+            possible, targetPoint = tcCache:PossibleTarget(target, origin, self.range)
+            if possible then
+                if self:_ApplyFilters(target, targetPoint) then
+                    return true, targetPoint
+                end
+                return false, nil
             end
         end
     end            
-    return false
+    return false, nil
 end
 
 function TargetSelector:ValidateTarget(target)
-    local result = false
+    local result,targetPoint = false, nil
     if target then
-        result = self:_PossibleTarget(target)
+        result, targetPoint = self:_PossibleTarget(target)
         if result and self.visibilityRequired then
             Server.dbgTracer.seeEntityTraceEnabled = true
             result = self.attacker:GetCanSeeEntity(target)
