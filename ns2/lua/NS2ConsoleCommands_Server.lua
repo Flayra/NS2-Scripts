@@ -777,10 +777,9 @@ function OnCommandTarget(client, cmd)
 end
 
 /**
- * Show debug info for the closest entity that has a self.targetSelector
+ * Show los-debug info for the closest entity that has a self.losSelector
  */
 function OnCommandLos(client, cmd)
-
     if client ~= nil and (Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
         local player = client:GetControllingPlayer()
         local origin = player:GetOrigin()
@@ -800,8 +799,8 @@ function OnCommandLos(client, cmd)
     end
 end
 
-// toggle the los-calcualtions in order to see how much they actually cost
-function OnCommandStopLos(client, cmd)
+// toggle the los-calculations in order to see how much they actually cost
+function OnCommandStopLosCalc(client, cmd)
     if Shared.GetCheatsEnabled() or Shared.GetDevMode() then
         LosSightedMixin.stopLosCalc = not LosSightedMixin.stopLosCalc
         Log("stopLosCalc = %s", LosSightedMixin.stopLosCalc)
@@ -879,6 +878,6 @@ Event.Hook("Console_setgameeffect",         OnCommandSetGameEffect)
 Event.Hook("Console_eject",                 OnCommandEject)
 Event.Hook("Console_cyst",                  OnCommandCyst)
 Event.Hook("Console_target",                OnCommandTarget)
-Event.Hook("Console_los2",                   OnCommandLos)
-Event.Hook("Console_stoplos",               OnCommandStopLos)
+Event.Hook("Console_los",                   OnCommandLos)
+Event.Hook("Console_stoploscalc",           OnCommandStopLosCalc)
 

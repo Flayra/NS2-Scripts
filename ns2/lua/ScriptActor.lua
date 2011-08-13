@@ -148,7 +148,8 @@ function ScriptActor:OnInit()
 
 end
 
-// override to emaböe automatic line-of-sighted updates
+// Controls mixing in of LosSightedMixin. Means that the sighted status of this entity 
+// will be controlled by the LosSightedMixin.
 function ScriptActor:CanBeSighted()
     return false
 end

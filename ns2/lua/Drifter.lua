@@ -106,7 +106,6 @@ function Drifter:OnInit()
         
 end
 
-// override to emaböe automatic line-of-sighted updates
 function Drifter:CanBeSighted()
     return true
 end
