@@ -106,6 +106,11 @@ function Drifter:OnInit()
         
 end
 
+// override to emaböe automatic line-of-sighted updates
+function Drifter:CanBeSighted()
+    return true
+end
+
 // Required by ControllerMixin.
 function Drifter:GetControllerSize()
     return Drifter.kCapsuleHeight, Drifter.kCapsuleRadius

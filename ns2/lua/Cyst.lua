@@ -125,6 +125,10 @@ end
 function Cyst:OnIdle()
 end
 
+function Cyst:GetViewOffset()
+    return self:GetCoords().yAxis * 0.4
+end
+
 function _DebugTrack(points, dur, r, g, b, a, force)
     if force then
         local prevP = nil
@@ -205,10 +209,6 @@ end
 function Cyst:GetCystParentRange()
     return Cyst.kCystParentRange
 end
-
-function Cyst:GetInfestation()
-    return Shared.GetEntity(self.infestationId)
-end        
 
 /**
  * Note: On the server side, used GetIsActuallyConnected()!

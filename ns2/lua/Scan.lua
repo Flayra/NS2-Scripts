@@ -18,6 +18,8 @@ Scan.kScanEffect = PrecacheAsset("cinematics/marine/observatory/scan.cinematic")
 
 Scan.kScanDistance = kScanRadius
 
+kScanEffectInterval = 0.2
+
 function Scan:OnInit()
 
     Structure.OnInit(self)
@@ -37,13 +39,24 @@ function Scan:OnInit()
     
     self:SetIsVisible(false)
     
-    self:SetNextThink(kScanDuration)
+    self:SetNextThink(kScanEffectInterval)
     
+    self.endOfLifeTime = Shared.GetTime() + kScanDuration
 end
 
 function Scan:OnThink()
+
     if (Server) then
-        DestroyEntity(self)
+        for _, target in ipairs(GetEntitiesForTeamWithinRange("ScriptActor", kAlienTeamType, self:GetOrigin(), Scan.kScanDistance)) do
+            if target.OnScan then
+                target:OnScan()
+            end
+            target:SetSighted(true)
+        end
+        self:SetNextThink(kScanEffectInterval)
+        if Shared.GetTime() >= self.endOfLifeTime then
+            DestroyEntity(self)
+        end
     end
 end
 

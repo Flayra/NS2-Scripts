@@ -427,6 +427,10 @@ function Player:OnEntityChange(oldEntityId, newEntityId)
 
 end
 
+function Player:CanBeSighted()
+    return true
+end
+
 /**
  * Returns text describing the current status of the Player. Returns nil
  * as the second parameter as this is used as a progress indicator for

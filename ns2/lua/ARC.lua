@@ -106,6 +106,12 @@ function ARC:OnInit()
     self:SetUpdates(true)
 end
 
+// override to emaböe automatic line-of-sighted updates
+function ARC:CanBeSighted()
+    return true
+end
+
+
 // Required by ControllerMixin.
 function ARC:GetControllerSize()
     return ARC.kCapsuleHeight, ARC.kCapsuleRadius

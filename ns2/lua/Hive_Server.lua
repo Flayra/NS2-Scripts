@@ -332,3 +332,12 @@ function Hive:AddChildCyst(child)
     self.cystChildren["" .. child:GetId()] = child:GetId()
 end
 
+function Hive:SetSighted(sighted)
+    CommandStructure.SetSighted(self, sighted)
+    // propagate our sighedness to our infestation
+    local infest = self:GetInfestation()
+    if infest then 
+        infest:SetSighted(sighted)
+    end
+end
+    

@@ -776,6 +776,38 @@ function OnCommandTarget(client, cmd)
     end
 end
 
+/**
+ * Show debug info for the closest entity that has a self.targetSelector
+ */
+function OnCommandLos(client, cmd)
+
+    if client ~= nil and (Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
+        local player = client:GetControllingPlayer()
+        local origin = player:GetOrigin()
+        local entities = GetEntitiesWithinRange("ScriptActor", origin, 5)
+        local sel, selRange = nil,nil
+        for _, entity in ipairs(entities) do
+            if entity ~= player and entity.losSelector then
+                local r = (origin - entity:GetOrigin()):GetLength()
+                if not sel or r < selRange then
+                    sel,selRange = entity,r
+                end
+            end
+        end
+        if sel then                    
+            sel.losSelector:Debug(cmd)
+        end
+    end
+end
+
+// toggle the los-calcualtions in order to see how much they actually cost
+function OnCommandStopLos(client, cmd)
+    if Shared.GetCheatsEnabled() or Shared.GetDevMode() then
+        LosSightedMixin.stopLosCalc = not LosSightedMixin.stopLosCalc
+        Log("stopLosCalc = %s", LosSightedMixin.stopLosCalc)
+    end
+end
+
 // GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
 
@@ -847,3 +879,6 @@ Event.Hook("Console_setgameeffect",         OnCommandSetGameEffect)
 Event.Hook("Console_eject",                 OnCommandEject)
 Event.Hook("Console_cyst",                  OnCommandCyst)
 Event.Hook("Console_target",                OnCommandTarget)
+Event.Hook("Console_los2",                   OnCommandLos)
+Event.Hook("Console_stoplos",               OnCommandStopLos)
+

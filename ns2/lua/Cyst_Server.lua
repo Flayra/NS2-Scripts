@@ -4,7 +4,7 @@
 //
 // Created by Mats Olsson (mats.olsson@matsotech.se) and 
 // Charlie Cleveland (charlie@unknownworlds.com)
-// 
+//
 // Copyright (c) 2011, Unknown Worlds Entertainment, Inc.
 //
 //============================================================================
@@ -313,4 +313,11 @@ function CreateCyst(player, targetPoint, normal, createMini)
     
 end
 
-
+function Cyst:SetSighted(sighted)
+    Structure.SetSighted(self, sighted)
+    // propagate our sighedness to our infestation
+    local infest = self:GetInfestation()
+    if infest then 
+        infest:SetSighted(sighted)
+    end
+end

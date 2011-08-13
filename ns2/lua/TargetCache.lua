@@ -52,12 +52,6 @@ function PitchTargetFilter(attacker, minPitchDegree, maxPitchDegree)
     end
 end
 
-function CloakTargetFilter()
-    return  function(target, targetPoint)
-                return not HasMixin(target, "Cloakable") or not target:GetIsCloaked()
-            end
-end 
-
 //
 // Only lets through damaged targets
 //
@@ -286,16 +280,17 @@ function StaticTargetCache:OnEntityRemoved(entity)
 end
 
 function StaticTargetCache:ValidateCache()
+    local origin = GetEntityEyePos(self.selector.attacker)
     if not self.targetIdToRangeMap then 
         self.targetIdToRangeMap = {}
-        local origin = self.selector.attacker:GetEyePos()
+
         local entityIds = self.targetType:GetEntityIdsInRange(origin, self.selector.range)
         self:MaybeAddTargets(origin, entityIds)
     end
     // add in any added entities. Need to do it with a delay
     // because when an entity is added, it isn't fully initialized
     if #self.addedEntityIds > 0 then
-        self:MaybeAddTargets(self.selector.attacker:GetEyePos(), self.addedEntityIds)
+        self:MaybeAddTargets(origin, self.addedEntityIds)
         self.addedEntityIds = {}
     end
 end
@@ -312,6 +307,18 @@ function StaticTargetCache:AddTargetsWithRange(selector, targets)
         if target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, self.targetType:GetEngagementPoint(target)) then
             table.insert(targets, {target, range})
             //Log("%s: static target %s at range %s", selector.attacker, target, range)
+        end
+    end
+end
+
+function StaticTargetCache:CheckIfSighted(selector)
+    PROFILE("StaticTargetCache:CheckIfSighted")
+    self:ValidateCache(selector)
+    local origin = GetEntityEyePos(selector.attacker)
+    for targetId, range in pairs(self.targetIdToRangeMap) do
+        local target = Shared.GetEntity(targetId)
+        if selector:CanBeSeenBy(origin, target) then
+            return true
         end
     end
 end
@@ -433,6 +440,20 @@ function MobileTargetType:AddTargetsWithRange(selector, targets)
         if range <= selector.range and target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, targetPoint) then
             table.insert(targets, { target, range })
             // Log("%s: mobile target %s at range %s", selector.attacker, target, range)
+        end
+    end
+end
+
+function MobileTargetType:CheckIfSighted(selector)
+    PROFILE(" MobileTargetType:CheckIfSighted")
+    // go through all mobile targets inside the mobile max range 
+    // for LOS, we always check eye-to-eye
+    local origin = GetEntityEyePos(selector.attacker)
+    local entityIds = self:GetEntityIdsInRange(origin, LosSelector.kMobileMaxRange)
+    for _, id in ipairs(entityIds) do
+        local target = Shared.GetEntity(id) 
+        if selector:CanBeSeenBy(origin, target) then
+            return true
         end
     end
 end
@@ -561,6 +582,7 @@ function TargetSelector:Init(attacker, range, visibilityRequired, targetTypeList
     self.attacker = attacker
     self.range = range
     self.visibilityRequired = visibilityRequired
+    self.targetTypeList = targetTypeList
     self.filters = filters
     self.prioritizers = prioritizers or { HarmfulPrioritizer() }
 
@@ -628,7 +650,7 @@ end
 //
 function TargetSelector:_PossibleTarget(target)
     if target and self.attacker ~= target and (target.GetIsAlive and target:GetIsAlive()) and target:GetCanTakeDamage() then
-        local origin = self.attacker:GetEyePos()
+        local origin = GetEntityEyePos(self.attacker)
         
         local possible, targetPoint = false, nil
         for tc,tcCache in pairs(self.targetTypeMap) do
@@ -793,4 +815,99 @@ function TargetSelector:Log(formatString, ...)
         formatString = "%s: " .. formatString
         Log(formatString, self.attacker, ...)
     end
+end
+
+/**
+ * The Los selector is by units that can be seen by other units. 
+ * Units that can be sighted defines a LosSelector through the LosSelMixin.
+ * At regular intervals, they try to see if anything can see them. 
+ */
+class "LosSelector" (TargetSelector)
+
+function LosSelector:Init(attacker, targetTypeList)
+    TargetSelector.Init(self, attacker, LosSelector.kMobileMaxRange, true, targetTypeList, nil, nil)
+    return self
+end
+
+/**
+ * Return true if we are sighted by anyone. 
+ */
+function LosSelector:CheckIfSighted()
+
+    // loop over the type list just in case one of the types are cheaper than the other
+    // to check (static are cheaper than mobile!)
+    for _,tc in ipairs(self.targetTypeList) do
+        if self.targetTypeMap[tc]:CheckIfSighted(self) then
+            // Log("%s c if s -> true (by %s)", self.attacker, tc.name)
+            return true
+        end
+    end
+    return false
+end
+
+LosSelector.kMobileMaxRange = 30
+
+// this is something that should be present in the seeingEntity (LosGiverMixin?)
+
+function LosSelector:GetDetectionRange(entity)
+    return entity:isa("PowerPoint") and 3 or entity:isa("Structure") and 10 or 30
+end
+
+function LosSelector:GetIgnoreFovRange(entity)
+    return entity:isa("PowerPoint") and 3 or entity:isa("Structure") and 10 or 5
+end
+
+function LosSelector:InFov(seeingEntity) 
+    local eyePos = GetEntityEyePos(seeingEntity)
+    local origin = self.attacker:GetOrigin()
+    local toEntity = origin - eyePos
+    toEntity:Normalize()
+    local seeingEntityAngles = GetEntityViewAngles(seeingEntity)
+    local normViewVec = seeingEntityAngles:GetCoords().zAxis
+    local dotProduct = Math.DotProduct(toEntity, normViewVec)
+    local fov = 90
+    if seeingEntity.GetFov then
+        fov = seeingEntity:GetFov()
+    end
+    local halfFov = math.rad(fov/2)
+    local s = math.acos(dotProduct)
+    //if self.attacker:isa("CommandStation") then
+    //    Log("fov %s, s %s", fov, s)
+    //end
+    return s < halfFov
+end
+
+function LosSelector:CanBeSeenBy(origin, seeingEntity) 
+    PROFILE("LosSelector:CanBeSeenBy(")
+    // powered powerpoints give marines a short range vision, unpowered sees nothing
+    if seeingEntity:isa("PowerPoint") and not seeingEntity:GetIsPowered() then
+        return false
+    end
+    local eyePos = GetEntityEyePos(seeingEntity)
+    local range = (origin - eyePos):GetLength()
+               
+    local detectionRange = self:GetDetectionRange(seeingEntity)
+    local ignoreFovRange = self:GetIgnoreFovRange(seeingEntity)
+    
+    if range <= detectionRange then
+        if seeingEntity:isa("Observatory") then
+            // observatories sees us all
+            return true
+        end
+        local fovOk = true
+        if range > ignoreFovRange then
+            fovOk = self:InFov(seeingEntity)
+        end
+        if fovOk then
+            // This allows entities to hide behind each other. This can get a bit ridiculous; a skulk will be able to
+            // to hide an Onos from sight if it places itself right. OTOH, if we ignore things completly, a skulk couldn't
+            // hide behind an Onos ... oh well, its not all that important.
+            local trace = Shared.TraceRay(eyePos, origin, PhysicsMask.AllButPCs, EntityFilterOne(seeingEntity))
+            local visible = trace.fraction > 0.99 or trace.entity == self.attacker
+            // Log("%s seen from %s : %s", self.attacker, seeingEntity, visible)
+            return visible
+        end
+        //Log("%s out of fov from %s", self.attacker, seeingEntity)
+    end
+    return false
 end

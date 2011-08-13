@@ -35,6 +35,10 @@ function InfestationMixin:__initmixin()
     self.infestationId = Entity.invalidId
 end
 
+function InfestationMixin:GetInfestation()
+    return Shared.GetEntity(self.infestationId)
+end
+
 function InfestationMixin:OverrideSpawnInfestation(infestation)
     if self.OnOverrideSpawnInfestation then
         self:OnOverrideSpawnInfestation(infestation)    

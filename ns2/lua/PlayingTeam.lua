@@ -704,7 +704,7 @@ function PlayingTeam:Update(timePassed)
     self:UpdateHelp()
     
     // Update line of sight for other team
-    self:UpdateLOS(timePassed)
+    // self:UpdateLOS(timePassed)
 
     // Compute tech tree availability only so often because it's very slooow
     if self.techTree ~= nil and (self.timeOfLastTechTreeUpdate == nil or Shared.GetTime() > self.timeOfLastTechTreeUpdate + PlayingTeam.kTechTreeUpdateTime) then

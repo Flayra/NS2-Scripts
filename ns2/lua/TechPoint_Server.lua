@@ -45,3 +45,4 @@ end
 function TechPoint:SetTechLevel(techLevel)
     self.techLevel = techLevel
 end
+

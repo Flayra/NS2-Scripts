@@ -74,6 +74,7 @@ function Sentry:SetTarget(newTarget)
         
             self:GiveOrder(kTechId.Attack, newTarget:GetId(), nil)
             self.timeOfLastTargetAcquisition = Shared.GetTime()
+            
             return newTarget
             
         end
@@ -532,6 +533,9 @@ function Sentry:UpdateTargetState()
 
         local target = self:GetTarget()
         if target ~= nil then
+        
+            target:SetSighted(true) // mark target as sighted
+
             self.targetDirection = GetNormalizedVector(target:GetEngagementPoint() - self:GetAttachPointOrigin(Sentry.kMuzzleNode))
         else
             self.targetDirection = GetNormalizedVector(self:GetCurrentOrder():GetLocation() - self:GetAttachPointOrigin(Sentry.kMuzzleNode))
