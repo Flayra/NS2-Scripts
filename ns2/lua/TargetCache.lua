@@ -304,7 +304,7 @@ function StaticTargetCache:ValidateCache()
     if not self.targetIdToRangeMap then 
         self.targetIdToRangeMap = {}
         local origin = self.selector.attacker:GetEyePos()
-        local entityIds = selt.targetType:GetEntityIdsInRange(origin, self.selector.range)
+        local entityIds = self.targetType:GetEntityIdsInRange(origin, self.selector.range)
         self:MaybeAddTargets(origin, entityIds)
     end
     // add in any added entities. Need to do it with a delay
