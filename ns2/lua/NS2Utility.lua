@@ -914,7 +914,10 @@ function GetCanSeeEntity(seeingEntity, targetEntity)
     local seen = false
     
     // See if line is in our view cone
-    if(targetEntity:GetIsVisible()) then
+    local visible = targetEntity:GetIsVisible()
+    local camouflaged = targetEntity.GetIsCamouflaged and targetEntity:GetIsCamouflaged()
+    local cloaked = targetEntity.GetIsCloaked and targetEntity:GetIsCloaked()
+    if targetEntity:GetIsVisible() and not cloaked and not camouflaged then
     
         local eyePos = GetEntityEyePos(seeingEntity)
         local targetEntityOrigin = targetEntity:GetOrigin()

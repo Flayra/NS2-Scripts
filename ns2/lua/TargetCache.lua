@@ -122,6 +122,10 @@ end
 // most of the time (players can change it by crounching), so we cache it for the purpose
 // of targeting.
 
+// when an entity is added, it may not have a model and thus may not have an engagement point.
+// So we create a function that will calculate the offset and shoot. 
+// Originally I thought that players changed their engagement point when crouching, but they
+// don't so no need to do anything special for them.
 function EngagementPointCache(entity)
     local offset = nil
     return function() 
@@ -132,21 +136,6 @@ function EngagementPointCache(entity)
     end 
 end
 
-function PlayerEngagmentPointCache(player)
-    local offset = nil
-    return function()
-        // wait to store the offset until the player isn't crouching
-        if not offset and not player:GetCrouching() then
-            offset = player:GetEngagementPoint() - player:GetOrigin()
-        end
-        if not offset then
-            return player:GetEngagementPoint()
-        end
-        return player:GetOrigin() + offset * (player:GetCrouching() and player:GetCrouchAmount() or 1)
-    end
-end
-
-
 
 /**
  * Notification that a new entity id has been added
@@ -155,7 +144,7 @@ function TargetType:EntityAdded(entity)
     if self:ContainsType(entity) then
         if not self.entityIdMap[entity:GetId()] then
             Log("%s: added %s", self.name, entity) 
-            self.entityIdMap[entity:GetId()] = entity:isa("Player") and PlayerEngagmentPointCache(entity) or EngagementPointCache(entity) 
+            self.entityIdMap[entity:GetId()] = EngagementPointCache(entity) 
             self:OnEntityAdded(entity)
         else
             Log("%s: already added %s", self.name, entity)
