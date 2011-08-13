@@ -30,6 +30,9 @@ Shade.kModelName = PrecacheAsset("models/alien/shade/shade.model")
 
 Shade.kCloakDuration = 45
 Shade.kCloakRadius = 15
+
+// when cloak is triggered, we cloak everything around us once every three seconds
+Shade.kActiveThinkInterval = 3
  
 function Shade:GetIsAlienStructure()
     return true
@@ -85,19 +88,35 @@ function Shade:OnResearchComplete(structure, researchId)
     
 end
 
-function Shade:TriggerCloak()
-
-    self:TriggerEffects("shade_cloak_start")
-
-    for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
+function Shade:OnThink()
     
-        if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+    local timeLeft = self.cloakTriggerTime + Shade.kCloakDuration - Shared.GetTime()
 
-            entity:SetIsCloaked(true, Shade.kCloakDuration, true)
-                
+    if timeLeft > 0 then
+    
+        self:TriggerEffects("shade_cloak_start")
+    
+        for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
+        
+            if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+
+                entity:SetIsCloaked(true, timeLeft, true)
+                    
+            end
+            
         end
+
+        // when we have no time left, we stop thinking
+        self:SetNextThink(Shade.kActiveThinkInterval)
         
     end
+end
+
+function Shade:TriggerCloak()
+
+    self.cloakTriggerTime = Shared.GetTime()
+
+    self:OnThink()
     
     return true
     
@@ -144,6 +163,7 @@ MatureShade.kMapName = "matureshade"
 Shared.LinkClassToMap("MatureShade", MatureShade.kMapName, {})
 
 if Server then
+
 
     function OnConsoleCloak()
     
