@@ -141,14 +141,10 @@ end
  * Notification that a new entity id has been added
  */
 function TargetType:EntityAdded(entity)
-    if self:ContainsType(entity) then
-        if not self.entityIdMap[entity:GetId()] then
-            Log("%s: added %s", self.name, entity) 
-            self.entityIdMap[entity:GetId()] = EngagementPointCache(entity) 
-            self:OnEntityAdded(entity)
-        else
-            Log("%s: already added %s", self.name, entity)
-        end
+    if self:ContainsType(entity) and not self.entityIdMap[entity:GetId()] then
+        // Log("%s: added %s", self.name, entity) 
+        self.entityIdMap[entity:GetId()] = EngagementPointCache(entity) 
+        self:OnEntityAdded(entity)
     end
 end
 
