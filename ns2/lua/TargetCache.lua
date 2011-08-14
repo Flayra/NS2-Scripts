@@ -217,19 +217,19 @@ function StaticTargetType:Init(name, classList)
 end
 
 function StaticTargetType:AttachSelector(selector)
-    // key in cacheMap is the attackers entityId. This allows us to detect when the entity is gone.
-    self.cacheMap[selector.attacker:GetId()] = StaticTargetCache():Init(self, selector)
-    return self.cacheMap[selector.attacker:GetId()]
+    // key in cacheMap is the selector. This allows us to detect when the entity is gone.
+    self.cacheMap[selector] = StaticTargetCache():Init(self, selector)
+    return self.cacheMap[selector]
 end
 
 function StaticTargetType:VisitCaches(fun)
     // go through whole cache and add the entity id to all of them
     local toBeRemoved = {}
-    for id,cache in pairs(self.cacheMap) do
-        if Shared.GetEntity(id) then
+    for sel,cache in pairs(self.cacheMap) do
+        if Shared.GetEntity(sel.attackerId) then
             fun(cache)
         else
-            toBeRemoved[id] = true
+            toBeRemoved[sel] = true
         end
     end
  
@@ -580,6 +580,7 @@ class "TargetSelector"
 //
 function TargetSelector:Init(attacker, range, visibilityRequired, targetTypeList, filters, prioritizers)
     self.attacker = attacker
+    self.attackerId = attacker:GetId()
     self.range = range
     self.visibilityRequired = visibilityRequired
     self.targetTypeList = targetTypeList
