@@ -915,8 +915,8 @@ function GetCanSeeEntity(seeingEntity, targetEntity)
     
     // See if line is in our view cone
     local visible = targetEntity:GetIsVisible()
-    local camouflaged = HasMixin(targetEntity, "CamouflageMixin") and targetEntity:GetIsCamouflaged()
-    local cloaked = HasMixin(targetEntity, "CloakableMixin") and targetEntity:GetIsCloaked()
+    local camouflaged = HasMixin(targetEntity, "Camouflage") and targetEntity:GetIsCamouflaged()
+    local cloaked = HasMixin(targetEntity, "Cloakable") and targetEntity:GetIsCloaked()
     if targetEntity:GetIsVisible() and not cloaked and not camouflaged then
     
         local eyePos = GetEntityEyePos(seeingEntity)
