@@ -30,7 +30,11 @@ Shade.kModelName = PrecacheAsset("models/alien/shade/shade.model")
 
 Shade.kCloakDuration = 45
 Shade.kCloakRadius = 15
- 
+
+// when cloak is triggered, we cloak everything around us at this interval
+Shade.kActiveThinkInterval = 3
+
+
 function Shade:GetIsAlienStructure()
     return true
 end
@@ -85,21 +89,52 @@ function Shade:OnResearchComplete(structure, researchId)
     
 end
 
-function Shade:TriggerCloak()
+function Shade:GetTimeLeft()
+    return self.cloakTriggerTime and self.cloakTriggerTime + Shade.kCloakDuration - Shared.GetTime() or -1
+end
 
-    self:TriggerEffects("shade_cloak_start")
+function Shade:OnThink()
 
-    for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
+    Structure.OnThink(self)
     
-        if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+    local timeLeft = self:GetTimeLeft()
 
-            entity:SetIsCloaked(true, Shade.kCloakDuration, true)
-                
+    if timeLeft > 0 then
+    
+        self:TriggerEffects("shade_cloak_start")
+    
+        for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
+        
+            if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+
+                entity:SetIsCloaked(true, timeLeft, true)
+                    
+            end
+            
         end
+
+        // when we have no time left, we stop thinking
+        self:SetNextThink(Shade.kActiveThinkInterval)
         
     end
     
-    return true
+end
+
+function Shade:TriggerCloak()
+    
+    // don't allow triggering while already cloaking
+
+    if self:GetTimeLeft() <= 0 then
+
+        self.cloakTriggerTime = Shared.GetTime()
+
+        self:SetNextThink(0.01)
+    
+        return true
+        
+    end
+    
+    return false
     
 end
 
@@ -108,6 +143,7 @@ function Shade:GetActivationTechAllowed(techId)
     if techId == kTechId.ShadeDisorient then
         return false
     end
+
     return true
 end
 
@@ -135,7 +171,7 @@ function Shade:OnUse(player, elapsedTime, useAttachPoint, usePoint)
 end
 */
 
-Shared.LinkClassToMap("Shade", Shade.kMapName, {})
+Shared.LinkClassToMap("Shade", Shade.kMapName,  {} )
 
 class 'MatureShade' (Shade)
 
@@ -144,6 +180,7 @@ MatureShade.kMapName = "matureshade"
 Shared.LinkClassToMap("MatureShade", MatureShade.kMapName, {})
 
 if Server then
+
 
     function OnConsoleCloak()
     
