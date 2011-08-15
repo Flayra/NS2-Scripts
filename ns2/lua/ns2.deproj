@@ -43,9 +43,6 @@
     <filename>Armory_Server.lua</filename>
   </file>
   <file>
-    <filename>balance.lua</filename>
-  </file>
-  <file>
     <filename>Structure.lua</filename>
   </file>
   <file>
@@ -485,9 +482,6 @@
   </file>
   <file>
     <filename>AlienSpectator.lua</filename>
-  </file>
-  <file>
-    <filename>mac.lua</filename>
   </file>
   <file>
     <filename>AlienBuy_Client.lua</filename>
@@ -992,5 +986,11 @@
   </file>
   <file>
     <filename>..\..\core\lua\MapEntityLoader.lua</filename>
+  </file>
+  <file>
+    <filename>Balance.lua</filename>
+  </file>
+  <file>
+    <filename>MAC.lua</filename>
   </file>
 </project>

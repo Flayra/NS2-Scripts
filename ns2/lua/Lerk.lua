@@ -5,6 +5,8 @@
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com) and
 //                  Max McGuire (max@unknownworlds.com)
 //
+//    Modified by: James Gu (twiliteblue) on 5 Aug 2011
+//
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 Script.Load("lua/Utility.lua")
@@ -37,10 +39,10 @@ Lerk.networkVars =
 Lerk.kViewOffsetHeight = .5
 Lerk.XZExtents = .4
 Lerk.YExtents = .4
-Lerk.kJumpImpulse = 5
-Lerk.kFlapUpImpulse = 4             // NS1 made this 2/3 of kFlapStraightUpImpulse
+Lerk.kJumpImpulse = 4
+Lerk.kFlapUpImpulse = 4   
 Lerk.kFlapStraightUpImpulse = 6
-Lerk.kFlapThrustMoveScalar = .85 // From NS1
+Lerk.kFlapThrustMoveScalar = 1         //.85
 Lerk.kFov = 100
 Lerk.kZoomedFov = 35
 Lerk.kMass = 54  // ~120 pounds
@@ -103,11 +105,16 @@ function Lerk:GetMaxSpeed()
     speed = Lerk.kMaxWalkSpeed
     if not self:GetIsOnGround() then
     
-        local kBaseAirScalar = .5
-        local kAirTimeToMaxSpeed = 10
+        local kBaseAirScalar = 1.2      // originally 0.5
+        local kAirTimeToMaxSpeed = 5  // originally 10
         local airTimeScalar = Clamp((Shared.GetTime() - self.timeLastOnGround) / kAirTimeToMaxSpeed, 0, 1)
         local speedScalar = kBaseAirScalar + airTimeScalar * (1 - kBaseAirScalar)
         speed = Lerk.kMaxWalkSpeed + speedScalar * (Lerk.kMaxSpeed - Lerk.kMaxWalkSpeed)
+        
+        // half max speed while the walk key is pressed
+        if self.movementModiferState then
+            speed = speed * 0.5
+        end        
         //Print("timeLastOnGround: %.2f, airTimeScalar: %.2f, speed scalar: %.2f, speed: %.2f", self.timeLastOnGround, airTimeScalar, speedScalar, speed)           
         
     end 
@@ -127,6 +134,29 @@ end
 function Lerk:GetJumpHeight()
     return Lerk.kJumpHeight
 end
+
+function Lerk:GetFrictionForce(input, velocity)
+    
+    local frictionScalar = 2
+
+    if self.gliding then
+        return Vector(0, 0, 0)
+    end
+    
+    // When in the air, but not gliding (spinning out of control)
+    // Allow holding the jump key to reduce velocity, and slow the fall
+    if (not self:GetIsOnGround()) and (bit.band(input.commands, Move.Jump) ~= 0) and (not self.gliding) then        
+        if velocity.y < 0 then
+            return Vector(-velocity.x, -velocity.y, -velocity.z) * frictionScalar
+        else
+            return Vector(-velocity.x, 0, -velocity.z) * frictionScalar
+        end
+    end
+    
+    return Alien.GetFrictionForce(self, input, velocity)
+    
+end
+
 
 // Lerk flight
 //
@@ -191,24 +221,25 @@ function Lerk:ComputeForwardVelocity(input)
         
         if self.gliding then
         
+            // Gliding: ignore air control
             // Add or remove velocity depending if we're looking up or down
-            local dot = Clamp(Vector(0, -1, 0):DotProduct(viewCoords.zAxis), 0, 1)
-            
-            local glideAmount = dot // math.sin( dot * math.pi / 2 )
-            
-            local glideVelocity = viewCoords.zAxis * math.abs(glideAmount) * self:GetAcceleration() * 5
-            
+            local zAxis = viewCoords.zAxis
+           
+            local dot = Clamp(Vector(0, -1, 0):DotProduct(zAxis), 0, 1)
+
+            local glideAmount = dot// math.sin( dot * math.pi / 2 )
+
+            local glideVelocity = viewCoords.zAxis * math.abs(glideAmount) * self:GetAcceleration()
+
             return glideVelocity
             
         else
         
-            // Don't allow a lot of lateral movement while flying
-            move.x = Sign(move.x) * .1
-            
+            // Not gliding: use normal ground movement, or air control if we're in the air
             local transformedVertical = viewCoords:TransformVector( Vector(0, 0, move.z) )
-            
+
             local moveVelocity = viewCoords:TransformVector( move ) * self:GetAcceleration()
-            
+
             return moveVelocity
             
         end
@@ -222,20 +253,12 @@ end
 
 function Lerk:RedirectVelocity(redirectDir)
 
-    local velocity = self:GetVelocity()
-    if velocity.y <= 0 then
-
-        local newVelocity = redirectDir * self:GetVelocity():GetLength()
-        self:SetVelocity(newVelocity)
-
-    else
-        
-        local zAxis = redirectDir//self:GetViewAngles():GetCoords().zAxis    
-        local xzLook = GetNormalizedVector(Vector(zAxis.x, 0, zAxis.z))
-        local newVelocity = xzLook * velocity:GetLengthXZ() + Vector(0, velocity.y, 0)
-        self:SetVelocity(newVelocity)            
-        
-    end
+    local velocity = self:GetVelocity() 
+    local xzSpeed = GetNormalizedVector(Vector(redirectDir.x, 0, redirectDir.z))    
+    local ySpeed = 0
+    
+    local newVelocity = redirectDir * velocity:GetLength() //+ Vector(0, ySpeed, 0)
+    self:SetVelocity(newVelocity)       
 
 end
 
@@ -245,16 +268,44 @@ function Lerk:PreUpdateMove(input, runningPrediction)
 
     // If we're gliding, redirect velocity to whichever way we're looking
     // so we get that cool soaring feeling from NS1
+    // Now with strafing and air brake
     if not self:GetIsOnGround() then
-
-        if self.gliding then
+    
+        local move = GetNormalizedVector(input.move)     
+        local viewCoords = self:GetViewAngles():GetCoords()
+        local redirectDir = self:GetViewAngles():GetCoords().zAxis
+        local velocity = GetNormalizedVector(self:GetVelocity())
         
-            // If we're strafing, redirect velocity towards direction we're pressing
-            // otherwise re-direct direction we're facing
-            local redirectDir = self:GetViewAngles():GetCoords().zAxis
-            self:RedirectVelocity(redirectDir)
+        if self.gliding then     
+                               
+            // Glide forward, strafe left/right, or brake slowly
+            if (move.z ~= 0) then
             
-        end        
+                // Forward/Back key pressed - Glide in the facing direction
+                // Allow some backward acceleration and some strafing
+                move.z = Clamp(move.z, -0.05, 0)
+                move.x = Clamp(move.x, -0.5, 0.5)                
+                redirectDir = redirectDir + viewCoords:TransformVector( move )
+                
+            else
+            
+                // Non forward/back-key gliding, zero download velocity
+                // Useful for maintaining height when attacking targets below
+                move.x = Clamp(move.x, -0.5, 0.5)
+                redirectDir = Vector(redirectDir.x, math.max(redirectDir.y, velocity.y, -0.01), redirectDir.z)                
+                redirectDir = redirectDir + viewCoords:TransformVector( move )
+                redirectDir:Normalize()
+
+            end
+
+            // Limit max speed so strafing does not increase total velocity
+            if (redirectDir:GetLength() > 1) then
+                redirectDir:Normalize()
+            end
+
+            self:RedirectVelocity(redirectDir)
+
+        end
 
     end
     
@@ -272,7 +323,7 @@ function Lerk:HandleAttacks(input)
         dot = GetNormalizedVector(velocity):DotProduct(zAxis)
     end
     
-    self.gliding = (not self:GetIsOnGround() and self.flappedSinceLeftGround and (bit.band(input.commands, Move.Jump) ~= 0) and dot >= .8)
+    self.gliding = (not self:GetIsOnGround() and self.flappedSinceLeftGround and (bit.band(input.commands, Move.Jump) ~= 0) and dot >= .7)
 
 end
 
@@ -296,25 +347,36 @@ end
 
 function Lerk:Flap(input, velocity)
 
+    local lift = 0
     local flapVelocity = Vector(0, 0, 0)
+
+    // Thrust forward or backward, or laterally
+    if (input.move:GetLength() > 0 )then
     
-    // Thrust forward or backward
-    if(input.move:GetLength() > 0) then
-    
+        // Flapping backward and sideways generate very small amounts of thrust        
+        // Allow full forward thrust, half lateral thrust, and minimal backward thrust
+        input.move.z = Clamp(input.move.z, -0.3, 1)
+        input.move.x = input.move.x * 0.5
+        if (input.move.x ~= 0) then
+            lift = Lerk.kFlapStraightUpImpulse * 0.5
+        end
         flapVelocity = GetNormalizedVector(self:GetViewCoords():TransformVector( input.move )) * self:GetAcceleration() * Lerk.kFlapThrustMoveScalar
         
     else
-    
-        // Get more lift when that's all we're doing
-        flapVelocity.y = flapVelocity.y + Lerk.kFlapStraightUpImpulse
-        
+        // Get more lift and slow down in the XZ directions when trying to flap straight up
+        lift = Lerk.kFlapStraightUpImpulse
+        flapVelocity = Vector(velocity.x, 0, velocity.z) * -0.1
     end
     
-    VectorCopy(velocity + flapVelocity, velocity)
+    flapVelocity.y = flapVelocity.y + lift
+    
+    // Each flap reduces some of the previous velocity
+    // So we can change direction quickly by flapping    
+    VectorCopy(velocity * 0.7 + flapVelocity, velocity)
 
     // Play wing flap sound
     Shared.PlaySound(self, Lerk.kFlapSound)
-    
+
     self.flappedSinceLeftGround = true
 
 end

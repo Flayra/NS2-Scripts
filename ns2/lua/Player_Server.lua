@@ -184,10 +184,7 @@ function Player:AwardResForKill(target)
         //self:GetTeam():SetTeamResources(self:GetTeam():GetTeamResources() + kKillTeamReward)
         
         // Play sound for player and also our commanders
-        local resReceivedSoundName = ConditionalValue(self:GetTeamType() == kAlienTeamType, Player.kAlienResReceivedSound, Player.kMarineResReceivedSound)
-        
-        Server.PlayPrivateSound(self, resReceivedSoundName, self, 1.0, Vector(0, 0, 0))
-        self:GetTeam():PlayPrivateTeamSound(resReceivedSoundName, nil, true, self)
+        self:GetTeam():TriggerEffects("res_received")
         
     end
     

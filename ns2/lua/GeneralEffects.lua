@@ -373,6 +373,19 @@ kGeneralEffectData =
             {stop_sound = "sound/ns2.fev/alien/infestation/build", classname = "Infestation", done = true},
         },
     },
+    
+    res_received =
+    {
+        resReceivedEffects =
+        {
+            {private_sound = "sound/ns2.fev/alien/common/res_received", classname = "Alien", done = true},
+            {private_sound = "sound/ns2.fev/alien/commander/res_received", classname = "Commander", isalien = true, done = true},
+            {private_sound = "sound/ns2.fev/marine/commander/res_received", classname = "Commander", isalien = false,  done = true},            
+            // Marine/Heavy
+            {private_sound = "sound/ns2.fev/marine/common/res_received", done = true},
+
+        },
+    },
             
 }
 

@@ -101,7 +101,14 @@ function LiveScriptActor:OnTakeDamage(damage, attacker, doer, point)
         flinchParams[kEffectFilterDoerName] = doer:GetClassName()
     end
     
-    self:TriggerEffects("flinch", flinchParams)
+    // Don't flinch too often
+    local time = Shared.GetTime()
+    if self.lastFlinchEffectTime == nil or (time > (self.lastFlinchEffectTime + 1)) then
+    
+        self:TriggerEffects("flinch", flinchParams)
+        self.lastFlinchEffectTime = time
+        
+    end
     
     // Apply directed impulse to physically simulated objects, according to amount of damage
     if (self.physicsModel ~= nil and self.physicsType == Actor.PhysicsType.Dynamic) then    

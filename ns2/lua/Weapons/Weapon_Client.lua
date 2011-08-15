@@ -9,6 +9,19 @@
 function Weapon:Dropped(prevOwner)
 end
 
+function Weapon:UpdateDropped()
+
+    if self:GetPhysicsType() == Actor.PhysicsType.DynamicServer and not self.dropped then
+    
+        self:Dropped(nil)
+        self.dropped = true
+        
+    elseif self:GetPhysicsType() == Actor.PhysicsType.None then
+        self.dropped = false
+    end
+        
+end
+
 function Weapon:CreateWeaponEffect(player, playerAttachPointName, entityAttachPointName, cinematicName)
         
     if not player:GetIsThirdPerson() then
