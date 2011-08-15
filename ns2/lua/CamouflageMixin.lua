@@ -53,10 +53,10 @@ function CamouflageMixin:TriggerUncamouflage()
     if self:GetIsCamouflaged() then
     
         self.camouflaged = false
-        self.timeLastUncamouflageTriggered = Shared.GetTime()
         
     end
-
+    // any action which would have broken camo blocks you from entering camo again for 
+    self.timeLastUncamouflageTriggered = Shared.GetTime()
 end
 
 function CamouflageMixin:_UpdateCamouflage()
