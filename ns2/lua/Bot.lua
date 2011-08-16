@@ -13,11 +13,12 @@ end
 
 class 'Bot'
 
-function Bot:Initialize(forceTeam)
+function Bot:Initialize(forceTeam, active)
 
     // Create a virtual client for the bot
     self.client = Server.AddVirtualClient()
     self.forceTeam = forceTeam
+    self.active = active
     
 end
 
@@ -57,7 +58,11 @@ end
 // Stores all of the bots
 local bots = { }
 
-function OnConsoleAddBots(client, numBotsParam, forceTeam, className)
+function OnConsoleAddPassiveBots(client, numBotsParam, forceTeam, className)
+    OnConsoleAddBots(client, numBotsParam, forceTeam, className, true)  
+end
+
+function OnConsoleAddBots(client, numBotsParam, forceTeam, className, passive)
 
     // Run from dedicated server or with dev or cheats on
     if client == nil or Shared.GetCheatsEnabled() or Shared.GetDevMode() then
@@ -76,9 +81,9 @@ function OnConsoleAddBots(client, numBotsParam, forceTeam, className)
         for index = 1, numBots do
         
             local bot = class()
-            bot:Initialize(tonumber(forceTeam))
+            bot:Initialize(tonumber(forceTeam), not passive)
             table.insert( bots, bot )
-            
+       
         end
         
     end
@@ -147,6 +152,7 @@ Script.Load("lua/Bot_Player.lua")
 Script.Load("lua/BotTest.lua")
 
 // Register the bot console commands
+Event.Hook("Console_addpassivebot",  OnConsoleAddPassiveBots)
 Event.Hook("Console_addbot",         OnConsoleAddBots)
 Event.Hook("Console_removebot",      OnConsoleRemoveBots)
 Event.Hook("Console_addbots",        OnConsoleAddBots)
