@@ -47,7 +47,7 @@ function PitchTargetFilter(attacker, minPitchDegree, maxPitchDegree)
         local distZ = Math.DotProduct(viewCoords.zAxis, v)
         local pitch = 180 * math.atan2(distY,distZ) / math.pi
         result = pitch >= minPitchDegree and pitch <= maxPitchDegree
-        // Log("filter %s for %s, v %s, pitch %s, result %s (%s,%s)", target, attacker, v, pitch, result, minPitchDegree, maxPitchDegree)
+        //Log("filter %s for %s, v %s, pitch %s, result %s (%s,%s)", target, attacker, v, pitch, result, minPitchDegree, maxPitchDegree)
         return result
     end
 end
@@ -136,7 +136,7 @@ end
  */
 function TargetType:EntityAdded(entity)
     if self:ContainsType(entity) and not self.entityIdMap[entity:GetId()] then
-        // Log("%s: added %s", self.name, entity) 
+        //Log("%s: added %s", self.name, entity) 
         self.entityIdMap[entity:GetId()] = EngagementPointCache(entity) 
         self:OnEntityAdded(entity)
     end
@@ -165,7 +165,7 @@ end
 function TargetType:EntityRemoved(entity)
     if entity and self.entityIdMap[entity:GetId()] then
         self.entityIdMap[entity:GetId()] = nil
-  //      Log("%s: removed %s", self.name, entity) 
+        //Log("%s: removed %s", self.name, entity) 
         self:OnEntityRemoved(entity)    
     end
 end
@@ -314,7 +314,11 @@ end
 function StaticTargetCache:CheckIfSighted(selector)
     PROFILE("StaticTargetCache:CheckIfSighted")
     self:ValidateCache(selector)
-    local origin = GetEntityEyePos(selector.attacker)
+    local origin = GetEntityEyePos(selector.attacker) 
+    if origin == selector.attacker:GetOrigin() then
+        // eyepos at origin just plain SUCKS - it should always be at the top of the model
+        origin = origin + selector.attacker:GetCoords().yAxis // add a meter
+    end
     for targetId, range in pairs(self.targetIdToRangeMap) do
         local target = Shared.GetEntity(targetId)
         if selector:CanBeSeenBy(origin, target) then
@@ -439,7 +443,7 @@ function MobileTargetType:AddTargetsWithRange(selector, targets)
         local range = (origin - targetPoint):GetLength()             
         if range <= selector.range and target:GetIsAlive() and target:GetCanTakeDamage() and selector:_ApplyFilters(target, targetPoint) then
             table.insert(targets, { target, range })
-            // Log("%s: mobile target %s at range %s", selector.attacker, target, range)
+            //Log("%s: mobile target %s at range %s", selector.attacker, target, range)
         end
     end
 end
@@ -449,6 +453,10 @@ function MobileTargetType:CheckIfSighted(selector)
     // go through all mobile targets inside the mobile max range 
     // for LOS, we always check eye-to-eye
     local origin = GetEntityEyePos(selector.attacker)
+    if origin == selector.attacker:GetOrigin() then
+        // eyepos at origin just plain SUCKS - it should always be at the top of the model
+        origin = origin + selector.attacker:GetCoords().yAxis // add a meter
+    end
     local entityIds = self:GetEntityIdsInRange(origin, LosSelector.kMobileMaxRange)
     for _, id in ipairs(entityIds) do
         local target = Shared.GetEntity(id) 
@@ -593,7 +601,7 @@ function TargetSelector:Init(attacker, range, visibilityRequired, targetTypeList
     end
     
     self.debug = false 
-    // Log("created ts for %s, tcmap %s", attacker, self.targetTypeMap)
+    //Log("created ts for %s, tcmap %s", attacker, self.targetTypeMap)
     
     return self
 end
@@ -768,7 +776,7 @@ end
 function TargetSelector:_InsertTargets(foundTargetsList, checkedTable, prioritizer, targets, maxTargets)
     for _, targetAndRange in ipairs(targets) do
         local target, range = unpack(targetAndRange)
-        // Log("%s: check %s, range %s, ct %s, prio %s", self.attacker, target, range, checkedTable[target], prioritizer(target,range))
+        //Log("%s: check %s, range %s, ct %s, prio %s", self.attacker, target, range, checkedTable[target], prioritizer(target,range))
         local include = false
         if not checkedTable[target] and prioritizer(target, range) then
             if self.visibilityRequired then 
@@ -835,11 +843,18 @@ end
  */
 function LosSelector:CheckIfSighted()
 
+    // need to reset any static target caches for units that moves
+    local location = self.attacker:GetOrigin()
+    if location ~= self.lastLocation then
+        self.lastLocation = location
+        self:AttackerMoved()
+    end
+
     // loop over the type list just in case one of the types are cheaper than the other
     // to check (static are cheaper than mobile!)
     for _,tc in ipairs(self.targetTypeList) do
         if self.targetTypeMap[tc]:CheckIfSighted(self) then
-            // Log("%s c if s -> true (by %s)", self.attacker, tc.name)
+            //Log("%s c if s -> true (by %s)", self.attacker, tc.name)
             return true
         end
     end
@@ -872,9 +887,6 @@ function LosSelector:InFov(seeingEntity)
     end
     local halfFov = math.rad(fov/2)
     local s = math.acos(dotProduct)
-    //if self.attacker:isa("CommandStation") then
-    //    Log("fov %s, s %s", fov, s)
-    //end
     return s < halfFov
 end
 
@@ -903,9 +915,10 @@ function LosSelector:CanBeSeenBy(origin, seeingEntity)
             // This allows entities to hide behind each other. This can get a bit ridiculous; a skulk will be able to
             // to hide an Onos from sight if it places itself right. OTOH, if we ignore things completly, a skulk couldn't
             // hide behind an Onos ... oh well, its not all that important.
-            local trace = Shared.TraceRay(eyePos, origin, PhysicsMask.AllButPCs, EntityFilterOne(seeingEntity))
+            local trace = Shared.TraceRay(eyePos, origin, PhysicsMask.Bullets, EntityFilterOne(seeingEntity))
+            Server.dbgTracer:TraceTargeting(seeingEntity, self.attacker, eyePos, trace)
             local visible = trace.fraction > 0.99 or trace.entity == self.attacker
-            // Log("%s seen from %s : %s", self.attacker, seeingEntity, visible)
+            //Log("%s seen from %s : %s (%s, %s)", self.attacker, seeingEntity, visible, trace.fraction, trace.entity)
             return visible
         end
         //Log("%s out of fov from %s", self.attacker, seeingEntity)
