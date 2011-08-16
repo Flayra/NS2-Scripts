@@ -31,7 +31,7 @@ function BotPlayer:ChooseOrder()
     // If we have no order or are attacking, acquire possible new target
     if GetGamerules():GetGameStarted() then
     
-        if order == nil or (order:GetType() == kTechId.Attack) then
+        if self.active and ( order == nil or (order:GetType() == kTechId.Attack)) then
         
             // Get nearby visible target
             self:AttackVisibleTarget()
@@ -42,7 +42,7 @@ function BotPlayer:ChooseOrder()
     end
 
     // If we aren't attacking, try something else    
-    if order == nil then
+    if self.active and order == nil then
     
         // Get healed at armory, pickup health/ammo on ground, move towards other player    
         if not self:GoToNearbyEntity() then
@@ -160,7 +160,7 @@ end
 function BotPlayer:MoveRandomly(move)
 
     // Jump up and down crazily!
-    if (Shared.GetRandomInt(0, 100) <= 5) then
+    if self.active and Shared.GetRandomInt(0, 100) <= 5 then
         move.commands = bit.bor(move.commands, Move.Jump)
     end
     
@@ -270,7 +270,7 @@ function BotPlayer:MoveToPoint(toPoint, move)
     // Fill in move to get to specified point
     local diff = (toPoint - player:GetEyePos())
     local direction = GetNormalizedVector(diff)
-    
+        
     // Look at target (needed for moving and attacking)
     move.yaw   = GetYawFromVector(direction) - player.baseYaw
     move.pitch = GetPitchFromVector(direction) - player.basePitch
@@ -278,7 +278,7 @@ function BotPlayer:MoveToPoint(toPoint, move)
     if not self.inAttackRange then
         move.move.z = 1        
     end
-    
+
 end
 
 /**
@@ -289,6 +289,11 @@ function BotPlayer:GenerateMove()
 
     local player = self:GetPlayer()
     local move = Move()
+    
+    // keep the current yaw/pitch as default
+    move.yaw = player:GetAngles().yaw
+    move.pitch = player:GetAngles().pitch
+
 
     self.inAttackRange = false
     
@@ -393,6 +398,7 @@ function BotPlayer:TriggerAlerts()
     end
     
 end
+
 
 function BotPlayer:OnThink()
 
