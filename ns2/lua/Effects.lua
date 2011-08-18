@@ -76,6 +76,7 @@ kEffectFilterClassName              = "classname"
 kEffectFilterDoerName               = "doer"
 kEffectFilterDamageType             = "damagetype"
 kEffectFilterIsAlien                = "isalien"
+kEffectFilterIsMarine               = "ismarine"
 kEffectFilterBuilt                  = "built"
 kEffectFilterFlinchSevere           = "flinch_severe"
 kEffectFilterInAltMode              = "alt_mode"
@@ -94,7 +95,7 @@ kEffectFilterEnemy                  = "enemy"
 
 kEffectFilters =
 {
-    kEffectFilterClassName, kEffectFilterDoerName, kEffectFilterDamageType, kEffectFilterIsAlien, kEffectFilterBuilt, kEffectFilterFlinchSevere,
+    kEffectFilterClassName, kEffectFilterDoerName, kEffectFilterDamageType, kEffectFilterIsAlien, kEffectFilterIsMarine, kEffectFilterBuilt, kEffectFilterFlinchSevere,
     kEffectFilterInAltMode, kEffectFilterOccupied, kEffectFilterEmpty, kEffectFilterVariant, kEffectFilterFrom, kEffectFilterFromAnimation, 
     kEffectFilterFrom, kEffectFilterLeft, kEffectFilterActive, kEffectFilterHitSurface, kEffectFilterDeployed, kEffectFilterCloaked, kEffectFilterEnemy
 }

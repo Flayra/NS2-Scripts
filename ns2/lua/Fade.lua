@@ -79,7 +79,7 @@ function Fade:OnInit()
     
 end
 
-function Fade:PreCopyPlayerDataFrom()
+function Fade:PreCopyPlayerData()
 
     // Reset visibility and gravity in case we were in ether mode.
     self:SetIsVisible(true)

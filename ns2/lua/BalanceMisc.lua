@@ -64,7 +64,7 @@ kScanRadius = 20
 
 // Distress Beacon (from NS1)
 kDistressBeaconRange = 15
-kDistressBeaconTime = 4
+kDistressBeaconTime = 3
 
 kEnergizeRange = 10
 kEnergizeDuration = 6

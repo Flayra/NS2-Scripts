@@ -1221,6 +1221,7 @@ function TriggerHitEffects(doer, target, origin, surface, melee)
 
     if target and target.GetClassName then
         tableParams[kEffectFilterClassName] = target:GetClassName()
+        tableParams[kEffectFilterIsMarine] = target:GetTeamType() == kMarineTeamType
         tableParams[kEffectFilterIsAlien] = target:GetTeamType() == kAlienTeamType
     end
     

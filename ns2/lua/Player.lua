@@ -338,7 +338,8 @@ function Player:OnInit()
     
     LiveScriptActor.OnInit(self)
     
-    if Server then
+    // Only give weapons when playing
+    if Server and self:GetTeamNumber() ~= kNeutralTeamType then
            
         self:InitWeapons()
         

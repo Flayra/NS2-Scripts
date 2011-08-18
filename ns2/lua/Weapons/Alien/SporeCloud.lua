@@ -78,13 +78,14 @@ function SporeCloud:OnThink()
     local filterNonDoors = EntityFilterAllButIsa("Door")
     for index, entity in ipairs(enemies) do
     
-        if (entity:GetOrigin() - self:GetOrigin()):GetLength() < damageRadius then
+        local attackPoint = entity:GetModelOrigin()
+        
+        if (attackPoint - self:GetOrigin()):GetLength() < damageRadius then
 
             if not entity:isa("Commander") and not GetEntityRecentlyHurt(entity:GetId(), (time - SporeCloud.kThinkInterval)) then
 
                 // Make sure spores can "see" target
-                local targetPosition = entity:GetOrigin() + Vector(0, entity:GetExtents().y, 0)
-                local trace = Shared.TraceRay(self:GetOrigin(), targetPosition, PhysicsMask.Bullets, filterNonDoors)
+                local trace = Shared.TraceRay(self:GetOrigin(), attackPoint, PhysicsMask.Bullets, filterNonDoors)
                 if trace.fraction == 1.0 or trace.entity == entity then
                 
                     entity:TakeDamage(self.damage * SporeCloud.kThinkInterval, self:GetOwner(), self)

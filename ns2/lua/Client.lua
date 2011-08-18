@@ -34,6 +34,7 @@ Client.ambientSoundList = {}
 Client.particlesList = {}
 Client.tracersList = {}
 Client.rules = {}
+Client.cinematics = {}
 
 Client.timeOfLastPowerPoints = nil
     
@@ -77,11 +78,13 @@ function DestroyLevelObjects()
         Client.DestroyRenderLight(light)
     end
     Client.lightList = { }
+
+    for index, cinematic in ipairs(Client.cinematics) do
+        Client.DestroyCinematic(cinematic)
+    end
+    Client.cinematics = { }
     
     // Remove the skyboxes.    
-    for index, skybox in ipairs(Client.skyBoxList) do
-        Client.DestroyCinematic(skybox)
-    end
     Client.skyBoxList = { }
     
     Client.particlesList = {}
@@ -189,10 +192,11 @@ function OnMapLoadEntity(className, groupName, values)
             // Becuase we're going to hold onto the skybox, make sure it
             // uses the endless repeat style so that it doesn't delete itself
             repeatStyle = Cinematic.Repeat_Endless
-            
+
         end
         
         cinematic:SetRepeatStyle(repeatStyle)
+        table.insert(Client.cinematics, cinematic)
        
     elseif className == AmbientSound.kMapName then
         

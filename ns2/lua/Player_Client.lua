@@ -799,8 +799,10 @@ function Player:UpdateScreenEffects(deltaTime)
     local cloakScreenEffectState = (HasMixin(self, "Cloakable") and self:GetIsCloaked()) or (HasMixin(self, "Camouflage") and self:GetIsCamouflaged())
     self:SetCloakShaderState(cloakScreenEffectState)
     
+    self:UpdateCloakSoundLoop(cloakScreenEffectState)
+    
     // Play disorient screen effect to show we're near a shade
-    self:UpdateDisorientShader()
+    self:UpdateDisorientFX()
 
 end
 
@@ -1059,7 +1061,31 @@ function Player:SetCloakShaderState(cloaked)
     end
 end
 
-function Player:UpdateDisorientShader()
+function Player:UpdateDisorientSoundLoop(state)
+
+    // Start or stop sound effects
+    if state ~= self.playerDisorientSoundLoopPlaying then
+        
+        self:TriggerEffects("disorient_loop", {active = state})
+        self.playerDisorientSoundLoopPlaying = state
+        
+    end
+
+end
+
+function Player:UpdateCloakSoundLoop(state)
+
+    // Start or stop sound effects
+    if state ~= self.playerCloakSoundLoopPlaying then
+        
+        self:TriggerEffects("cloak_loop", {active = state})
+        self.playerCloakSoundLoopPlaying = state
+        
+    end
+ 
+end
+
+function Player:UpdateDisorientFX()
     
     local amount = 0
     if HasMixin(self, "Disorientable") then
@@ -1072,6 +1098,9 @@ function Player:UpdateDisorientShader()
     end
     
     self.screenEffects.disorient:SetParameter("amount", amount)
+    
+    self:UpdateDisorientSoundLoop(state)
+    
 end
 
 /**
@@ -1087,6 +1116,9 @@ function Player:OnDestroy()
     end
     
     self:DestroyScreenEffects()
+    
+    self:UpdateCloakSoundLoop(false)
+    self:UpdateDisorientSoundLoop(false)    
     
     self:CloseMenu(kClassFlashIndex)
     

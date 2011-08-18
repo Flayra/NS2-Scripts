@@ -14,10 +14,7 @@ class 'AlienSpectator' (Spectator)
 
 AlienSpectator.kMapName = "alienspectator"
 
-AlienSpectator.kBuyMenuFlash = "ui/alien_buymenu.swf"
-AlienSpectator.kOpenSound = PrecacheAsset("sound/ns2.fev/alien/common/select")
-
-local networkVars =
+AlienSpectator.networkVars =
 {
     eggId = "entityid"
 }
@@ -117,5 +114,4 @@ function AlienSpectator:SetOriginAnglesVelocity(input)
     
 end
 
-
-Shared.LinkClassToMap( "AlienSpectator", AlienSpectator.kMapName, networkVars )
+Shared.LinkClassToMap( "AlienSpectator", AlienSpectator.kMapName, AlienSpectator.networkVars )

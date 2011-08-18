@@ -448,6 +448,10 @@ function ScriptActor:GetEffectParams(tableParams)
         tableParams[kEffectHostCoords] = self:GetCoords()
     end
     
+    if not tableParams[kEffectFilterIsMarine] then
+        tableParams[kEffectFilterIsMarine] = (self.teamType == kMarineTeamType)
+    end
+    
     if not tableParams[kEffectFilterIsAlien] then
         tableParams[kEffectFilterIsAlien] = (self.teamType == kAlienTeamType)
     end

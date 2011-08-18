@@ -54,6 +54,10 @@ function Embryo:OnInit()
     
     self.evolvePercentage = 0
     
+    self.evolveTime = 0
+    
+    self.gestationTime = 0
+    
 end
 
 function Embryo:GetBaseArmor()
@@ -167,7 +171,7 @@ if Server then
         Alien.OnThink(self)
         
         // Cannot spawn unless alive.
-        if self:GetIsAlive() then
+        if self:GetIsAlive() and self.gestationClass ~= nil then
         
             // Take into account metabolize effects
             local amount = GetAlienEvolveResearchTime(Embryo.kThinkTime, self)
