@@ -177,48 +177,6 @@ function NS2Gamerules:CanEntityDoDamageTo(attacker, target)
 
 end
 
-function NS2Gamerules:ComputeDamageFromType(damage, damageType, entity)
-
-    // StructuresOnly damage
-    if (damageType == kDamageType.StructuresOnly and not entity:isa("Structure") and not entity:isa("ARC")) then
-    
-        damage = 0
-        
-    // Extra damage to structures
-    elseif damageType == kDamageType.Structural and (entity:isa("Structure") or entity:isa("ARC")) then
-    
-        damage = damage * kStructuralDamageScalar 
-
-    elseif damageType ==  kDamageType.Puncture and entity:isa("Player") then
-    
-       damage = damage * kPuncturePlayerDamageScalar
-
-    // Breathing targets only - not exosuits
-    elseif damageType == kDamageType.Gas and (not entity:isa("Player") or entity:isa("Heavy")) then
-    
-        damage = 0
-
-    elseif damageType == kDamageType.Biological then
-    
-        // Hurt non-mechanical players and alien structures only
-        if ( (entity:isa("Player") and not entity:isa("Heavy")) or (entity:isa("Structure") and (entity:GetTeamType() == kAlienTeamType)) or entity:isa("ARC")) then
-
-        else
-            damage = 0
-        end
-
-    elseif damageType == kDamageType.Falling then
-    
-        if entity:isa("Skulk") then
-            damage = 0
-        end        
-        
-    end
-    
-    return damage
-    
-end
-
 function NS2Gamerules:OnClientDisconnect(client)
 
     local player = client:GetControllingPlayer()

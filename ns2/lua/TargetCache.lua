@@ -382,7 +382,12 @@ end
 
 function StaticTargetCache:MaybeAddTargets(origin, targetList)
     for i,targetId in ipairs(targetList) do
-        self:MaybeAddTarget(Shared.GetEntity(targetId), origin)
+        // the targetlist may contains newly created/updated items that have gotten killed before we 
+        // validate our cache.
+        local target = Shared.GetEntity(targetId)
+        if target then
+            self:MaybeAddTarget(target, origin)
+        end
     end
 end
 
