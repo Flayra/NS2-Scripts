@@ -227,7 +227,7 @@ function CheckBuildEntityRequirements(techId, position, player, ignoreEntity)
 
                     if numFriendlyEntitiesInRadius >= (kMaxEntitiesInRadius - 1) then
                     
-                        errorString = "Too many entities in area."
+                        errorString = "TOO_MANY_ENTITES"
                         legalBuild = false
                         break
                         
@@ -296,7 +296,7 @@ function GetIsBuildLegal(techId, position, snapRadius, player, ignoreEntity)
     // Display tooltip error
     if not legalBuild and errorString ~= "" and HasMixin(player, "Tooltip") then
     
-        player:AddTooltip(errorString, 2)
+        player:AddLocalizedTooltip(errorString, false, false)
         
     // Check infestation requirements
     elseif legalBuild then
@@ -1224,6 +1224,7 @@ function TriggerHitEffects(doer, target, origin, surface, melee)
 
     if target and target.GetClassName then
         tableParams[kEffectFilterClassName] = target:GetClassName()
+        tableParams[kEffectFilterIsMarine] = target:GetTeamType() == kMarineTeamType
         tableParams[kEffectFilterIsAlien] = target:GetTeamType() == kAlienTeamType
     end
     

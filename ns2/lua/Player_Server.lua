@@ -398,7 +398,7 @@ end
 
 // For children classes to override if they need to adjust data
 // before the copy happens.
-function Player:PreCopyPlayerDataFrom()
+function Player:PreCopyPlayerData()
 
 end
 
@@ -521,11 +521,14 @@ function Player:Replace(mapName, newTeamNumber, preserveChildren)
     if(newTeamNumber ~= nil and newTeamNumber ~= -1) then
         teamNumber = newTeamNumber
     end
-
+    
     local player = CreateEntity(mapName, Vector(self:GetOrigin()), teamNumber)
+
+    // Save last player map name so we can show player of appropriate form in the ready room if the game ends while spectating
+    player.previousMapName = self:GetMapName()
     
     // The class may need to adjust values before copying to the new player (such as gravity).
-    self:PreCopyPlayerDataFrom()
+    self:PreCopyPlayerData()
     
     // Copy over the relevant fields to the new player, before we delete it
     player:CopyPlayerDataFrom(self)
@@ -912,4 +915,8 @@ function Player:UpdateOrderWaypoint()
         
     end
 
+end
+
+function Player:GetPreviousMapName()
+    return self.previousMapName
 end

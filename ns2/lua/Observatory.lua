@@ -60,15 +60,13 @@ function Observatory:TriggerDistressBeacon()
     
     if not self.distressBeaconTime then
     
-        // Trigger private sounds for all players to be affected
-        for index, player in ipairs(self:GetPlayersToBeacon()) do            
-            if not self:GetIsPlayerNearby(player) then
-                player:TriggerEffects("distress_beacon_player_start")
-            end
-        end
-
         // Play effects at beacon so enemies and Comm can hear it    
         self:TriggerEffects("distress_beacon_start")
+
+        // Trigger private sound effect for marines far from beacon, so they can hear it positionally at a distance
+        for index, player in ipairs(self:GetPlayersToBeacon()) do
+            player:TriggerEffects("distress_beacon_player_start")
+        end        
         
         // Beam all faraway players back in a few seconds!
         self.distressBeaconTime = Shared.GetTime() + Observatory.kDistressBeaconTime
@@ -115,9 +113,10 @@ function Observatory:PerformDistressBeacon()
             
         self:RespawnPlayer(player)
                 
-        player:TriggerEffects("distress_beacon_player_end")
-                
     end
+    
+    // Play mega-spawn sound
+    self:TriggerEffects("distress_beacon_complete")    
     
 end
 
@@ -157,7 +156,7 @@ function Observatory:OnPoweredChange(newPoweredState)
     // Cancel distress beacon on power down
     if not newPoweredState and self.distressBeaconTime then
     
-        self:TriggerEffects("distress_beacon_cancel")
+        self:TriggerEffects("distress_beacon_end")
         self.distressBeaconTime = nil
         
     end
@@ -206,15 +205,6 @@ end
 function Observatory:GetIsBeaconing()
     return (self.distressBeaconTime ~= nil)
 end
-
-// Temporary: don't check in. Allow testing more easily.
-/*
-function Observatory:OnUse(player, elapsedTime, useAttachPoint, usePoint)
-    if Server and Shared.GetDevMode() then
-        self:TriggerDistressBeacon()
-    end
-end
-*/
 
 function Observatory:OnKill(damage, killer, doer, point, direction)
 

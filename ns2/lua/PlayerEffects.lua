@@ -80,8 +80,37 @@ kPlayerEffectData =
         {
             {sound = "sound/ns2.fev/alien/skulk/land"},
         }
-    }
-        
+    },
+    
+    // Played on player
+    distress_beacon_player_start =
+    {
+        distressBeaconPlayerStart =
+        {
+            // Play different sound effect for each player so aliens only hear it nearby, but marines
+            // hear it directionally from far away
+            {private_sound = "sound/ns2.fev/marine/common/distress_beacon_marine", ismarine = true, done = true},            
+        },
+    },
+
+    // Triggered for local player
+    disorient_loop =
+    {
+        disorientFX =
+        {
+            {looping_sound = "sound/ns2.fev/alien/structures/shade/disorientate", active = true, done = true},
+            {stop_sound = "sound/ns2.fev/alien/structures/shade/disorientate", active = false, done = true},
+        },
+    },
+    
+    cloak_loop =
+    {
+        cloakFX =
+        {
+            {looping_sound = "sound/ns2.fev/alien/structures/shade/cloak_loop", active = true, done = true},
+            {stop_sound = "sound/ns2.fev/alien/structures/shade/cloak_loop", active = false, done = true},
+        },
+    },        
 }
 
 GetEffectManager():AddEffectData("PlayerEffectData", kPlayerEffectData)
