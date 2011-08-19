@@ -466,27 +466,16 @@ kMarineStructureEffects =
     {
         distressBeaconEffect =
         {
-            // Use parented_sound when triggering looping sounds, so it goes away when entity goes away
-            {parented_sound = "sound/ns2.fev/marine/common/distress_beacon"},
             {looping_cinematic = "cinematics/marine/observatory/glowing_light_effect.cinematic"},
+            {sound = "sound/ns2.fev/marine/common/distress_beacon", done = true},
         },
     },    
-
-    distress_beacon_cancel = 
-    {
-        distressBeaconEffect =
-        {
-            {stop_sound = "sound/ns2.fev/marine/common/distress_beacon"},
-            {stop_cinematic = "cinematics/marine/observatory/glowing_light_effect.cinematic"},
-        },
-    },    
-
+    
     distress_beacon_spawn = 
     {
         playerSpawnEffect =
         {
             {cinematic = "cinematics/marine/infantryportal/player_spawn.cinematic"},
-            {sound = "sound/ns2.fev/marine/structures/infantry_portal_player_spawn"},
         },
     },    
     
@@ -499,22 +488,15 @@ kMarineStructureEffects =
         },
     },
     
-    distress_beacon_player_start =
+    distress_beacon_complete =
     {
-        distressBeaconEffect =
+        // Play one mega-spawn sound instead of spawn sounds for each player
+        distressBeaconComplete =
         {
-            {private_sound = "sound/ns2.fev/marine/common/distress_beacon", volume = .4},
+            {sound = "sound/ns2.fev/marine/common/mega_teleport"},
         },
-    },
-
-    distress_beacon_player_end =
-    {
-        distressBeaconEffect =
-        {
-            {stop_sound = "sound/ns2.fev/marine/common/distress_beacon"},
-        },
-    },
-
+    },    
+    
 }
 
 GetEffectManager():AddEffectData("MarineStructureEffects", kMarineStructureEffects)

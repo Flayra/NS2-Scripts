@@ -43,6 +43,7 @@ function CreateDSPs()
     end    
     
     // "ShadeDisorientFlange"
+    /*
     dspId = Client.CreateDSP(SoundSystem.DSP_Flange)    
     if dspId ~= kDSPType.ShadeDisorientFlange then
         Print("CreateDSPs(): ShadeDisorientFlange DSP id is %d instead of %d", dspId, kDSPType.ShadeDisorientFlange)
@@ -52,7 +53,7 @@ function CreateDSPs()
     dspId = Client.CreateDSP(SoundSystem.DSP_LowPassSimple)    
     if dspId ~= kDSPType.ShadeDisorientLoPass then
         Print("CreateDSPs(): ShadeDisorientLoPass DSP id is %d instead of %d", dspId, kDSPType.ShadeDisorientLoPass)
-    end    
+    end*/
     
     // "master"
     dspId = Client.CreateDSP(SoundSystem.DSP_Compressor)
@@ -103,8 +104,8 @@ function UpdateDSPEffects()
     // Near death
     Client.SetDSPActive(kDSPType.NearDeath, player:GetGameEffectMask(kGameEffect.NearDeath))
     
-    // Shade
-    UpdateShadeDSPs()
+    // Removed because of over the top right now
+    //UpdateShadeDSPs()
     
 end
 

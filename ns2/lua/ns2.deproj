@@ -993,4 +993,7 @@
   <file>
     <filename>MAC.lua</filename>
   </file>
+  <file>
+    <filename>DisorientableMixin.lua</filename>
+  </file>
 </project>

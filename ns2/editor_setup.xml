@@ -5,13 +5,14 @@
         <model>
             <file>model</file>
             <scale>scale</scale>
+			<casts_shadows>castsShadows</casts_shadows>
         </model>
         <size>
             <scale>scale</scale>
         </size>
         <parameter name="scale" type="vector" label="scale" default="1.0, 1.0, 1.0"/>
         <parameter name="model" type="file" label="model" filter="*.model"/>
-	<parameter name="castsShadows" type="boolean" label="Casts Shadows" default="true"/>
+		<parameter name="castsShadows" type="boolean" label="Casts Shadows" default="true"/>
 
 
 	<!-- Allow prop to be shown or not for commander -->

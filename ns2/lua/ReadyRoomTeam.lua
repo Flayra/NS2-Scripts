@@ -21,23 +21,44 @@ function ReadyRoomTeam:Initialize(teamName, teamNumber)
     
 end
 
+function ReadyRoomTeam:GetRespawnMapName(player)
+
+    local mapName = player.kMapName    
+    
+    if mapName == nil then
+        mapName = ReadyRoomPlayer.kMapName
+    end
+    
+    // Use previous life form if dead or in commander chair
+    if (mapName == MarineCommander.kMapName) or (mapName == AlienCommander.kMapName) or (mapName == Spectator.kMapName) or (mapName == AlienSpectator.kMapName) then 
+    
+        mapName = player:GetPreviousMapName()
+
+    end
+    
+    // Spawn embryos as ready room players with embryo model, so they can still move
+    if (mapName == Embryo.kMapName) then
+            
+        // Default to the basic ReadyRoomPlayer type.
+        mapName = ReadyRoomPlayer.kMapName
+        
+    end
+
+    return mapName
+
+end
+
 /**
  * Transform player to appropriate team respawn class and respawn them at an appropriate spot for the team.
  */
 function ReadyRoomTeam:ReplaceRespawnPlayer(player, origin, angles)
 
-    local mapName = player.kMapName
-    
-    // no Spectator model, Embryo can't move, and Marine class doesn't play well with Player.InitWeapons(newPlayer)
-    if (mapName == MarineCommander.kMapName) or (mapName == AlienCommander.kMapName) or (mapName == Spectator.kMapName) or (mapName == AlienSpectator.kMapName) or (mapName == Marine.kMapName) or (mapName == Embryo.kMapName) then 
-        // Default to the basic ReadyRoomPlayer type.
-        mapName = ReadyRoomPlayer.kMapName
-    end
-    
+    local mapName = self:GetRespawnMapName(player)
+    local isEmbryo = player:isa("Embryo") or (player:isa("Spectator") and player:GetPreviousMapName() == Embryo.kMapName)
     local newPlayer = player:Replace(mapName, self:GetTeamNumber(), false)
     
-    //still allow embryos to show.
-    if(mapName == Embryo.kMapName) then
+    // still allow embryos to show.
+    if isEmbryo then
         newPlayer:SetModel(Embryo.kModelName)
     end
     
