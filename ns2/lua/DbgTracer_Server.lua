@@ -64,9 +64,7 @@ end
  * Trace a targeting attempt.
  */
 function DbgTracer:TraceTargeting(attacker, target, startPoint, trace)
-    if attacker:isa("Hydra") or attacker:isa("Sentry") or attacker:isa("Whip") then
-        self.targetingTracer:Trace(attacker, target, startPoint, trace)
-    end
+    self.targetingTracer:Trace(attacker, target, startPoint, trace)
 end
 
 

@@ -148,7 +148,7 @@ function Sentry:OnInit()
             Sentry.kRange, 
             true,
             { kMarineStaticTargets, kMarineMobileTargets },
-            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter() })
+            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch) })
     end
 end
 

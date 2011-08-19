@@ -38,6 +38,10 @@ function ResourcePoint:OnInit()
     self:SetTechId(kTechId.ResourcePoint)
     
     self.playingEffect = false
+    
+    if Server then    
+        self:SetSighted(true)
+    end
 
 end
 

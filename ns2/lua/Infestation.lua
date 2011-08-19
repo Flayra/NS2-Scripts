@@ -83,6 +83,11 @@ function Infestation:SetGrowthRateScalar(scalar)
     self.growthRateScalar = scalar
 end
 
+function Infestation:CanBeSighted()
+    // we are sighted when our hive or our cyst is sighted
+    return false
+end
+
 function Infestation:OnDestroy()    
     LiveScriptActor.OnDestroy(self)
 

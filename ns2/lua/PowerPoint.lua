@@ -85,6 +85,8 @@ function PowerPoint:OnInit()
         self:SetConstructionComplete()
         
         self:SetNextThink(.1)
+        
+        self:SetSighted(true)
 
     else 
     
@@ -94,6 +96,11 @@ function PowerPoint:OnInit()
         
     end
     
+end
+
+// a powerpoint is always sighted
+function PowerPoint:CanBeSighted()
+    return false
 end
 
 function PowerPoint:Reset()

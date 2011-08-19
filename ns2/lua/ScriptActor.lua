@@ -10,6 +10,7 @@
 Script.Load("lua/Globals.lua")
 Script.Load("lua/BlendedActor.lua")
 Script.Load("lua/MakeMapBlipMixin.lua")
+Script.Load("lua/LosSightedMixin.lua")
 
 class 'ScriptActor' (BlendedActor)
 
@@ -137,8 +138,42 @@ function ScriptActor:OnInit()
     
     if Server then
         InitMixin(self, MakeMapBlipMixin)
+        if self:CanBeSighted() then
+            InitMixin(self, LosSightedMixin)
+        end
     end
+    
+    // don't want to call SetSighted from OnCreate() 
+    self:UpdateSightedRelevancy()
 
+end
+
+// Controls mixing in of LosSightedMixin. Means that the sighted status of this entity 
+// will be controlled by the LosSightedMixin.
+function ScriptActor:CanBeSighted()
+    return false
+end
+
+function ScriptActor:SetSighted(sighted)
+    if self.sighted ~= sighted then
+        Log("%s sighted -> %s", self, sighted)
+        self.sighted = sighted
+        self:UpdateSightedRelevancy()        
+    end
+end
+
+function ScriptActor:UpdateSightedRelevancy()
+    local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom) 
+    if self.sighted then
+        mask = bit.bor(mask, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
+    else
+        if self:GetTeamNumber() == 1 then
+            mask = bit.bor(mask, kRelevantToTeam1Commander)
+        elseif self:GetTeamNumber() == 2 then
+            mask = bit.bor(mask, kRelevantToTeam2Commander)
+        end 
+    end    
+    self:SetExcludeRelevancyMask( mask )
 end
 
 function ScriptActor:ComputeLocation()

@@ -119,6 +119,9 @@ function Structure:GetAddToPathing()
   return true
 end
 
+function Structure:CanBeSighted()
+    return true
+end
 
 /**
  * The eye position for a structure is where it "sees" other entities from for

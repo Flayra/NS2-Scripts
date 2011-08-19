@@ -106,6 +106,11 @@ function ARC:OnInit()
     self:SetUpdates(true)
 end
 
+function ARC:CanBeSighted()
+    return true
+end
+
+
 // Required by ControllerMixin.
 function ARC:GetControllerSize()
     return ARC.kCapsuleHeight, ARC.kCapsuleRadius

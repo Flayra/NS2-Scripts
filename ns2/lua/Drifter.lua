@@ -106,6 +106,10 @@ function Drifter:OnInit()
         
 end
 
+function Drifter:CanBeSighted()
+    return true
+end
+
 // Required by ControllerMixin.
 function Drifter:GetControllerSize()
     return Drifter.kCapsuleHeight, Drifter.kCapsuleRadius

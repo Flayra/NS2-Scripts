@@ -96,7 +96,9 @@ function Hydra:OnThink()
         self.target = self.targetSelector:AcquireTarget()
 
         if self.target then
-        
+
+            self.target:SetSighted(true)
+
             if(self.timeOfNextFire == nil or (Shared.GetTime() > self.timeOfNextFire)) then
            
                 self:AttackTarget()

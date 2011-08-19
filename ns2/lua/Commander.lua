@@ -138,6 +138,10 @@ function Commander:OnInit()
     
 end
 
+function Commander:CanBeSighted()
+    return false
+end
+
 // Needed so player origin is same as camera for selection
 function Commander:GetViewOffset()
     return Vector(0, 0, 0)

@@ -129,6 +129,10 @@ function MAC:GetFov()
     return 120
 end
 
+function MAC:CanBeSighted()
+    return true
+end
+
 // Required by ControllerMixin.
 function MAC:GetControllerSize()
     return MAC.kCapsuleHeight, MAC.kCapsuleRadius

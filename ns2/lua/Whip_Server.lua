@@ -46,6 +46,8 @@ function Whip:AttackTarget()
     
     if(target ~= nil) then
     
+        target:SetSighted(true)
+    
         self:TriggerUncloak()
     
         self:TriggerEffects("whip_attack")

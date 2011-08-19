@@ -62,6 +62,9 @@ function TechPoint:OnInit()
         self:SetUpdates(true)
     end
     
+    if Server then    
+        self:SetSighted(true)
+    end
 end
 
 if Client then
