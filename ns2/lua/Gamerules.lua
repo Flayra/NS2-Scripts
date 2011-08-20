@@ -34,8 +34,6 @@ function Gamerules:OnCreate()
         
         self:SetPropagate(Entity.Propagate_Always)
         
-        self.darwinMode = false
-        
         self.damageMultiplier = 1
         
         // Set global gamerules whenever gamerules are built
@@ -219,14 +217,6 @@ end
 /**
  * Cheats and modes.
  */
-function Gamerules:GetDarwinMode()
-    return self.darwinMode
-end
-
-function Gamerules:SetDarwinMode(darwinMode)
-    self.darwinMode = darwinMode
-end
-
 function Gamerules:GetDamageMultiplier()
     return ConditionalValue(Shared.GetCheatsEnabled(), self.damageMultiplier, 1)
 end

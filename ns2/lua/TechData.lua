@@ -163,7 +163,6 @@ function BuildTechData()
         { [kTechDataId] = kTechId.PowerPoint,            [kTechDataMapName] = PowerPoint.kMapName,            [kTechDataDisplayName] = "POWER_NODE",  [kTechDataCostKey] = 0,   [kTechDataMaxHealth] = PowerPoint.kHealth, [kTechDataMaxArmor] = PowerPoint.kArmor, [kTechDataBuildTime] = kPowerPointBuildTime, [kTechDataModel] = PowerPoint.kOnModelName, [kTechDataPointValue] = kPowerPointPointValue},        
         { [kTechDataId] = kTechId.ResourcePoint,         [kTechDataMapName] = ResourcePoint.kPointMapName,    [kTechDataDisplayName] = "RESOURCE_NOZZLE", [kTechDataModel] = ResourcePoint.kModelName},
         { [kTechDataId] = kTechId.TechPoint,             [kTechDataMapName] = TechPoint.kMapName,             [kTechDataDisplayName] = "TECH_POINT", [kTechDataModel] = TechPoint.kModelName},
-        { [kTechDataId] = kTechId.Target,                [kTechDataMapName] = Target.kMapName,                [kTechDataDisplayName] = "TARGET", [kTechDataModel] = ""},
         { [kTechDataId] = kTechId.Door,                  [kTechDataDisplayName] = "DOOR", [kTechDataMapName] = Door.kMapName, [kTechDataModel] = Door.kModelName},
         { [kTechDataId] = kTechId.DoorOpen,              [kTechDataDisplayName] = "OPEN_DOOR", [kTechDataHotkey] = Move.O, [kTechDataTooltipInfo] = "OPEN_DOOR_TOOLTIP"},
         { [kTechDataId] = kTechId.DoorClose,             [kTechDataDisplayName] = "CLOSE_DOOR", [kTechDataHotkey] = Move.C, [kTechDataTooltipInfo] = "CLOSE_DOOR_TOOLTIP"},

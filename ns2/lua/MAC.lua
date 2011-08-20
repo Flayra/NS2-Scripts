@@ -13,7 +13,10 @@ Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/EnergyMixin.lua")
 Script.Load("lua/BuildingMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
 
 class 'MAC' (LiveScriptActor)
 
@@ -68,16 +71,21 @@ MAC.networkVars = {}
 
 PrepareClassForMixin(MAC, EnergyMixin)
 PrepareClassForMixin(MAC, ControllerMixin)
+PrepareClassForMixin(MAC, GameEffectsMixin)
+PrepareClassForMixin(MAC, FlinchMixin)
 
 function MAC:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
     InitMixin(self, PathingMixin)
     
     if Server then
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
     end
  
     // Create the controller for doing collision detection.

@@ -1599,3 +1599,56 @@ function FindConnectionPath(src, dst)
     return nil
 
 end
+
+// All damage is routed through here.
+function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire)
+   
+    if not target:isa("LiveScriptActor") then
+        return false
+    end
+
+    if (not target:GetCanTakeDamage()) then
+        return false
+    end
+    
+    // Phantom damage sources can't damage players
+    if attacker ~= nil and HasMixin(attacker, "Phantom") and attacker:GetIsPhantom() then
+        return false
+    end
+    
+    if (target == nil or target == {} or (target.GetDarwinMode and target:GetDarwinMode())) then
+        return false
+    elseif(cheats or devMode) then
+        return true
+    elseif attacker == nil then
+        return true
+    end
+
+    // You can always do damage to yourself
+    if (attacker == target) then
+        return true
+    end
+    
+    // Command stations can kill even friendlies trapped inside
+    if attacker ~= nil and attacker:isa("CommandStation") then
+        return true
+    end
+    
+    // Your own grenades can hurt you
+    local owner = attacker:GetOwner()
+    if attacker:isa("Grenade") and owner and owner:GetId() == target:GetId() then
+        return true
+    end
+    
+    // Same teams not allowed to hurt each other unless friendly fire enabled
+    local teamsOK = true
+    if attacker ~= nil then
+
+        teamsOK = (attacker:GetTeamNumber() ~= target:GetTeamNumber()) or friendlyFire
+        
+    end
+    
+    // Allow damage of own stuff when testing
+    return teamsOK
+
+end

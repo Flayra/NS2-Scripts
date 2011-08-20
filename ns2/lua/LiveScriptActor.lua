@@ -22,16 +22,6 @@ LiveScriptActor.kMapName = "livescriptactor"
 LiveScriptActor.kHealth = 100
 LiveScriptActor.kArmor = 0
 
-LiveScriptActor.kAnimFlinch = "flinch"
-LiveScriptActor.kAnimFlinchFlames = "flinch_flames"
-
-// Big flinch played when damage taken >= kStructureAnimFlinchHealth
-LiveScriptActor.kAnimFlinchHealth = 50
-LiveScriptActor.kAnimFlinchBig = "flinch_big"
-
-// Takes this much time to reduce flinch completely
-LiveScriptActor.kFlinchIntensityReduceRate = .4
-
 LiveScriptActor.kDefaultPointValue = 10
 
 LiveScriptActor.kMoveToDistance = 1
@@ -44,19 +34,12 @@ end
 
 LiveScriptActor.networkVars = 
 {
-    // 0 to 1 value indicating how much pain we're in
-    flinchIntensity         = "float",
-    
     // Purchased tech (carapace, piercing, etc.). Also includes
     // global and class upgrades we didn't explicitly buy (armor1).
     upgrade1                = "enum kTechId",
     upgrade2                = "enum kTechId",
     upgrade3                = "enum kTechId",
     upgrade4                = "enum kTechId",
-    
-    // Bit mask for sending notice of gameplay effects to client.
-    // Effects can stack but that's not tracked here.
-    gameEffectsFlags        = "integer (0 to " .. kGameEffectMax .. ")",
 
     // Number of furys that are affecting this entity
     furyLevel               = string.format("integer (0 to %d)", kMaxStackLevel),
@@ -71,28 +54,27 @@ PrepareClassForMixin(LiveScriptActor, LiveMixin)
 PrepareClassForMixin(LiveScriptActor, OrdersMixin)
 PrepareClassForMixin(LiveScriptActor, FireMixin)
 
-// Depends on tech id being set before calling
-function LiveScriptActor:OnInit()
+function LiveScriptActor:OnCreate()
 
+    ScriptActor.OnCreate(self)
+    
     InitMixin(self, LiveMixin, { kHealth = LiveScriptActor.kHealth, kArmor = LiveScriptActor.kArmor })
     InitMixin(self, OrdersMixin, { kMoveToDistance = LiveScriptActor.kMoveToDistance })
     InitMixin(self, FireMixin)
+
+end
+
+// Depends on tech id being set before calling
+function LiveScriptActor:OnInit()
     
     ScriptActor.OnInit(self)
     
     self.timeLastUpdate = nil
-    self.flinchIntensity = 0
     
     self.upgrade1 = kTechId.None
     self.upgrade2 = kTechId.None
     self.upgrade3 = kTechId.None
     self.upgrade4 = kTechId.None
-    
-    // Flags to propagate to client indicating if we're under effect of anything (but doesn't include count)
-    self.gameEffectsFlags = 0
-    
-    // List of strings indicating stackable game effects (Server only)
-    self.gameEffects = {}
     
     self.furyLevel = 0
     
@@ -221,29 +203,10 @@ function LiveScriptActor:OnUpdate(deltaTime)
     
     if (self.controller ~= nil and not self:GetIsAlive()) then
         self:DestroyController()
-    end        
-    
-    if self.timeLastUpdate ~= nil then
-
-        // Update flinch intensity
-        if self.flinchIntensity == nil then
-            Shared.Message("self.flinchIntensity is nil! class name: " .. self:GetClassName())
-        end
-        self.flinchIntensity = Clamp(self.flinchIntensity - deltaTime*LiveScriptActor.kFlinchIntensityReduceRate, 0, 1)
-        
-        // Stop overlaying basic looping flinch animation when not needed
-        if self.flinchIntensity == 0 then
-            self:StopOverlayAnimation(LiveScriptActor.kAnimFlinch)
-        end
-        
-        self:SetPoseParameters()
-        
     end
     
     // Update expiring stackable game effects
     if Server then
-    
-        self:ExpireStackableGameEffects(deltaTime)
         
         // Set fury level to be propagated to client so gameplay effects are predicted properly
         self:SetFuryLevel( self:GetStackableGameEffectCount(kFuryGameEffect) )
@@ -252,11 +215,6 @@ function LiveScriptActor:OnUpdate(deltaTime)
     
     self.timeLastUpdate = Shared.GetTime()
     
-end
-
-function LiveScriptActor:SetPoseParameters()
-    //Print("%s:SetPoseParam(intensity, %s)", self:GetClassName(), tostring(self.flinchIntensity))
-    self:SetPoseParam("intensity", self.flinchIntensity)
 end
 
 function LiveScriptActor:GetIsSelectable()
@@ -271,10 +229,6 @@ end
 // health can return false. 
 function LiveScriptActor:GetCanTakeDamage()
     return true
-end
-
-function LiveScriptActor:GetGameEffectMask(effect)
-    return bit.band(self.gameEffectsFlags, effect) ~= 0
 end
 
 function LiveScriptActor:OnEntityChange(entityId, newEntityId)

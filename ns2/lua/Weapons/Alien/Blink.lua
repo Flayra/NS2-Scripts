@@ -476,7 +476,14 @@ function Blink:OnProcessMove(player, input)
     if self:GetIsActive() and self.ethereal then
     
         // Decrease energy while in blink mode
-        player:DeductAbilityEnergy(input.time * kBlinkEnergyCost)
+        local energyCost = input.time * kBlinkEnergyCost
+        
+        // No energy cost in Darwin mode
+        if(player and player:GetDarwinMode()) then
+            energyCost = 0
+        end
+
+        player:DeductAbilityEnergy(energyCost)
         
     end
     

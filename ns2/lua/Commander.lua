@@ -505,4 +505,8 @@ function Commander:GetCanDoDamage()
     return false
 end
 
+function Commander:OverrideCheckvision()
+  return false
+end
+
 Shared.LinkClassToMap( "Commander", Commander.kMapName, Commander.networkVars )

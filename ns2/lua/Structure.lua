@@ -9,8 +9,11 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Balance.lua")
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
 
 class 'Structure' (LiveScriptActor)
 
@@ -65,17 +68,22 @@ Structure.networkVars =
 }
 
 PrepareClassForMixin(Structure, EnergyMixin)
+PrepareClassForMixin(Structure, GameEffectsMixin)
+PrepareClassForMixin(Structure, FlinchMixin)
 PrepareClassForMixin(Structure, CloakableMixin)
 
 function Structure:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
     InitMixin(self, CloakableMixin)
     InitMixin(self, PathingMixin)
     
     if Server then
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
     end
     
     self:SetLagCompensated(true)
@@ -340,6 +348,10 @@ end
 
 function Structure:GetIsWarmedUp()
     return (self.timeWarmupComplete ~= 0) and (Shared.GetTime() >= self.timeWarmupComplete)
+end
+
+function Structure:OverrideVisionRadius()
+    return LOSMixin.kStructureMinLOSDistance
 end
 
 Shared.LinkClassToMap("Structure", Structure.kMapName, Structure.networkVars)

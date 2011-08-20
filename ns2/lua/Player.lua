@@ -17,7 +17,10 @@ Script.Load("lua/TooltipMixin.lua")
 Script.Load("lua/WeaponOwnerMixin.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
 
 
 /**
@@ -163,6 +166,7 @@ Player.networkVars =
     showScoreboard          = "boolean",
     sayingsMenu             = "integer (0 to 6)",
     timeLastMenu            = "float",
+    darwinMode              = "boolean",
     
     // True if target under reticle can be damaged
     reticleTarget           = "boolean",
@@ -223,14 +227,19 @@ Player.networkVars =
 }
 
 PrepareClassForMixin(Player, ControllerMixin)
+PrepareClassForMixin(Player, GameEffectsMixin)
+PrepareClassForMixin(Player, FlinchMixin)
 
 function Player:OnCreate()
     
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
     if Server then
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
     end
     
     self:SetLagCompensated(true)
@@ -264,6 +273,7 @@ function Player:OnCreate()
     
     self.sayingsMenu = 0
     self.timeLastMenu = 0    
+    self.darwinMode = false
     self.timeLastSayingsAction = 0
     self.reticleTarget = false
     self.timeTargetHit = 0
@@ -2464,6 +2474,10 @@ end
 
 function Player:GetIsUsing ()
   return self.isUsing
+end
+
+function Player:GetDarwinMode()
+    return self.darwinMode
 end
 
 Shared.LinkClassToMap("Player", Player.kMapName, Player.networkVars )

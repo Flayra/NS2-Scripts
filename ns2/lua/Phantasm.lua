@@ -9,12 +9,14 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 
 class 'Phantasm' (LiveScriptActor)
 
 Phantasm.kMapName = "phantasm"
 
-local networkVars = {
+Phantasm.networkVars = {
     moveYaw                 = "float",
     // 0-1 scalar used to set move_speed model parameter according to how fast we recently moved
     moveSpeed               = "float",
@@ -24,6 +26,9 @@ local networkVars = {
 }
 
 Phantasm.kMoveThinkInterval = .05
+
+PrepareClassForMixin(Phantasm, GameEffectsMixin)
+PrepareClassForMixin(Phantasm, FlinchMixin)
 
 function Phantasm:GetTraceCapsule()
     
@@ -43,6 +48,9 @@ end
 function Phantasm:OnCreate()
 
     LiveScriptActor.OnCreate(self)
+    
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
     
     // Create the controller for doing collision detection.
     local height, radius = self:GetTraceCapsule()
@@ -235,4 +243,4 @@ function Phantasm:OnUpdate(deltaTime)
     
 end
 
-Shared.LinkClassToMap("Phantasm", Phantasm.kMapName, networkVars)
+Shared.LinkClassToMap("Phantasm", Phantasm.kMapName, Phantasm.networkVars)

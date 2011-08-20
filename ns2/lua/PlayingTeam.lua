@@ -662,7 +662,7 @@ function PlayingTeam:UpdateLOS(timePassed)
     // Skip LOS check when debugging for perf. reasons
     if(/*not GetIsDebugging() and*/ (self.timeSinceLastLOSUpdate > PlayingTeam.kLOSUpdateInterval)) then
     
-        self:ComputeLOS()
+//        self:ComputeLOS()
         self.timeSinceLastLOSUpdate = 0
     
     else
@@ -912,7 +912,7 @@ function PlayingTeam:UpdateGameEffects(timePassed)
     if self.timeSinceLastGameEffectUpdate >= PlayingTeam.kUpdateGameEffectsInterval then
 
         // Friendly entities that alien structures can affect
-        local teamEntities = GetEntitiesForTeam("LiveScriptActor", self:GetTeamNumber())
+        local teamEntities = GetEntitiesWithMixinForTeam("GameEffects", self:GetTeamNumber())
         local enemyPlayers = GetEntitiesForTeam("Player", GetEnemyTeamNumber(self:GetTeamNumber()))
         
         self:UpdateTeamSpecificGameEffects(teamEntities, enemyPlayers)       

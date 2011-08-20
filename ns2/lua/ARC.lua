@@ -12,6 +12,8 @@
 Script.Load("lua/LiveScriptActor.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 
 class 'ARC' (LiveScriptActor)
@@ -52,7 +54,7 @@ end
 
 PrepareClassForMixin(ARC, ControllerMixin)
 
-local networkVars =
+ARC.networkVars =
 {
     // ARCs can only fire when deployed and can only move when not deployed
     mode            = "enum ARC.kMode",
@@ -65,11 +67,16 @@ local networkVars =
     targetDirection             = "vector",
 }
 
+PrepareClassForMixin(ARC, GameEffectsMixin)
+PrepareClassForMixin(ARC, FlinchMixin)
+
 function ARC:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
     InitMixin(self, PathingMixin)
     
     if Server then
@@ -344,4 +351,4 @@ function ARC:GetVisualRadius()
     return LiveScriptActor.GetVisualRadius(self)
 end
 
-Shared.LinkClassToMap("ARC", ARC.kMapName, networkVars)
+Shared.LinkClassToMap("ARC", ARC.kMapName, ARC.networkVars)

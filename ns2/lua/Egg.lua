@@ -183,6 +183,10 @@ function Egg:GetTimeQueuedPlayer()
     return self.timeQueuedPlayer
 end
 
+function Egg:OverrideCheckvision()
+  return false
+end
+
 if Server then
 function Egg:OnThink()
 

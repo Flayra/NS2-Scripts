@@ -465,6 +465,7 @@ function Player:CopyPlayerDataFrom(player)
     self.sighted = player.sighted
     self.jumpHandled = player.jumpHandled
     self.timeOfLastJump = player.timeOfLastJump
+    self.darwinMode = player.darwinMode
 
     self.mode = player.mode
     self.modeTime = player.modeTime
@@ -919,4 +920,8 @@ end
 
 function Player:GetPreviousMapName()
     return self.previousMapName
+end
+
+function Player:SetDarwinMode(darwinMode)
+    self.darwinMode = darwinMode
 end

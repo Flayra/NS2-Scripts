@@ -51,7 +51,6 @@ Script.Load("lua/ReadyRoomSpawn.lua")
 Script.Load("lua/PlayerSpawn.lua")
 Script.Load("lua/TeamLocation.lua")
 Script.Load("lua/Pheromone.lua")
-Script.Load("lua/Target.lua")
 Script.Load("lua/Weapons/ViewModel.lua")
 
 // Marine structures

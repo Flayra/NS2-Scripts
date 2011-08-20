@@ -352,9 +352,6 @@
     <filename>Commander_SelectionPanel.lua</filename>
   </file>
   <file>
-    <filename>Target.lua</filename>
-  </file>
-  <file>
     <filename>Weapons\ViewModel.lua</filename>
   </file>
   <file>
@@ -995,5 +992,14 @@
   </file>
   <file>
     <filename>DisorientableMixin.lua</filename>
+  </file>
+  <file>
+    <filename>FlinchMixin.lua</filename>
+  </file>
+  <file>
+    <filename>GameEffectsMixin.lua</filename>
+  </file>
+  <file>
+    <filename>PhantomMixin.lua</filename>
   </file>
 </project>

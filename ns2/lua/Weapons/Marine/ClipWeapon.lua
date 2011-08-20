@@ -258,7 +258,7 @@ function ClipWeapon:OnPrimaryAttack(player)
                     Weapon.OnPrimaryAttackEnd(self, player)
                 end
                 // Don't decrement ammo in Darwin mode
-                if(not Server or not GetGamerules():GetDarwinMode()) then
+                if(not player or not player:GetDarwinMode()) then
                     self.clip = self.clip - 1
                 end
                             

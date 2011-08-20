@@ -181,4 +181,8 @@ function PowerPoint:GetIsAliveOverride()
     return true
 end
 
+function PowerPoint:OverrideVisionRadius()
+  return 2
+end
+
 Shared.LinkClassToMap("PowerPoint", PowerPoint.kMapName, networkVars)

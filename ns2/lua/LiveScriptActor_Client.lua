@@ -18,7 +18,6 @@ function LiveScriptActor:OnSynchronized()
     PROFILE("LiveScriptActor:OnSynchronized")
 
     ScriptActor.OnSynchronized(self)
-    self:SetPoseParameters()
     self:UpdateEffects()
     
 end

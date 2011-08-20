@@ -7,6 +7,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/GameEffectsMixin.lua")
 
 class 'Door' (LiveScriptActor)
 
@@ -34,7 +35,7 @@ if (Server) then
     Script.Load("lua/Door_Server.lua")
 end
 
-local networkVars   = {
+Door.networkVars   = {
 
     // Saved health we restore to on reset
     weldHealth      = "integer (0 to 2000)",
@@ -55,6 +56,19 @@ local networkVars   = {
     state           = string.format("integer (1 to %d)", Door.kState.LockDestroyed)
 
 }
+
+PrepareClassForMixin(Door, GameEffectsMixin)
+
+function Door:OnCreate()
+
+    LiveScriptActor.OnCreate(self)
+    
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, PathingMixin)
+    
+    self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
+    
+end
 
 function Door:OnInit()
       
@@ -98,14 +112,8 @@ function Door:OnInit()
     
     self:SetIsAlive(true)
     
-    self:SetState(Door.kState.Closed)    
-end
-
-function Door:OnCreate()
-    LiveScriptActor.OnCreate(self)
+    self:SetState(Door.kState.Closed)
     
-    InitMixin(self, PathingMixin) 
-    self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
 end
 
 // Only hackable by marine commander
@@ -312,4 +320,8 @@ function Door:OnOverrideCanSetFire()
     return false
 end
 
-Shared.LinkClassToMap("Door", Door.kMapName, networkVars)
+function Door:OverrideCheckvision()
+  return false
+end
+
+Shared.LinkClassToMap("Door", Door.kMapName, Door.networkVars)

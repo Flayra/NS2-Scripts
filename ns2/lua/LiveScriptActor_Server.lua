@@ -92,42 +92,12 @@ function LiveScriptActor:OnTakeDamage(damage, attacker, doer, point)
         damageType = doer:GetDamageType()
     end
     
-    local flinchParams = {damagetype = damageType, flinch_severe = ConditionalValue(damage > 20, true, false)}
-    if point then
-        flinchParams[kEffectHostCoords] = Coords.GetTranslation(point)
-    end
-    
-    if doer then
-        flinchParams[kEffectFilterDoerName] = doer:GetClassName()
-    end
-    
-    // Don't flinch too often
-    local time = Shared.GetTime()
-    if self.lastFlinchEffectTime == nil or (time > (self.lastFlinchEffectTime + 1)) then
-    
-        self:TriggerEffects("flinch", flinchParams)
-        self.lastFlinchEffectTime = time
-        
-    end
-    
     // Apply directed impulse to physically simulated objects, according to amount of damage
     if (self.physicsModel ~= nil and self.physicsType == Actor.PhysicsType.Dynamic) then    
         local damageImpulse = self:GetDamageImpulse(damage, doer, point)
         if damageImpulse then
             self.physicsModel:AddImpulse(point, damageImpulse)
         end
-    end
-    
-    // Once entity has taken this much damage in a second, it is flinching at it's maximum amount
-    local maxFlinchDamage = self:GetMaxHealth() * .20
-    
-    local flinchAmount = (damage/maxFlinchDamage) 
-    self.flinchIntensity = Clamp(self.flinchIntensity + flinchAmount, .25, 1)
-
-    // Make sure new flinch intensity is big enough to be visible, but don't add too much from a bunch of small hits
-    // Flamethrower make Harvester go wild   
-    if doer and (doer:GetDamageType() == kDamageType.Flame) then
-        self.flinchIntensity = self.flinchIntensity + .1
     end
     
 end
@@ -361,57 +331,6 @@ end
 function LiveScriptActor:OnWeld(entity, elapsedTime)
 end
 
-// Sets or clears a game effect flag
-function LiveScriptActor:SetGameEffectMask(effect, state)
-
-    local startGameEffectsFlags = self.gameEffectsFlags
-    
-    if state then
-    
-        // Set game effect bit
-        if not self:GetGameEffectMask(effect) then
-            self:OnGameEffectMaskChanged(effect, true)
-        end
-        
-        self.gameEffectsFlags = bit.bor(self.gameEffectsFlags, effect)
-        
-    else
-    
-        // Clear game effect bit
-        if self:GetGameEffectMask(effect) then
-            self:OnGameEffectMaskChanged(effect, false)
-        end
-
-        local notEffect = bit.bnot(effect)
-        self.gameEffectsFlags = bit.band(self.gameEffectsFlags, notEffect)
-        
-    end
-    
-    // Return if state changed
-    return startGameEffectsFlags ~= self.gameEffectsFlags
-    
-end
-
-function LiveScriptActor:ClearGameEffects()
-
-    if self.gameEffectsFlags then
-    
-        for index = 1, kGameEffect.Max do 
-        
-            local effect = bit.lshift(1, index)
-
-            if bit.bor(self.gameEffectsFlags, effect) then
-                self:OnGameEffectMaskChanged(effect, false)
-            end
-            
-        end
-        
-    end
-    
-    self.gameEffectsFlags = 0
-    
-end
-
 // Overrideable by children. Called on server only.
 function LiveScriptActor:OnGameEffectMaskChanged(effect, state)
     
@@ -420,93 +339,6 @@ function LiveScriptActor:OnGameEffectMaskChanged(effect, state)
     elseif effect == kGameEffect.OnFire and not state then
         self:TriggerEffects("fire_stop")
     end
-    
-end
-
-// Adds a stackable game effect (up to kMaxStackLevel max). Don't add one if we already have
-// this effect from this source entity.
-function LiveScriptActor:AddStackableGameEffect(gameEffectName, duration, sourceEntity)
-
-    if type(gameEffectName) == "string" then
-        
-        if table.count(self.gameEffects) < kMaxStackLevel then
-        
-            local sourceEntityId = Entity.invalidId
-            
-            if sourceEntity then
-            
-                sourceEntityId = sourceEntity:GetId()
-                
-                // Insert stackable game effect if we don't already have one from this entity
-                for index, elementTriple in ipairs(self.gameEffects) do
-                
-                    if elementTriple[3] == sourceEntityId then
-                    
-                        return
-                        
-                    end
-                    
-                end
-                
-            end
-            
-            // Otherwise insert new triple (game effect, duration, id)
-            table.insert(self.gameEffects, {gameEffectName, duration, sourceEntityId})
-            
-        end
-        
-    else
-        Print("%s:AddStackableGameEffect(): Can only add strings (got type %s)", self:GetClassName(), type(gameEffectName))
-    end
-    
-end
-
-function LiveScriptActor:ClearStackableGameEffects()
-    table.clear(self.gameEffects)
-end
-
-function LiveScriptActor:GetStackableGameEffectCount(gameEffectName)
-
-    local count = 0
-    
-    for index, elementTriple in ipairs(self.gameEffects) do
-    
-        local effectName = elementTriple[1]
-        if effectName == gameEffectName then
-        
-            count = count + 1
-            
-        end
-        
-    end
-
-    return count
-    
-end
-
-function LiveScriptActor:ExpireStackableGameEffects(deltaTime)
-
-    local time = Shared.GetTime()
-    
-    function effectExpired(elemTriple) 
-    
-        // nil expire times last forever
-        local duration = elemTriple[2]
-        if not duration then
-            return false
-        end
-        
-        duration = duration - deltaTime
-        if duration <= 0 then
-            return true
-        end
-        
-        elemTriple[2] = duration
-        return false
-        
-    end
-    
-    table.removeConditional(self.gameEffects, effectExpired)
     
 end
 
