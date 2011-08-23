@@ -10,6 +10,7 @@
 Script.Load("lua/Structure.lua")
 Script.Load("lua/Onos.lua")
 Script.Load("lua/InfestationMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Egg' (Structure)
 PrepareClassForMixin(Egg, InfestationMixin)
@@ -33,7 +34,10 @@ Egg.kArmor = kEggArmor
 Egg.kThinkInterval = .5
 
 function Egg:OnCreate()
+
     Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
     
     self:SetModel(Egg.kModelName)
     

@@ -7,7 +7,9 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/UpgradableMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 
 class 'Door' (LiveScriptActor)
 
@@ -57,14 +59,17 @@ Door.networkVars   = {
 
 }
 
+PrepareClassForMixin(Door, UpgradableMixin)
 PrepareClassForMixin(Door, GameEffectsMixin)
 
 function Door:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
+    InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
     InitMixin(self, PathingMixin)
+    InitMixin(self, SelectableMixin)
     
     self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
     
@@ -80,7 +85,7 @@ function Door:OnInit()
       
         self:SetIsVisible(true)
         
-        self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+        self:SetPhysicsType(PhysicsType.Kinematic)
         
         self:SetPhysicsGroup(PhysicsGroup.CommanderUnitGroup)
         

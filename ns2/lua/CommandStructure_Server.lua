@@ -82,7 +82,7 @@ function CommandStructure:OnResearchComplete(structure, researchId)
         if(structure and (structure:GetId() == self:GetId()) and (researchId == self.level1TechId or researchId == self.level2TechId or researchId == self.level3TechId)) then
 
             // Also changes current health and maxHealth    
-            success = self:Upgrade(researchId)
+            success = self:UpgradeToTechId(researchId)
             
         end
         

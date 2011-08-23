@@ -354,11 +354,12 @@ kAlienWeaponEffects =
     {
         sporesAttackEffects = 
         {
-            {looping_sound = "sound/ns2.fev/alien/lerk/spore_spray"},
             {overlay_animation = "spore"},
             
-            //{viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "?"},
-            //{weapon_cinematic = "cinematics/alien/lerk/spores.cinematic", attach_point = "?"},
+            {viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "fxnode_hole_left"},
+            {viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "fxnode_hole_right"},
+            {weapon_cinematic = "cinematics/alien/lerk/spore_fire.cinematic", attach_point = "fxnode_hole_left"},
+            {weapon_cinematic = "cinematics/alien/lerk/spore_fire.cinematic", attach_point = "fxnode_hole_right"},
         },
     },
     

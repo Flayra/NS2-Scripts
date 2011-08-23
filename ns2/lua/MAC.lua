@@ -13,10 +13,18 @@ Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/EnergyMixin.lua")
 Script.Load("lua/BuildingMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
+
+if Server then
+    Script.Load("lua/AttackOrderMixin.lua")
+end
 
 class 'MAC' (LiveScriptActor)
 
@@ -71,6 +79,7 @@ MAC.networkVars = {}
 
 PrepareClassForMixin(MAC, EnergyMixin)
 PrepareClassForMixin(MAC, ControllerMixin)
+PrepareClassForMixin(MAC, UpgradableMixin)
 PrepareClassForMixin(MAC, GameEffectsMixin)
 PrepareClassForMixin(MAC, FlinchMixin)
 
@@ -79,11 +88,19 @@ function MAC:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, DoorMixin)
+    InitMixin(self, EnergyMixin)
+    InitMixin(self, BuildingMixin)
+    InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
     InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
     InitMixin(self, PathingMixin)
+    InitMixin(self, SelectableMixin)
     
     if Server then
+        InitMixin(self, AttackOrderMixin, { kMoveToDistance = MAC.kMoveToDistance })
         InitMixin(self, TargetMixin)
         InitMixin(self, LOSMixin)
     end
@@ -100,16 +117,12 @@ function MAC:OnCreate()
 end
 
 function MAC:OnInit()
-
-    InitMixin(self, DoorMixin)
-    InitMixin(self, EnergyMixin )
-    InitMixin(self, BuildingMixin )
     
     LiveScriptActor.OnInit(self)
 
     self:SetModel(MAC.kModelName)
 
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
 
     if(Server) then
     
@@ -334,7 +347,7 @@ function MAC:ProcessWeldOrder(deltaTime)
         
             else        
                 // otherwise move towards it
-                local hoverAdjustedLocation = self:GetHoverAt(target:GetEngagementPoint())
+                local hoverAdjustedLocation = GetHoverAt(self, target:GetEngagementPoint())
                 self:MoveToTarget(PhysicsMask.AIMovement, hoverAdjustedLocation, self:GetMoveSpeed(), deltaTime)
                 self.timeOfLastWeld = time
             end
@@ -372,7 +385,7 @@ end
 function MAC:ProcessMove(deltaTime)
 
     local currentOrder = self:GetCurrentOrder()
-    local hoverAdjustedLocation = self:GetHoverAt(currentOrder:GetLocation())
+    local hoverAdjustedLocation = GetHoverAt(self, currentOrder:GetLocation())
     
     self:MoveToTarget(PhysicsMask.AIMovement, hoverAdjustedLocation, self:GetMoveSpeed(), deltaTime)
     if(self:IsTargetReached(currentOrder:GetLocation(), kEpsilon)) then    
@@ -381,13 +394,16 @@ function MAC:ProcessMove(deltaTime)
     else
         self:TriggerEffects("mac_move")
     end
+    
 end
 
 function MAC:PlayChatSound(soundName)
+
     if self.timeOfLastChatterSound == 0 or (Shared.GetTime() > self.timeOfLastChatterSound + 2) then
         self:PlaySound(soundName)
         self.timeOfLastChatterSound = Shared.GetTime()
     end
+    
 end
 
 // Look for other MACs and Drifters to greet as we fly by 
@@ -486,7 +502,7 @@ function MAC:ProcessBuildConstruct(deltaTime)
             end            
         end                
     else    
-        local hoverAdjustedLocation = self:GetHoverAt(currentOrder:GetLocation())
+        local hoverAdjustedLocation = GetHoverAt(self, currentOrder:GetLocation())
         self:MoveToTarget(PhysicsMask.AIMovement, hoverAdjustedLocation, self:GetMoveSpeed(), deltaTime)        
     end
     end
@@ -517,7 +533,8 @@ function MAC:UpdateOrders(deltaTime)
         if(currentOrder:GetType() == kTechId.Move) then
             self:ProcessMove(deltaTime)            
             self:UpdateGreetings()            
-        elseif(currentOrder:GetType() == kTechId.Attack) then        
+        elseif(currentOrder:GetType() == kTechId.Attack) then
+            // From AttackOrderMixin.
             self:ProcessAttackOrder(1, GetDevScalar(MAC.kMoveSpeed, 8), deltaTime)            
         elseif(currentOrder:GetType() == kTechId.Weld) then        
             setNextThink = self:ProcessWeldOrder(deltaTime)                    
@@ -541,7 +558,9 @@ function MAC:OnUpdate(deltaTime)
     
     self:UpdateControllerFromEntity()
     
-    self:UpdateEnergy(deltaTime)
+    if Server then  
+        self:UpdateEnergy(deltaTime)
+    end
     
 end
 
@@ -608,10 +627,6 @@ function MAC:GetTechButtons(techId)
 
     else return nil end
     
-end
-
-function MAC:GetWaypointGroupName()
-    return kAirWaypointsGroup
 end
 
 function MAC:OnOverrideDoorInteraction(inEntity)

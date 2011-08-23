@@ -15,7 +15,7 @@ function Door:Reset()
     self:SetOrigin(self.savedOrigin)
     self:SetAngles(self.savedAngles)
     
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
     self:SetPhysicsGroup(0)
 
     self:SetState(Door.kState.Closed)    

@@ -72,9 +72,9 @@ local function GeneratePath(src, dst)
     Pathing.GetPathPoints(src, dst, points)
 
     // HACKS
-    if (#(points) > 0) then
+   /* if (#(points) > 0) then
         table.insert( points, #(points) - 1, dst )    
-    end
+    end */
     
     if (#(points) ~= 0 ) then        
         SplitPathPoints( points, 0.5 )        
@@ -377,4 +377,50 @@ function PathingMixin:ClearPathingFlags(flags)
   if (extents ~= nil) then
     Pathing.ClearPolyFlags(position, extents, flags)
   end  
+
+end
+
+/**
+ * This is the bread and butter of PathingMixin.
+ */
+function PathingMixin:MoveToTarget(physicsGroupMask, location, movespeed, time)
+
+    PROFILE("PathingMixin:MoveToTarget")
+    
+    local movement = nil
+    local newLocation = self:GetOrigin()
+    local now = Shared.GetTime()    
+    local hasReachedLocation = false//self:IsTargetReached(location, 0.01, true)
+    
+    local direction = (location - self:GetOrigin()):GetUnit();            
+    if self.pathingEnabled then
+        if not (hasReachedLocation) then            
+            if not self:IsPathValid(self:GetOrigin(), location) then                
+                if not (self:BuildPath(self:GetOrigin(), location)) then                
+                  return
+                end
+            end
+            
+            if (self:GetCurrentPathPoint() ~= nil and self:GetNumPoints() >= 1) then                 
+                self:RestartPathing(now)
+                local point = self:GetNextPoint(time, movespeed)
+                if (point ~= nil) then
+                    newLocation = point
+                    direction = self:GetPathDirection()
+                    SetAnglesFromVector(self, direction)
+                end                
+            end                                
+        end
+    end
+            
+    if self:GetIsFlying() then
+        newLocation = GetHoverAt(self, newLocation)
+    end
+    
+    self:SetOrigin(newLocation)
+    if (self.controller and not self:GetIsFlying()) then
+      self:UpdateControllerFromEntity()
+      self:PerformMovement(Vector(0, -1000, 0), 1)      
+    end
+    
 end

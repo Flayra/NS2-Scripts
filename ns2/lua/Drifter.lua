@@ -14,8 +14,13 @@ Script.Load("lua/EnergyMixin.lua")
 Script.Load("lua/BuildingMixin.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/AttackOrderMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
 
@@ -55,6 +60,7 @@ Drifter.networkVars = {
 
 PrepareClassForMixin(Drifter, EnergyMixin)
 PrepareClassForMixin(Drifter, ControllerMixin)
+PrepareClassForMixin(Drifter, UpgradableMixin)
 PrepareClassForMixin(Drifter, GameEffectsMixin)
 PrepareClassForMixin(Drifter, FlinchMixin)
 PrepareClassForMixin(Drifter, CloakableMixin)
@@ -64,11 +70,20 @@ function Drifter:OnCreate()
     LiveScriptActor.OnCreate(self)
 
     InitMixin(self, ControllerMixin)
-    InitMixin(self, GameEffectsMixin)
-    InitMixin(self, FlinchMixin)
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, DoorMixin)
+    InitMixin(self, EnergyMixin)
+    InitMixin(self, BuildingMixin)
+    InitMixin(self, CloakableMixin)
     InitMixin(self, PathingMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, SelectableMixin)
     
     if Server then
+        InitMixin(self, AttackOrderMixin, { kMoveToDistance = Drifter.kMoveToDistance })
         InitMixin(self, TargetMixin)
         InitMixin(self, LOSMixin)
     end
@@ -83,15 +98,10 @@ function Drifter:OnCreate()
 end
 
 function Drifter:OnInit()
-
-    InitMixin(self, DoorMixin)
-    InitMixin(self, EnergyMixin)
-    InitMixin(self, BuildingMixin)
-    InitMixin(self, CloakableMixin)
     
     self:SetModel(Drifter.kModelName)
     
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
 
     LiveScriptActor.OnInit(self)
     
@@ -148,7 +158,7 @@ function Drifter:GetDeathIconIndex()
     return kDeathMessageIcon.Drifter
 end
 
-function Drifter:GetCanTakeDamage()
+function Drifter:GetCanTakeDamageOverride()
     return not self.landed
 end
 
@@ -211,12 +221,14 @@ function Drifter:OnOverrideOrder(order)
 end
 
 function Drifter:GetPositionForEntity(hive)
+
     local angle = NetworkRandom() * math.pi*2
     local startPoint = self:GetOrigin() + Vector( math.cos(angle)*Drifter.kStartDistance , Drifter.kHoverHeight, math.sin(angle)*Drifter.kStartDistance )
     local direction = Vector(self:GetAngles():GetCoords().zAxis)                               
-    startPoint = self:GetHoverAt(startPoint)
+    startPoint = GetHoverAt(self, startPoint)
     
     return BuildCoords(Vector(0, 1, 0), direction, startPoint)
+    
 end
 
 function Drifter:ProcessJustSpawned()
@@ -279,6 +291,7 @@ function Drifter:OnThink()
             self:ProcessMoveOrder(drifterMoveSpeed)
         elseif(currentOrder:GetType() == kTechId.Attack) then
         
+            // From AttackOrderMixin.
             self:ProcessAttackOrder(5, drifterMoveSpeed, Drifter.kMoveThinkInterval)
                         
         elseif(currentOrder:GetType() == kTechId.Build) then 
@@ -416,7 +429,7 @@ function Drifter:ProcessMoveOrder(moveSpeed)
     
     if (currentOrder ~= nil) then
         local isBuild = (currentOrder:GetType() == kTechId.Build)
-        local hoverAdjustedLocation = self:GetHoverAt(currentOrder:GetLocation())
+        local hoverAdjustedLocation = GetHoverAt(self, currentOrder:GetLocation())
         self:MoveToTarget(PhysicsMask.AIMovement, hoverAdjustedLocation, moveSpeed, Drifter.kMoveThinkInterval)
         if(not isBuild and self:IsTargetReached(hoverAdjustedLocation, kEpsilon, true)) then
             self:CompletedCurrentOrder()
@@ -438,7 +451,9 @@ function Drifter:OnUpdate(deltaTime)
         
     end
     
-    self:UpdateEnergy(deltaTime)
+    if Server then    
+        self:UpdateEnergy(deltaTime)
+    end
     
     self.timeOfLastUpdate = Shared.GetTime()
     
@@ -591,16 +606,16 @@ function Drifter:PerformParasite()
     
 end
 
-function Drifter:GetWaypointGroupName()
-    return kAirWaypointsGroup
-end
-
 function Drifter:GetMeleeAttackDamage()
     return kDrifterAttackDamage
 end
 
 function Drifter:GetMeleeAttackInterval()
     return kDrifterAttackFireDelay
+end
+
+function Drifter:GetMeleeAttackOrigin()
+    return self:GetOrigin()
 end
 
 function Drifter:OnOverrideDoorInteraction(inEntity)

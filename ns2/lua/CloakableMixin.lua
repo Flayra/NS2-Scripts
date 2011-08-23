@@ -107,6 +107,23 @@ function CloakableMixin:OnUpdate(deltaTime)
     self:_UpdateCloakState()
 end
 
+function CloakableMixin:OnSynchronized()
+
+    if Client then
+    
+        local newHiddenState = self:GetIsCloaked()
+        if self.clientCloaked ~= newHiddenState then
+        
+            local isEnemy = GetEnemyTeamNumber(self:GetTeamNumber()) == Client.GetLocalPlayer():GetTeamNumber()
+            self:TriggerEffects("client_cloak_changed", {cloaked = newHiddenState, enemy = isEnemy})
+            self.clientCloaked = newHiddenState
+            
+        end
+        
+    end
+    
+end
+
 function CloakableMixin:OnScan()
     self:TriggerUncloak()
 end

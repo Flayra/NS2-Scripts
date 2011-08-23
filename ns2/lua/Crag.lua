@@ -13,6 +13,7 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
 Script.Load("lua/InfestationMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Crag' (Structure)
 
@@ -33,6 +34,14 @@ Crag.kUmbraRadius = 10
 
 // Umbra blocks 1 out of this many bullet
 Crag.kUmbraBulletChance = 2
+
+function Crag:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function Crag:OnConstructionComplete()
 
@@ -124,7 +133,7 @@ function Crag:OnResearchComplete(structure, researchId)
         // Transform into mature crag
         if structure and (structure:GetId() == self:GetId()) and (researchId == kTechId.UpgradeCrag) then
         
-            success = self:Upgrade(kTechId.MatureCrag)
+            success = self:UpgradeToTechId(kTechId.MatureCrag)
             
         end
         

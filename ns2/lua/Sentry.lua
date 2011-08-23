@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Sentry' (Structure)
 
@@ -95,6 +96,8 @@ local networkVars = {
 function Sentry:OnCreate()
 
     Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
     
     self.desiredYawDegrees = 0
     self.desiredPitchDegrees = 0    
@@ -340,7 +343,7 @@ function Sentry:UpdatePoseParameters(deltaTime)
     
 end
 
-function Sentry:GetCanDoDamage()
+function Sentry:GetCanGiveDamageOverride()
     return true
 end
 

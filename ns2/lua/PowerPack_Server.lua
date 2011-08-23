@@ -26,13 +26,6 @@ function PowerPack:OnDestroy()
     
 end
 
-function PowerPack:SafeDestroy()
-    self:SetIsAlive(false)
-    self:SetNextThink(-1)
-    
-    Structure.SafeDestroy(self)
-end
-
 function PowerPack:UpdateNearbyPowerState()
 
     // Trigger event to update power for nearby structures

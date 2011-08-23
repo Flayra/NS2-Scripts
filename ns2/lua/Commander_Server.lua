@@ -79,8 +79,10 @@ function GetUnattachedEntityWithinRadius(attachclass, position, radius)
     
 end
 
-// Can't take damage.
-function Commander:GetCanTakeDamage()
+/**
+ * Commanders cannot take damage.
+ */
+function Commander:GetCanTakeDamageOverride()
     return false
 end
 
@@ -91,8 +93,11 @@ function Commander:AttemptToResearchOrUpgrade(techNode, force)
     
         local entity = Shared.GetEntity( self.selectedSubGroupEntityIds[1] )
         
+        // $AS FIXME: We need a better way to do recycling 
+        local canResearch = (techNode:GetTechId() == kTechId.Recycle or entity:GetCanResearch())
+        
         // Don't allow it to be researched while researching
-        if( (entity ~= nil and entity:isa("Structure") and entity:GetCanResearch() and techNode:GetCanResearch()) or force) then
+        if( (entity ~= nil and entity:isa("Structure") and canResearch and techNode:GetCanResearch()) or force) then
         
             entity:SetResearching(techNode, self)
             entity:OnResearch(techNode:GetTechId())

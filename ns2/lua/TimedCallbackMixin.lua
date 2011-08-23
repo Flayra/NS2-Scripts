@@ -24,7 +24,7 @@ function TimedCallbackMixin:AddTimedCallback(addFunction, callRate)
 end
 AddFunctionContract(TimedCallbackMixin.AddTimedCallback, { Arguments = { "Entity", "function", "number" }, Returns = { } })
 
-function TimedCallbackMixin:UpdateTimedCallbacks(deltaTime)
+function TimedCallbackMixin:OnUpdate(deltaTime)
     
     if self.timedCallbacks then
         
@@ -58,4 +58,4 @@ function TimedCallbackMixin:UpdateTimedCallbacks(deltaTime)
     end
 
 end
-AddFunctionContract(TimedCallbackMixin.UpdateTimedCallbacks, { Arguments = { "Entity", "number" }, Returns = { } })
+AddFunctionContract(TimedCallbackMixin.OnUpdate, { Arguments = { "Entity", "number" }, Returns = { } })

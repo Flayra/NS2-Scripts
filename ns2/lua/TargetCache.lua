@@ -90,7 +90,7 @@ end
 // Selects targets based on if they can hurt us
 //
 function HarmfulPrioritizer()
-    return function(target) return target:GetCanDoDamage() end
+    return function(target) return target:GetCanGiveDamage() end
 end
 
 //

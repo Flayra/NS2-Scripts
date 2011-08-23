@@ -911,7 +911,8 @@ function PlayingTeam:UpdateGameEffects(timePassed)
     
     if self.timeSinceLastGameEffectUpdate >= PlayingTeam.kUpdateGameEffectsInterval then
 
-        // Friendly entities that alien structures can affect
+        // Friendly entities that this team's structures can affect. Any entity on this team with
+        // the GameEffects Mixin.
         local teamEntities = GetEntitiesWithMixinForTeam("GameEffects", self:GetTeamNumber())
         local enemyPlayers = GetEntitiesForTeam("Player", GetEnemyTeamNumber(self:GetTeamNumber()))
         
@@ -924,19 +925,6 @@ function PlayingTeam:UpdateGameEffects(timePassed)
 end
 
 function PlayingTeam:UpdateTeamSpecificGameEffects(teamEntities, enemyPlayers)
-
-    local catchFireEntities = {}
-    
-    for index, entity in ipairs(teamEntities) do
-        if HasMixin(entity, "Fire") then
-            entity:UpdateFire(PlayingTeam.kUpdateGameEffectsInterval)
-        end
-    end
-    
-    for index, catchFireEntity in ipairs(catchFireEntities) do
-        catchFireEntity:SetGameEffectMask(kGameEffect.OnFire, true)
-    end
-    
 end
 
 function PlayingTeam:VoteToEjectCommander(votingPlayer, targetCommander)

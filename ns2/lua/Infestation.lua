@@ -8,6 +8,8 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/LOSMixin.lua")
@@ -42,6 +44,7 @@ Infestation.networkVars =
     hostAlive               = "boolean",
 }
 
+PrepareClassForMixin(Infestation, UpgradableMixin)
 PrepareClassForMixin(Infestation, GameEffectsMixin)
 PrepareClassForMixin(Infestation, FlinchMixin)
 
@@ -49,8 +52,10 @@ function Infestation:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
+    InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
     InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
     InitMixin(self, PathingMixin)
     
     self.health = Infestation.kInitialHealth
@@ -137,10 +142,6 @@ end
 
 function Infestation:GetTechId()
     return kTechId.Infestation
-end
-
-function Infestation:GetIsSelectable()
-    return false
 end
 
 function Infestation:OnThink()

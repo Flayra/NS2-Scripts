@@ -17,8 +17,13 @@ Script.Load("lua/TooltipMixin.lua")
 Script.Load("lua/WeaponOwnerMixin.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/ScoringMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
 
@@ -227,6 +232,7 @@ Player.networkVars =
 }
 
 PrepareClassForMixin(Player, ControllerMixin)
+PrepareClassForMixin(Player, UpgradableMixin)
 PrepareClassForMixin(Player, GameEffectsMixin)
 PrepareClassForMixin(Player, FlinchMixin)
 
@@ -235,8 +241,13 @@ function Player:OnCreate()
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, ScoringMixin, { kMaxScore = kMaxScore })
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
     InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, SelectableMixin)
     if Server then
         InitMixin(self, TargetMixin)
         InitMixin(self, LOSMixin)
@@ -277,7 +288,6 @@ function Player:OnCreate()
     self.timeLastSayingsAction = 0
     self.reticleTarget = false
     self.timeTargetHit = 0
-    self.score = 0
     self.kills = 0
     self.deaths = 0
     
@@ -983,7 +993,7 @@ function Player:GetIsPlaying()
     return self.gameStarted and (self:GetTeamNumber() == kTeam1Index or self:GetTeamNumber() == kTeam2Index)
 end
 
-function Player:GetCanTakeDamage()
+function Player:GetCanTakeDamageOverride()
     local teamNumber = self:GetTeamNumber()
     return (teamNumber == kTeam1Index or teamNumber == kTeam2Index)
 end
@@ -1119,9 +1129,6 @@ function Player:GetMoveDirection(moveVelocity)
     
     return moveDirection
     
-end
-
-function Player:UpdateEnergy(input)
 end
 
 function Player:EndUse(deltaTime)
@@ -2339,10 +2346,6 @@ function Player:GetCanBeUsed(player)
     return false
 end
 
-function Player:GetScore()
-    return self.score
-end
-
 function Player:GetScoreboardChanged()
     return self.scoreboardChanged
 end
@@ -2459,7 +2462,7 @@ function Player:GetPlayerStatusDesc()
     return ""
 end
 
-function Player:GetCanDoDamage()
+function Player:GetCanGiveDamageOverride()
     return true
 end
 

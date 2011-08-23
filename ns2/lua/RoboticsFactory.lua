@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'RoboticsFactory' (Structure)
 
@@ -26,13 +27,21 @@ local networkVars =
         currentBuiltId      = "entityid"   
     }
 
+function RoboticsFactory:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
+
 function RoboticsFactory:OnInit()
 
     self:SetModel(RoboticsFactory.kModelName)
     
     Structure.OnInit(self)
     
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)       
+    self:SetPhysicsType(PhysicsType.Kinematic)       
         
     self.currentArcId = Entity.invalidId
     

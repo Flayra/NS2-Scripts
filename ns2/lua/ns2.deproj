@@ -556,12 +556,6 @@
     <filename>NS2Utility.lua</filename>
   </file>
   <file>
-    <filename>Phantasm.lua</filename>
-  </file>
-  <file>
-    <filename>OnosPhantasm.lua</filename>
-  </file>
-  <file>
     <filename>Weapons\Alien\SwipeBlink.lua</filename>
   </file>
   <file>
@@ -1001,5 +995,26 @@
   </file>
   <file>
     <filename>PhantomMixin.lua</filename>
+  </file>
+  <file>
+    <filename>SelectableMixin.lua</filename>
+  </file>
+  <file>
+    <filename>PhantomEffigy.lua</filename>
+  </file>
+  <file>
+    <filename>AttackOrderMixin.lua</filename>
+  </file>
+  <file>
+    <filename>RagdollMixin.lua</filename>
+  </file>
+  <file>
+    <filename>UpgradableMixin.lua</filename>
+  </file>
+  <file>
+    <filename>PointGiverMixin.lua</filename>
+  </file>
+  <file>
+    <filename>ScoringMixin.lua</filename>
   </file>
 </project>

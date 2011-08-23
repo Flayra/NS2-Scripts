@@ -19,11 +19,6 @@ class 'LiveScriptActor' (ScriptActor)
 
 LiveScriptActor.kMapName = "livescriptactor"
 
-LiveScriptActor.kHealth = 100
-LiveScriptActor.kArmor = 0
-
-LiveScriptActor.kDefaultPointValue = 10
-
 LiveScriptActor.kMoveToDistance = 1
 
 if (Server) then
@@ -34,12 +29,6 @@ end
 
 LiveScriptActor.networkVars = 
 {
-    // Purchased tech (carapace, piercing, etc.). Also includes
-    // global and class upgrades we didn't explicitly buy (armor1).
-    upgrade1                = "enum kTechId",
-    upgrade2                = "enum kTechId",
-    upgrade3                = "enum kTechId",
-    upgrade4                = "enum kTechId",
 
     // Number of furys that are affecting this entity
     furyLevel               = string.format("integer (0 to %d)", kMaxStackLevel),
@@ -58,7 +47,7 @@ function LiveScriptActor:OnCreate()
 
     ScriptActor.OnCreate(self)
     
-    InitMixin(self, LiveMixin, { kHealth = LiveScriptActor.kHealth, kArmor = LiveScriptActor.kArmor })
+    InitMixin(self, LiveMixin)
     InitMixin(self, OrdersMixin, { kMoveToDistance = LiveScriptActor.kMoveToDistance })
     InitMixin(self, FireMixin)
 
@@ -70,11 +59,6 @@ function LiveScriptActor:OnInit()
     ScriptActor.OnInit(self)
     
     self.timeLastUpdate = nil
-    
-    self.upgrade1 = kTechId.None
-    self.upgrade2 = kTechId.None
-    self.upgrade3 = kTechId.None
-    self.upgrade4 = kTechId.None
     
     self.furyLevel = 0
     
@@ -109,85 +93,8 @@ function LiveScriptActor:GetCanNewActivityStart()
     return false
 end
 
-// Used for sentries/hydras to figure out what to attack first
-function LiveScriptActor:GetCanDoDamage()
-    return false
-end
-
 function LiveScriptActor:GetCanIdle()
     return self:GetIsAlive()
-end
-
-function LiveScriptActor:GetHasUpgrade(techId) 
-    return techId ~= kTechId.None and (techId == self.upgrade1 or techId == self.upgrade2 or techId == self.upgrade3 or techId == self.upgrade4)
-end
-
-function LiveScriptActor:GiveUpgrade(techId) 
-
-    if not self:GetHasUpgrade(techId) then
-
-        if self.upgrade1 == kTechId.None then
-        
-            self.upgrade1 = techId
-            return true
-            
-        elseif self.upgrade2 == kTechId.None then
-        
-            self.upgrade2 = techId
-            return true
-
-        elseif self.upgrade3 == kTechId.None then
-        
-            self.upgrade3 = techId
-            return true
-            
-        elseif self.upgrade4 == kTechId.None then
-        
-            self.upgrade4 = techId
-            return true
-            
-        end
-        
-        Print("%s:GiveUpgrade(%d): Player already has the max of four upgrades.", self:GetClassName())
-        
-    else
-        Print("%s:GiveUpgrade(%d): Player already has tech %s.", self:GetClassName(), techId, GetDisplayNameForTechId(techId))
-    end
-    
-    return false
-    
-end
-
-function LiveScriptActor:OnGiveUpgrade(techId)
-end
-
-function LiveScriptActor:GetUpgrades()
-    local upgrades = {}
-    
-    if self.upgrade1 ~= kTechId.None then
-        table.insert(upgrades, self.upgrade1)
-    end
-    if self.upgrade2 ~= kTechId.None then
-        table.insert(upgrades, self.upgrade2)
-    end
-    if self.upgrade3 ~= kTechId.None then
-        table.insert(upgrades, self.upgrade3)
-    end
-    if self.upgrade4 ~= kTechId.None then
-        table.insert(upgrades, self.upgrade4)
-    end
-    
-    return upgrades
-end
-
-// Used for flying creatures so they stay at this height off the ground whenever possible
-function LiveScriptActor:GetHoverHeight()
-    return 0
-end
-
-// Returns text and 0-1 scalar for status bar on commander HUD when selected. Return nil to display nothing.
-function LiveScriptActor:GetStatusDescription()
-    return nil, nil
 end
 
 function LiveScriptActor:OnUpdate(deltaTime)
@@ -195,15 +102,6 @@ function LiveScriptActor:OnUpdate(deltaTime)
     PROFILE("LiveScriptActor:OnUpdate")
     
     ScriptActor.OnUpdate(self, deltaTime)
-    
-    // Process outside of OnProcessMove() because animations can't be set there
-    if Server then
-        self:UpdateJustKilled()
-    end
-    
-    if (self.controller ~= nil and not self:GetIsAlive()) then
-        self:DestroyController()
-    end
     
     // Update expiring stackable game effects
     if Server then
@@ -214,30 +112,6 @@ function LiveScriptActor:OnUpdate(deltaTime)
     end
     
     self.timeLastUpdate = Shared.GetTime()
-    
-end
-
-function LiveScriptActor:GetIsSelectable()
-    return self:GetIsAlive()
-end
-
-function LiveScriptActor:GetPointValue()
-    return LookupTechData(self:GetTechId(), kTechDataPointValue, LiveScriptActor.kDefaultPointValue)
-end
-
-// If the gamerules indicate it's OK an entity to take damage, it calls this. World objects or those without
-// health can return false. 
-function LiveScriptActor:GetCanTakeDamage()
-    return true
-end
-
-function LiveScriptActor:OnEntityChange(entityId, newEntityId)
-
-    ScriptActor.OnEntityChange(self, entityId, newEntityId)
-    
-    if entityId == self.fireAttackerId then
-        self.fireAttackerId = newEntityId
-    end
     
 end
 
@@ -257,10 +131,6 @@ function LiveScriptActor:AdjustFuryFireDelay(inDelay)
     
     return delay
     
-end
-
-function LiveScriptActor:GetSendDeathMessage()
-    return self:GetIsAlive()
 end
 
 Shared.LinkClassToMap("LiveScriptActor", LiveScriptActor.kMapName, LiveScriptActor.networkVars )

@@ -42,15 +42,6 @@ function PowerPoint:OnKill(damage, attacker, doer, point, direction)
     
 end
 
-// Power should never be destroyed or ragdoll or they'll be destroyed for good
-function PowerPoint:SafeDestroy()
-    self:SetIsAlive(false)
-    self:SetNextThink(-1)    
-end
-
-function PowerPoint:SetRagdoll(deathTime)
-end
-
 function PowerPoint:OnLoad()
 
     Structure.OnLoad(self)
@@ -269,6 +260,6 @@ function PowerPoint:UpdatePoweredStructures()
     
 end
 
-function PowerPoint:GetSendDeathMessage()
+function PowerPoint:GetSendDeathMessageOverride()
     return self.powered
 end

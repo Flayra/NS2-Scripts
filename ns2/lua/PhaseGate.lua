@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 // Transform angles, view angles and velocity from srcCoords to destCoords (when going through phase gate)
 local function TransformPlayerCoordsForPhaseGate(player, srcCoords, destCoords)
@@ -39,6 +40,14 @@ PhaseGate.networkVars =
     linked              = "boolean",
     destLocationId      = "entityid",
 }
+
+function PhaseGate:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function PhaseGate:OnInit()
 

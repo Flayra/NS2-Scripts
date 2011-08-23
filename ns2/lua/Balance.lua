@@ -561,9 +561,9 @@ kMatureShiftMaxEnergy = 150
 
 kShadeInitialEnergy = 25  kShadeMaxEnergy = 100
 kShadeCloakCost = 25  
-kShadePhantasmFadeCost = 25  
-kShadePhantasmOnosCost = 50  
-kShadePhantasmCost = 75  
+kShadePhantomFadeCost = 25  
+kShadePhantomOnosCost = 50  
+kShadePhantomCost = 75  
 kMatureShadeMaxEnergy = 150
 
 kEnergyUpdateRate = 0.5

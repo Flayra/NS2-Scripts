@@ -182,13 +182,12 @@ function CheckBuildEntityRequirements(techId, position, player, ignoreEntity)
     local techNode = techTree:GetTechNode(techId)
     local attachClass = LookupTechData(techId, kStructureAttachClass)                
     
-    // Build tech can't be built on top of LiveScriptActors
+    // Build tech can't be built on top of non-attachment entities.
     if techNode and techNode:GetIsBuild() then
     
         local trace = Shared.TraceBox(GetExtents(techId), position + Vector(0, 1, 0), position - Vector(0, 3, 0), PhysicsMask.AllButPCs, EntityFilterOne(ignoreEntity))
         
-        // $AS - We special case Drop Packs as they are not LiveScriptActors but you should not be
-        // able to build on top of them
+        // $AS - We special case Drop Packs you should not be able to build on top of them.
         if trace.entity and trace.entity:GetHasPathingFlag(kPathingFlags.UnBuildable) then
             legalBuild = false
         end
@@ -323,11 +322,63 @@ function GetIsBuildLegal(techId, position, snapRadius, player, ignoreEntity)
 
 end
 
+/**
+ * Return the passed in position casted down to the ground.
+ */
+function GetGroundAt(entity, position, physicsGroupMask)
+
+    local topOffset = entity:GetExtents().y
+    local startPosition = position + Vector(0, topOffset, 0)
+    local endPosition = position - Vector(0, 1000, 0)
+    
+    local trace = Shared.TraceRay(startPosition, endPosition, physicsGroupMask, EntityFilterOne(entity))
+    
+    // If we didn't hit anything, then use our existing position. This
+    // prevents objects from constantly moving downward if they get outside
+    // of the bounds of the map.
+    if trace.fraction ~= 1 then
+        return trace.endPoint
+    else
+        return position
+    end
+
+end
+
+function GetHoverAt(entity, position)
+
+    local ground = GetGroundAt(entity, position, PhysicsMask.AIMovement)
+    local resultY = position.y
+    // if we have a hover height, use it to find our minimum height above ground, otherwise use zero
+    
+    local minHeightAboveGround = 0
+    if entity.GetHoverHeight then      
+      minHeightAboveGround = entity:GetHoverHeight()
+    end
+
+    local heightAboveGround = resultY  - ground.y
+    
+    // always snap "up", snap "down" only if not flying
+    if heightAboveGround <= minHeightAboveGround or not entity:GetIsFlying() then
+        resultY = resultY + minHeightAboveGround - heightAboveGround              
+    end        
+
+    if resultY ~= position.y then
+        return Vector(position.x, resultY, position.z)
+    end
+
+    return position
+
+end
+
+function GetWaypointGroupName(entity)
+    return ConditionalValue(entity:GetIsFlying(), kAirWaypointsGroup, kDefaultWaypointGroup)
+end
+
 function GetTriggerEntity(position, teamNumber)
 
     local triggerEntity = nil
     local minDist = nil
-    local ents = GetEntitiesForTeamWithinRange("LiveScriptActor", teamNumber, position, .5)
+    local ents = GetEntitiesWithMixinForTeamWithinRange("Live", teamNumber, position, .5)
     
     for index, ent in ipairs(ents) do
     
@@ -399,7 +450,7 @@ end
 
 function GetBlockedByUmbra(entity)
 
-    if entity ~= nil and entity:isa("LiveScriptActor") then
+    if entity ~= nil and HasMixin(entity, "GameEffects") then
     
         if entity:GetGameEffectMask(kGameEffect.InUmbra) and (NetworkRandomInt(1, Crag.kUmbraBulletChance, "GetBlockedByUmbra") == 1) then
             return true
@@ -1070,7 +1121,7 @@ function ResetLights()
 end
 end
 
-// Pulled out into separate function so phantasms can use it too
+// Pulled out into separate function so phantoms can use it too
 function SetPlayerPoseParameters(player, viewAngles, velocity, maxSpeed, maxBackwardSpeedScalar, crouchAmount)
 
     local pitch = -Math.Wrap( Math.Degrees(viewAngles.pitch), -180, 180 )
@@ -1286,7 +1337,7 @@ function GetActivationTarget(teamNumber, position)
     local nearestTarget = nil
     local nearestDist = nil
     
-    local targets = GetEntitiesForTeamWithinRange("LiveScriptActor", teamNumber, position, 2)
+    local targets = GetEntitiesWithMixinForTeamWithinRange("Live", teamNumber, position, 2)
     for index, target in ipairs(targets) do
     
         if target:GetIsVisible() and not target:isa("Infestation") then
@@ -1612,7 +1663,7 @@ function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire)
     end
     
     // Phantom damage sources can't damage players
-    if attacker ~= nil and HasMixin(attacker, "Phantom") and attacker:GetIsPhantom() then
+    if attacker ~= nil and HasMixin(attacker, "Phantom") and attacker:GetIsPhantom() and (attacker ~= target) then
         return false
     end
     
@@ -1652,3 +1703,4 @@ function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire)
     return teamsOK
 
 end
+

@@ -152,20 +152,20 @@ end
 
 function Player:OnTakeDamage(damage, attacker, doer, point)
 
-    LiveScriptActor.OnTakeDamage(self, damage, attacker, doer, point)
-    
     if self:GetTeamType() == kAlienTeamType then
         self:GetTeam():TriggerAlert(kTechId.AlienAlertLifeformUnderAttack, self)
     end
     
     // Play damage indicator for player
     if point ~= nil then
+    
         local damageOrigin = doer:GetOrigin()
         local doerParent = doer:GetParent()
         if doerParent then
             damageOrigin = doerParent:GetOrigin()
         end
         Server.SendNetworkMessage(self, "TakeDamageIndicator", BuildTakeDamageIndicatorMessage(damageOrigin, damage), true)
+        
     end
     
 end
@@ -199,22 +199,16 @@ end
  */
 function Player:OnKill(damage, killer, doer, point, direction)
 
+    // Determine the killer's player name.
     local killerName = nil
+    if killer ~= nil and not killer:isa("Player") then
     
-    local pointOwner = killer
-    // If the pointOwner is not a player, award it's points to it's owner.
-    if pointOwner ~= nil and not pointOwner:isa("Player") then
-        pointOwner = pointOwner:GetOwner()
+        local realKiller = killer:GetOwner()
+        if realKiller and realKiller:isa("Player") then
+            killerName = realKiller:GetName()
+        end
+        
     end
-    if(pointOwner and pointOwner:isa("Player") and pointOwner ~= self and pointOwner:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber())) then
-   
-        killerName = pointOwner:GetName()
-        pointOwner:AddKill()        
-        
-        local resAwarded = pointOwner:AwardResForKill(self)        
-        pointOwner:AddScore(self:GetPointValue(), resAwarded)
-        
-    end        
 
     // Save death to server log
     if(killer == self) then        
@@ -238,14 +232,6 @@ function Player:OnKill(damage, killer, doer, point, direction)
     
     self:AddDeaths()
     
-    // Don't allow us to do anything
-    self:SetIsAlive(false)
-    
-    self:ResetUpgrades()
-
-    // On fire, in umbra, etc.
-    self:ClearGameEffects()
-    
     // Fade out screen
     self.timeOfDeath = Shared.GetTime()
     
@@ -256,7 +242,7 @@ function Player:OnKill(damage, killer, doer, point, direction)
     self:RemoveChildren()
 
     // Create a rag doll
-    self:SetPhysicsType(Actor.PhysicsType.Dynamic)
+    self:SetPhysicsType(PhysicsType.Dynamic)
     self:SetPhysicsGroup(PhysicsGroup.RagdollGroup)
     
     // Set next think to 0 to disable
@@ -350,11 +336,15 @@ function Player:OnUpdate(deltaTime)
         
         if ((self.timeOfDeath ~= nil) and (time - self.timeOfDeath > kFadeToBlackTime)) then
         
-            // Destroy the existing player and create a spectator in their place.
-            local spectator = self:Replace(self:GetDeathMapName())
+            // Destroy the existing player and create a spectator in their place (but only if it has an owner, ie not a body left behind by Phantom use)
+            local owner  = Server.GetOwner(self)
+            if owner then
             
-            // Queue up the spectator for respawn.
-            spectator:GetTeam():PutPlayerInRespawnQueue(spectator, Shared.GetTime())             
+                // Queue up the spectator for respawn.
+                local spectator = self:Replace(self:GetDeathMapName())
+                spectator:GetTeam():PutPlayerInRespawnQueue(spectator, Shared.GetTime())             
+                
+            end
             
         end
 
@@ -404,8 +394,13 @@ end
 
 function Player:CopyPlayerDataFrom(player)
 
-    LiveScriptActor.CopyDataFrom(self, player)
-
+    // This is stuff from the former LiveScriptActor.
+    self.gameEffectsFlags = player.gameEffectsFlags
+    table.copy(player.gameEffects, self.gameEffects)
+    self.timeOfLastDamage = player.timeOfLastDamage
+    self.furyLevel = player.furyLevel
+    self.activityEnd = player.activityEnd
+    
     // ScriptActor and Actor fields
     self:SetAngles(player:GetAngles())
     self:SetOrigin(Vector(player:GetOrigin()))
@@ -549,7 +544,7 @@ function Player:Replace(mapName, newTeamNumber, preserveChildren)
 
         player:RemoveChildren()
         
-        local childEntities = GetChildEntities(self)
+        local childEntities = GetChildEntities(self, "Weapon")
         for index, entity in ipairs(childEntities) do
 
             entity:SetParent(player)
@@ -744,7 +739,7 @@ function Player:RemoveChildren()
     self.activeWeaponIndex = 0
     
     // Loop through all children and delete them.
-    local childEntities = GetChildEntities(self, "Actor")
+    local childEntities = GetChildEntities(self)
     for index, entity in ipairs(childEntities) do
         entity:SetParent(nil)
         DestroyEntity(entity)
@@ -773,22 +768,6 @@ end
 
 function Player:GetViewModelBlendTime()
     return .1
-end
-
-function Player:GetScore()
-    return self.score
-end
-
-function Player:AddScore(points, res)
-    
-    // Tell client to display cool effect
-    if(points ~= nil and points ~= 0) then
-        local displayRes = ConditionalValue(type(res) == "number", res, 0)
-        Server.SendCommand(self, string.format("points %s %s", tostring(points), tostring(displayRes)))
-        self.score = Clamp(self.score + points, 0, kMaxScore)
-        self:SetScoreboardChanged(true)        
-    end
-    
 end
 
 function Player:GetKills()
@@ -902,7 +881,7 @@ function Player:UpdateOrderWaypoint()
     if(currentOrder ~= nil) then
     
         local targetLoc = Vector(currentOrder:GetLocation())
-        self.nextOrderWaypoint = Server.GetNextWaypoint(PhysicsMask.AIMovement, self, self:GetWaypointGroupName(), targetLoc)
+        self.nextOrderWaypoint = Server.GetNextWaypoint(PhysicsMask.AIMovement, self, GetWaypointGroupName(self), targetLoc)
         self.finalWaypoint = Vector(targetLoc)
         self.nextOrderWaypointActive = true
         self.waypointType = currentOrder:GetType()

@@ -501,10 +501,6 @@ function Commander:GetHostCommandStructure()
     return Shared.GetEntity(self.commandStationId)
 end
 
-function Commander:GetCanDoDamage()
-    return false
-end
-
 function Commander:OverrideCheckvision()
   return false
 end

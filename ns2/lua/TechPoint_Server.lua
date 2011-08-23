@@ -6,7 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-function TechPoint:GetCanTakeDamage()
+function TechPoint:GetCanTakeDamageOverride()
     return false
 end
 

@@ -104,7 +104,7 @@ function PowerPoint:Reset()
     
 end
 
-function PowerPoint:GetCanTakeDamage()
+function PowerPoint:GetCanTakeDamageOverride()
     return self.powered
 end
 

@@ -62,7 +62,7 @@ function OrderSelfMixin:_FindDefendOrder(structuresNearby)
     local closestStructureDist = Math.infinity
     for i, structure in ipairs(structuresNearby) do
         local structureDist = (structure:GetOrigin() - self:GetOrigin()):GetLengthSquared()
-        local lastTimeDamageTaken, attackerId = structure:GetLastDamage()
+        local lastTimeDamageTaken = structure:GetTimeOfLastDamage()
         if lastTimeDamageTaken and lastTimeDamageTaken > 0 and ((Shared.GetTime() - lastTimeDamageTaken) < kTimeToDefendSinceTakingDamage) and (structureDist < closestStructureDist) then
             closestStructure = structure
             closestStructureDist = structureDist
