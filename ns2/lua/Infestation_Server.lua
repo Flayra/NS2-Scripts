@@ -22,6 +22,30 @@ function Infestation:AddToInfestationMap()
     self.addedToMap = true
 end
 
+//
+// Notify entities found between lastRadius and radius that they may need to update their infestation state.
+//
+function Infestation:ChangeInfestationState()
+    local entityIds = {}
+    local smallestRadius = self.radius
+    local biggestRadius = self.lastRadius or 0
+    if smallestRadius > biggestRadius then
+        smallestRadius,biggestRadius = biggestRadius, smallestRadius
+    end
+    // Log("%s CIS %s->%s", self, smallestRadius, biggestRadius)
+    local origin = self:GetOrigin()
+    Shared.GetEntitiesWithinRadius(origin, biggestRadius, entityIds)
+    for _,targetId in ipairs(entityIds) do
+        local target = Shared.GetEntity(targetId)
+        if target and target.InfestationNeedsUpdate then
+            local range = (origin - target:GetOrigin()):GetLength()
+            if range >= smallestRadius and range <= biggestRadius then
+                target:InfestationNeedsUpdate()
+            end
+        end
+    end        
+end
+
 // Update radius of infestation according to if they are connected or not! If not connected to hive, we shrink.
 // If connected to hive, we grow to our max radius. The rate at which it does either is dependent on the number 
 // of connections.
@@ -49,6 +73,12 @@ function Infestation:UpdateInfestation(deltaTime)
         self.growthRate = newGrowthRate * self.growthRateScalar
         // Always regenerating (5 health/sec)
         self.health = Clamp(self.health + deltaUpdateThinkTime * Infestation.kHealPerSecond, 0, self.maxHealth)
+        // if our radius has changed since our last update, find any entities in between there... 
+        
+        if self.lastRadius ~= self.radius then
+            self:ChangeInfestationState()
+        end
+        self.lastRadius = self.radius
     end
     
 

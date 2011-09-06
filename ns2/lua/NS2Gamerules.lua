@@ -39,7 +39,6 @@ NS2Gamerules.kVictorySound       = PrecacheAsset("sound/ns2.fev/common/victory")
 NS2Gamerules.kDefeatSound        = PrecacheAsset("sound/ns2.fev/common/loss")
 NS2Gamerules.kCountdownSound     = PrecacheAsset("sound/ns2.fev/common/countdown")
 
-NS2Gamerules.kInfestationEffectsUpdateRate = .3
 
 // Allow players to spawn in for free (not using IP or eggs) for this many seconds after the game starts
 NS2Gamerules.kFreeSpawnTime = 15
@@ -665,19 +664,7 @@ function NS2Gamerules:OnMapPostLoad()
     
 end
 
-function NS2Gamerules:UpdateInfestationEffects()
 
-    local time = Shared.GetTime()
-    
-    if self.timeLastInfestationEffectsUpdate == nil or (time > self.timeLastInfestationEffectsUpdate + NS2Gamerules.kInfestationEffectsUpdateRate) then
-    
-        UpdateInfestationMasks()
-        
-        self.timeLastInfestationEffectsUpdate = time
-        
-    end
-    
-end
 
 function NS2Gamerules:UpdateToReadyRoom()
 
@@ -741,7 +728,6 @@ function NS2Gamerules:OnUpdate(timePassed)
             // Send scores every so often
             self:UpdateScores()
             self:UpdatePings()
-            self:UpdateInfestationEffects()
             
         end
     

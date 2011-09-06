@@ -32,6 +32,7 @@ Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
 Script.Load("lua/HiveSightBlipMixin.lua")
+Script.Load("lua/InfestedMixin.lua")
 
 /**
  * Player should not be instantiated directly. Only instantiate a Player through
@@ -269,6 +270,7 @@ function Player:OnCreate()
         InitMixin(self, TargetMixin)
         InitMixin(self, LOSMixin)
         InitMixin(self, HiveSightBlipMixin)
+        InitMixin(self, InfestedMixin)
     end
     
     self:SetLagCompensated(true)
