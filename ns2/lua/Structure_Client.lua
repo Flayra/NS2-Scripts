@@ -7,18 +7,22 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/EnergyMixin.lua")
 
-function Structure:OnSynchronized()
+function Structure:OnInit()
 
-    ScriptActor.OnSynchronized(self)
-    
-    self:_UpdateStructureEffects()
+    InitMixin(self, EnergyMixin )
+
+    LiveScriptActor.OnInit(self)
     
 end
 
-function Structure:_UpdateStructureEffects()
+function Structure:UpdateEffects()
+
+    LiveScriptActor.UpdateEffects(self)
     
-    if self.clientEffectsActive ~= nil and self.clientEffectsActive ~= self:GetEffectsActive() then
+    if (self.clientEffectsActive ~= nil) and (self.clientEffectsActive ~= self:GetEffectsActive()) then
+    
         self:TriggerEffects("client_active_changed")
+        
     end
     
     self.clientEffectsActive = self:GetEffectsActive()

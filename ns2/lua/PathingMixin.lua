@@ -1,6 +1,6 @@
 // ======= Copyright © 2003-2011, Unknown Worlds Entertainment, Inc. All rights reserved. =======    
 //    
-// lua\PathingMixin.lua    
+// lua\LiveMixin.lua    
 //    
 //    Created by:   Brian Cronin (brianc@unknownworlds.com)    
 //    
@@ -12,7 +12,7 @@ Script.Load("lua/FunctionContracts.lua")
  * Adds additional points to the path to ensure that no two points are more than
  * maxDistance apart.
  */
-local function SplitPathPoints(points, maxDistance)
+function SplitPathPoints(points, maxDistance)
     PROFILE("SplitPathPoints") 
     local numPoints   = #points    
     local maxPoints   = 2
@@ -58,7 +58,7 @@ end
 /**
  * Returns a list of point connecting two points together. If there's no path, returns nil.
  */
-local function GeneratePath(src, dst)
+function GeneratePath(src, dst)
     PROFILE("GeneratePath")  
     local mask = CreateGroupsFilterMask(PhysicsGroup.StructuresGroup, PhysicsGroup.PlayerControllersGroup, PhysicsGroup.PlayerGroup)    
     local climbAmount   = 0.3   // Distance to "climb" over obstacles each iteration
@@ -74,12 +74,12 @@ local function GeneratePath(src, dst)
     // HACKS
     if (#(points) > 0) then
         table.insert( points, #(points) - 1, dst )    
-    end 
+    end
     
-    if (#(points) ~= 0 ) then
+    if (#(points) ~= 0 ) then        
         SplitPathPoints( points, 0.5 )        
         return points
-    end    
+    end        
     
     for i=1,maxIterations do
 
@@ -127,6 +127,9 @@ end
 
 PathingMixin = { }
 PathingMixin.type = "Pathing"
+
+function PathingMixin.__prepareclass(toClass)      
+end
 
 function PathingMixin:__initmixin()
     self.obstacleId = nil
@@ -224,22 +227,6 @@ function PathingMixin:GetPath(src, dst)
     return GeneratePath(src, dst)
 end
 
-function PathingMixin:DrawPath(src, dst, lifetime, r, g, b, a)
-
-    self.points = GeneratePath(src, dst)    
-    
-    if self.points then
-    
-        DebugLine(src, self.points[1], lifetime, r, g, b, a)
-        
-        for index = 2, table.count(self.points) do
-            DebugLine(self.points[index - 1], self.points[index], lifetime, r, g, b, a)    
-        end
-        
-    end
-    
-end
-
 function PathingMixin:IsPathValid(src, dst)
     if self.points == nil or #(self.points) == 0 then
       return false
@@ -267,7 +254,7 @@ end
 
 function PathingMixin:IsTargetReached(dst, withIn, clearValue)
    if (self.distanceRemain  == nil) then
-     self.distanceRemain = (dst - self:GetOrigin()):GetLengthXZ()
+     self.distanceRemain = (dst - self:GetOrigin()):GetLength()
    end
    
    local result = false
@@ -300,7 +287,7 @@ function PathingMixin:GetPathDirection()
 end
 
 function PathingMixin:GetNextPoint(time, speed)
-    self.currentPoint = self:AdvanceToNextPoint(time, speed)    
+    self.currentPoint = self:AdvanceToNextPoint(time, speed)
     return self.currentPoint
 end
 
@@ -390,48 +377,4 @@ function PathingMixin:ClearPathingFlags(flags)
   if (extents ~= nil) then
     Pathing.ClearPolyFlags(position, extents, flags)
   end  
-
-end
-
-/**
- * This is the bread and butter of PathingMixin.
- */
-function PathingMixin:MoveToTarget(physicsGroupMask, location, movespeed, time)
-
-    PROFILE("PathingMixin:MoveToTarget")
-    
-    local movement = nil
-    local newLocation = self:GetOrigin()
-    local now = Shared.GetTime()
-    local hasReachedLocation = false//self:IsTargetReached(location, 0.01, true)
-    
-    local direction = (location - self:GetOrigin()):GetUnit()
-    if not (hasReachedLocation) then
-        if not self:IsPathValid(self:GetOrigin(), location) then
-            if not (self:BuildPath(self:GetOrigin(), location)) then
-              return
-            end
-        end
-        
-        if (self:GetCurrentPathPoint() ~= nil and self:GetNumPoints() >= 1) then
-            self:RestartPathing(now)
-            local point = self:GetNextPoint(time, movespeed)
-            if (point ~= nil) then
-                newLocation = point
-                direction = self:GetPathDirection()
-                SetAnglesFromVector(self, direction)
-            end
-        end
-    end
-            
-    if self:GetIsFlying() then
-        newLocation = GetHoverAt(self, newLocation)
-    end
-    
-    self:SetOrigin(newLocation)
-    if (self.controller and not self:GetIsFlying()) then
-      self:UpdateControllerFromEntity()
-      self:PerformMovement(Vector(0, -1000, 0), 1)      
-    end
-    
 end

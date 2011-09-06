@@ -131,14 +131,8 @@ end
 
 function OnCommandDarwinMode(client)
 
-    if client ~= nil and Shared.GetCheatsEnabled() then
-    
-        local player = client:GetControllingPlayer()
-        if player then
-            player:SetDarwinMode(not player:GetDarwinMode())
-            Print("Darwin mode on player now %s", ToString(player:GetDarwinMode()))
-        end
-        
+    if (client == nil or Shared.GetCheatsEnabled()) then
+        GetGamerules():SetDarwinMode(not GetGamerules():GetDarwinMode())
     end
     
 end

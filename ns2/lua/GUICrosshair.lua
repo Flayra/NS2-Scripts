@@ -66,8 +66,6 @@ end
 
 function GUICrosshair:Update(deltaTime)
 
-    PROFILE("GUICrosshair:Update")
-
     // Update crosshair image.
     local xCoord = PlayerUI_GetCrosshairX()
     local yCoord = PlayerUI_GetCrosshairY()

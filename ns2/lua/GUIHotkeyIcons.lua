@@ -76,8 +76,6 @@ end
 
 function GUIHotkeyIcons:Update(deltaTime)
     
-    PROFILE("GUIHotkeyIcons:Update")
-    
     local numHotkeys = CommanderUI_GetTotalHotkeys()
     if numHotkeys > 0 then
         self.background:SetIsVisible(true)

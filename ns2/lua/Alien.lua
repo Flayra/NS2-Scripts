@@ -10,7 +10,6 @@
 Script.Load("lua/Player.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/CamouflageMixin.lua")
-Script.Load("lua/PhantomMixin.lua")
 
 class 'Alien' (Player)
 Alien.kMapName = "alien"
@@ -66,7 +65,6 @@ Alien.networkVars =
 
 PrepareClassForMixin(Alien, CloakableMixin)
 PrepareClassForMixin(Alien, CamouflageMixin)
-PrepareClassForMixin(Alien, PhantomMixin)
 
 function Alien:OnCreate()
     
@@ -89,7 +87,6 @@ function Alien:OnInit()
     
     InitMixin(self, CloakableMixin)
     InitMixin(self, CamouflageMixin)
-    InitMixin(self, PhantomMixin)
     
     self.abilityEnergy = Ability.kMaxEnergy
 

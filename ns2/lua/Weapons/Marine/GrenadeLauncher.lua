@@ -16,15 +16,17 @@ GrenadeLauncher.kMapName              = "grenadelauncher"
 GrenadeLauncher.kModelName = PrecacheAsset("models/marine/rifle/rifle.model")
 
 GrenadeLauncher.kLauncherFireDelay = kGrenadeLauncherFireDelay
-GrenadeLauncher.kGrenadesPerAmmoClip = 4
+GrenadeLauncher.kAuxClipSize = 1
+GrenadeLauncher.kLauncherStartingAmmo = 2 * kGrenadeLauncherClipSize
+GrenadeLauncher.kGrenadesPerAmmoClip = kGrenadeLauncherClipSize
 GrenadeLauncher.kGrenadeDamage = kGrenadeLauncherGrenadeDamage
 
-GrenadeLauncher.networkVars =
-{
-    auxAmmo = string.format("integer (0 to %d)", kGrenadeLauncherClipSize),
-    auxClipFull = "boolean",
-    justShotGrenade = "boolean",
-}
+local networkVars =
+    {
+        auxAmmo = string.format("integer (0 to %d)", GrenadeLauncher.kLauncherStartingAmmo),
+        auxClip = string.format("integer (0 to %d)", GrenadeLauncher.kAuxClipSize),
+        justShotGrenade = "boolean",
+    }
  
 // Use rifle attack effect block for primary fire
 function GrenadeLauncher:GetPrimaryAttackPrefix()
@@ -41,7 +43,7 @@ function GrenadeLauncher:GetWeight()
 end
 
 function GrenadeLauncher:GetNeedsAmmo()
-    return Rifle.GetNeedsAmmo(self) or (not self.auxClipFull) or (self.auxAmmo < kGrenadeLauncherClipSize)
+    return Rifle.GetNeedsAmmo(self) or self.auxClip < GrenadeLauncher.kAuxClipSize or self.auxAmmo < GrenadeLauncher.kLauncherStartingAmmo
 end
 
 function GrenadeLauncher:GetHUDSlot()
@@ -50,42 +52,25 @@ end
 
 function GrenadeLauncher:GiveAmmo(clips)
     
-    // Give all to GL and any not used, give to rifle. Put in reserves before clip.
-    local success = false
-    local grenadesToGive = clips * GrenadeLauncher.kGrenadesPerAmmoClip 
-
-    local grenadesForAuxAmmo = math.min(grenadesToGive, math.min(kGrenadeLauncherClipSize - self.auxAmmo))
-    if grenadesForAuxAmmo > 0 then
+    // Give half to GL and any not used, give to rifle
+    local glClips = clips/2
+    local grenades = glClips * GrenadeLauncher.kGrenadesPerAmmoClip 
     
-        self.auxAmmo = self.auxAmmo + grenadesForAuxAmmo
-        grenadesToGive = grenadesToGive - grenadesForAuxAmmo
-        success = true
-        
+    local grenadesUsed = math.min(GrenadeLauncher.kLauncherStartingAmmo - self.auxAmmo - 1, grenades)
+    self.auxAmmo = self.auxAmmo + grenadesUsed
+    
+    local clipsLeft = (clips - glClips) + (grenades - grenadesUsed) * GrenadeLauncher.kGrenadesPerAmmoClip 
+    
+    if clipsLeft > 0 then
+        Rifle.GiveAmmo(self, clipsLeft)
     end
-    
-    if not self.auxClipFull and (grenadesToGive > 0) then
-    
-        grenadesToGive = grenadesToGive - 1
-        self.auxClipFull = true        
-        success = true
-        
-    end
-
-    // Convert back into clips and give the rest to the rifle ammo    
-    clips = grenadesToGive / GrenadeLauncher.kGrenadesPerAmmoClip
-    
-    if clips > 0 and Rifle.GiveAmmo(self, clips) then
-        success = true        
-    end
-    
-    return success
     
 end
 
 function GrenadeLauncher:GetAuxClip()
     // Return how many grenades we have left. Naming seems strange but the 
     // "clip" for the GL is how many grenades we have total.
-    return self.auxAmmo + ConditionalValue(self.auxClipFull, 1, 0)
+    return self.auxAmmo
 end
 
 function GrenadeLauncher:GetSecondaryAttackDelay()
@@ -95,7 +80,7 @@ end
 // Fire grenade with secondary attack
 function GrenadeLauncher:OnSecondaryAttack(player)
 
-    if self.auxClipFull then
+    if (self.auxClip > 0) then
     
         player:SetActivityEnd(self:GetSecondaryAttackDelay() * player:GetCatalystFireModifier())
 
@@ -108,8 +93,7 @@ function GrenadeLauncher:OnSecondaryAttack(player)
             local viewCoords = viewAngles:GetCoords()
             
             // Make sure start point isn't on the other side of a wall or object
-            local startPoint =  player:GetEyePos() + 
-                                viewCoords.zAxis * .5 - viewCoords.xAxis * .3 - viewCoords.yAxis * .25
+            local startPoint = player:GetEyePos() + viewCoords.zAxis * .5 - viewCoords.xAxis * .3 - viewCoords.yAxis * .25
             local trace = Shared.TraceRay(player:GetEyePos(), startPoint, PhysicsMask.Bullets, EntityFilterOne(player))
             
             if trace.fraction ~= 1 then
@@ -137,7 +121,7 @@ function GrenadeLauncher:OnSecondaryAttack(player)
         // We need to do this on the Client and Server for proper prediction.
         ClipWeapon.OnSecondaryAttack(self, player)
 
-        self.auxClipFull = false
+        self.auxClip = self.auxClip - 1
         self.justShotGrenade = true
         
     elseif (not self:ReloadGrenade(player)) then
@@ -151,17 +135,15 @@ function GrenadeLauncher:OnSecondaryAttack(player)
 end
 
 function GrenadeLauncher:CanReload()
-    return ClipWeapon.CanReload(self) or (not self.auxClipFull and self.auxAmmo > 0)
+    return ClipWeapon.CanReload(self) or (self.auxClip == 0 and self.auxAmmo > 0)
 end
 
 function GrenadeLauncher:OnInit()
 
     Rifle.OnInit(self)
     
-    self.auxAmmo = (kGrenadeLauncherClipSize / 2)
-    
-    // Start empty to show player initial reload - ie, to draw their attention to them having a GL
-    self.auxClipFull = false
+    self.auxAmmo = GrenadeLauncher.kLauncherStartingAmmo
+    self.auxClip = 0
     self.justShotGrenade = false
     
 end
@@ -175,14 +157,14 @@ function GrenadeLauncher:ReloadGrenade(player)
     
         self.justShotGrenade = false
         
-        if not self.auxClipFull and (self.auxAmmo > 0) then
+        if (self.auxClip < GrenadeLauncher.kAuxClipSize) and (self.auxAmmo > 0) then
             
             self:TriggerEffects("grenadelauncher_reload")
             
             // Play the reload sequence and don't let it be interrupted until it finishes playing.
             player:SetActivityEnd(player:GetViewAnimationLength())
             
-            self.auxClipFull = true
+            self.auxClip = self.auxClip + 1
             
             self.auxAmmo = self.auxAmmo - 1
             
@@ -210,7 +192,7 @@ function GrenadeLauncher:UpdateViewModelPoseParameters(viewModel, input)
     Rifle.UpdateViewModelPoseParameters(self, viewModel, input)
     
     viewModel:SetPoseParam("hide_gl", 0)
-    local glEmpty = ConditionalValue(self.auxClipFull, 0, 1)
+    local glEmpty = ConditionalValue(self.auxClip == 0, 1, 0)
     // Do not show as empty until the shooting animation is done.
     if self.justShotGrenade then
         glEmpty = 0
@@ -223,8 +205,8 @@ function GrenadeLauncher:GetEffectParams(tableParams)
 
     Rifle.GetEffectParams(self, tableParams)
     
-    tableParams[kEffectFilterEmpty] = not self.auxClipFull
+    tableParams[kEffectFilterEmpty] = ConditionalValue(self.auxClip == 0, true, false)
     
 end
 
-Shared.LinkClassToMap("GrenadeLauncher", GrenadeLauncher.kMapName, GrenadeLauncher.networkVars)
+Shared.LinkClassToMap("GrenadeLauncher", GrenadeLauncher.kMapName, networkVars)

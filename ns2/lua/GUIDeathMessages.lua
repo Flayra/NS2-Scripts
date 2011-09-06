@@ -41,8 +41,6 @@ end
 
 function GUIDeathMessages:Update(deltaTime)
 
-    PROFILE("GUIDeathMessages:Update")
-
     local addDeathMessages = DeathMsgUI_GetMessages()
     local numberElementsPerMessage = 5
     local numberMessages = table.count(addDeathMessages) / numberElementsPerMessage
@@ -63,8 +61,6 @@ function GUIDeathMessages:Update(deltaTime)
     for i, message in ipairs(self.messages) do
         local currentPosition = Vector(message["Background"]:GetPosition())
         currentPosition.y = GUIDeathMessages.kScreenOffset + (GUIDeathMessages.kBackgroundHeight * (i - 1))
-        local playerIsCommander = CommanderUI_IsLocalPlayerCommander()
-        currentPosition.x = message["BackgroundXOffset"] - ((playerIsCommander and message["BackgroundWidth"]) or 0)
         message["Background"]:SetPosition(currentPosition)
         message["Time"] = message["Time"] + deltaTime
         if message["Time"] >= GUIDeathMessages.kTimeStartFade then
@@ -150,11 +146,9 @@ function GUIDeathMessages:AddMessage(killerColor, killerName, targetColor, targe
         insertMessage["Background"]:AddChild(insertMessage["Weapon"])
         insertMessage["Background"]:AddChild(insertMessage["Target"])
     end
-    insertMessage["BackgroundWidth"] = textWidth + iconWidth
-    insertMessage["Background"]:SetSize(Vector(insertMessage["BackgroundWidth"], GUIDeathMessages.kBackgroundHeight, 0))
+    insertMessage["Background"]:SetSize(Vector(textWidth + iconWidth, GUIDeathMessages.kBackgroundHeight, 0))
     insertMessage["Background"]:SetAnchor(GUIItem.Right, GUIItem.Top)
-    insertMessage["BackgroundXOffset"] = -textWidth - iconWidth - GUIDeathMessages.kScreenOffset
-    insertMessage["Background"]:SetPosition(Vector(insertMessage["BackgroundXOffset"], 0, 0))
+    insertMessage["Background"]:SetPosition(Vector(-textWidth - iconWidth - GUIDeathMessages.kScreenOffset, 0, 0))
     insertMessage["Background"]:SetColor(GUIDeathMessages.kBackgroundColor)
 
     table.insert(self.messages, insertMessage)

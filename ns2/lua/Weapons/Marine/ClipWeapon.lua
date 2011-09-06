@@ -85,6 +85,11 @@ function ClipWeapon:GetRange()
     return 8012
 end
 
+// Not currently used
+function ClipWeapon:GetPenetration()
+    return 1
+end
+
 function ClipWeapon:GetPrimaryAttackDelay()
     return .5
 end
@@ -199,35 +204,18 @@ end
 
 function ClipWeapon:GiveAmmo(numClips)
 
-    // Fill reserves, then clip. NS1 just filled reserves but I like the implications of filling the clip too.
-    // But don't do it until reserves full.
-    local success = false
-    local bulletsToGive = numClips * self:GetClipSize()
+    // Fill reserves, never clip
+    local bullets = numClips * self:GetClipSize()
+    local bulletsToAmmo = math.min(bullets, self:GetMaxAmmo() - self:GetAmmo())
     
-    local bulletsToAmmo = math.min(bulletsToGive, self:GetMaxAmmo() - self:GetAmmo())        
-    if bulletsToAmmo > 0 then
-
-        self.ammo = self.ammo + bulletsToAmmo
-
-        bulletsToGive = bulletsToGive - bulletsToAmmo        
-        
-        success = true
-        
-    end
+    self.ammo = self.ammo + bulletsToAmmo
     
-    if bulletsToGive > 0 and (self:GetClip() < self:GetClipSize()) then
-        
-        self.clip = self.clip + math.min(bulletsToGive, self:GetClipSize() - self:GetClip())
-        success = true        
-        
-    end
-
-    return success
+    return (bulletsToAmmo > 0)
     
 end
 
 function ClipWeapon:GetNeedsAmmo()
-    return (self:GetClip() < self:GetClipSize()) or (self:GetAmmo() < self:GetMaxAmmo())
+    return self:GetClip() < self:GetClipSize() or self:GetAmmo() < self:GetMaxAmmo()
 end
 
 function ClipWeapon:GetWarmupTime()
@@ -262,7 +250,7 @@ function ClipWeapon:OnPrimaryAttack(player)
                 
             else
         
-                self:FirePrimary(player)
+                self:FirePrimary(player, self:GetBulletsPerShot(), self:GetRange(), self:GetPenetration())
                 
                 // Play the end effect now before the clip runs out in case there are effects that
                 // don't trigger when empty.
@@ -270,7 +258,7 @@ function ClipWeapon:OnPrimaryAttack(player)
                     Weapon.OnPrimaryAttackEnd(self, player)
                 end
                 // Don't decrement ammo in Darwin mode
-                if(not player or not player:GetDarwinMode()) then
+                if(not Server or not GetGamerules():GetDarwinMode()) then
                     self.clip = self.clip - 1
                 end
                             
@@ -320,8 +308,8 @@ function ClipWeapon:OnSecondaryAttack(player)
     
 end
 
-function ClipWeapon:FirePrimary(player)
-    self:FireBullets(player)
+function ClipWeapon:FirePrimary(player, bullets, range, penetration)
+    self:FireBullets(player, bullets, range, penetration)
 end
 
 // To create a tracer 20% of the time, return .2. 0 disables tracers.
@@ -339,31 +327,35 @@ function ClipWeapon:GetIsDroppable()
 end
 
 /**
- * Fires the specified number of bullets in a cone from the player's current view.
+ * Fires the specified number of bullets in a cone from the player's current view. Returns true if it hit.
  */
-function ClipWeapon:FireBullets(player)
+function ClipWeapon:FireBullets(player, bulletsToShoot, range, penetration)
 
+    local hitTarget = false
     local viewAngles = player:GetViewAngles()
-    local shootCoords = viewAngles:GetCoords()
-    shootCoords.origin = player:GetEyePos()
+    local viewCoords = viewAngles:GetCoords()
     
+    local startPoint = player:GetEyePos()
+        
     // Filter ourself out of the trace so that we don't hit ourselves.
     local filter = EntityFilterTwo(player, self)
-    
+       
     if Client then
-        DbgTracer.MarkClientFire(player, shootCoords.origin)
+        DbgTracer.MarkClientFire(player, startPoint)
     end
-    
-    local range = self:GetRange()
-    local numberBullets = self:GetBulletsPerShot()
-    local startPoint = shootCoords.origin
-    
-    for bullet = 1, numberBullets do
+   
+    for bullet = 1, bulletsToShoot do
     
         // Calculate spread for each shot, in case they differ
-        local spreadDirection = CalculateSpread(shootCoords, self:GetSpread() * self:GetInaccuracyScalar(), NetworkRandom)
+        local spreadAngle = self:GetSpread() * self:GetInaccuracyScalar() / 2
         
-        local endPoint = startPoint + spreadDirection * range
+        local randomAngle  = NetworkRandom() * math.pi * 2
+        local randomRadius = NetworkRandom() * NetworkRandom() * math.tan(spreadAngle)
+        
+        local fireDirection = viewCoords.zAxis + (viewCoords.xAxis * math.cos(randomAngle) + viewCoords.yAxis * math.sin(randomAngle)) * randomRadius
+        fireDirection:Normalize()
+       
+        local endPoint = startPoint + fireDirection * range
         
         local trace = Shared.TraceRay(startPoint, endPoint, PhysicsMask.Bullets, filter)
         
@@ -384,12 +376,15 @@ function ClipWeapon:FireBullets(player)
                 
             end
             
+            //DebugLine(startPoint, trace.endPoint, 15, ConditionalValue(trace.entity, 1, 0), ConditionalValue(trace.entity, 0, 1), ConditionalValue(trace.entity, 0, 0), 1)
+            
             if not blockedByUmbra then
             
                 if trace.entity then
                 
                     local direction = (trace.endPoint - startPoint):GetUnit()
                     self:ApplyBulletGameplayEffects(player, trace.entity, trace.endPoint, direction)
+                    hitTarget = true
 
                 end
                 
@@ -420,14 +415,16 @@ function ClipWeapon:FireBullets(player)
         end
 
     end
+    
+    return hitTarget
 
 end
 
 function ClipWeapon:ApplyBulletGameplayEffects(player, target, endPoint, direction)
 
-    if Server then
+    if(Server) then
     
-        if HasMixin(target, "Live") then
+        if target:isa("LiveScriptActor") then
         
             target:TakeDamage(self:GetBulletDamage(target, endPoint), player, self, endPoint, direction)
             

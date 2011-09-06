@@ -6,11 +6,11 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
  
-function Projectile:OnUpdateRender()
+function Projectile:OnSynchronized()
 
-    PROFILE("Projectile:OnUpdateRender")
+    PROFILE("Projectile:OnSynchronized")
 
-    ScriptActor.OnUpdateRender(self)
+    ScriptActor.OnSynchronized(self)
     self:UpdateRenderModel()
     
 end

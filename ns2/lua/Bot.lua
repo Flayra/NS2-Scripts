@@ -13,11 +13,7 @@ end
 
 class 'Bot'
 
-Script.Load("lua/PathingMixin.lua")
-
 function Bot:Initialize(forceTeam, active)
-
-    InitMixin(self, PathingMixin)
 
     // Create a virtual client for the bot
     self.client = Server.AddVirtualClient()

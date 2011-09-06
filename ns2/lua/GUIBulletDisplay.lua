@@ -69,8 +69,6 @@ function GUIBulletDisplay:Initialize()
 end
 
 function GUIBulletDisplay:Update(deltaTime)
-
-    PROFILE("GUIBulletDisplay:Update")
     
     // Update the ammo counter.
     

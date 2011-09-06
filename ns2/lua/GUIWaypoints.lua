@@ -81,8 +81,6 @@ function GUIWaypoints:Uninitialize()
 end
 
 function GUIWaypoints:Update(deltaTime)
-
-    PROFILE("GUIWaypoints:Update")
     
     local nextWaypointActive = PlayerUI_GetNextWaypointActive()
     

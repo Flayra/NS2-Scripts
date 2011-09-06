@@ -24,8 +24,6 @@ grenadeDisplay = nil
  */
 function Update(deltaTime)
 
-    PROFILE("GUIRifleDisplay Update")
-
     bulletDisplay:SetClip(weaponClip)
     bulletDisplay:SetAmmo(weaponAmmo)
     bulletDisplay:Update(deltaTime)

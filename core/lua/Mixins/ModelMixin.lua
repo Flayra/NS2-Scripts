@@ -73,7 +73,6 @@ function ModelMixin:OnDestroy()
 end
 
 function ModelMixin:OnSynchronized()
-    PROFILE("ModelMixin:OnSynchronized")
     self:SynchronizeAnimation()
 end
 

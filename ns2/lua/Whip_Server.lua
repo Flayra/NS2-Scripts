@@ -55,7 +55,7 @@ function Whip:AttackTarget()
     
         self.timeOfLastStrikeStart = Shared.GetTime()
         
-        self.timeOfNextStrikeHit = Shared.GetTime() + self:AdjustAttackDelay(.5)
+        self.timeOfNextStrikeHit = Shared.GetTime() + self:AdjustFuryFireDelay(.5)
                 
     end
 
@@ -211,11 +211,11 @@ function Whip:UpdateAttack(deltaTime)
     if self:GetIsBuilt() and self:GetIsAlive() then
         // Check to see if it's time to fire again
         local time = Shared.GetTime()
-        if not self.timeOfLastWhipAttack or (time > (self.timeOfLastWhipAttack + Whip.kScanThinkInterval)) then        
+        if not self.timeOfLastAttack or (time > (self.timeOfLastAttack + Whip.kScanThinkInterval)) then        
             local target = self:GetTarget()
             local targetValid = self.targetSelector:ValidateTarget(target)
             if targetValid then
-                local delay = self:AdjustAttackDelay(Whip.kROF)
+                local delay = self:AdjustFuryFireDelay(Whip.kROF)
                 if(self.timeOfLastStrikeStart == nil or (time > self.timeOfLastStrikeStart + delay)) then                
                     self:AttackTarget()
                 end
@@ -235,7 +235,7 @@ function Whip:UpdateAttack(deltaTime)
                     self.attackYaw = self.attackYaw + 360
                 end
                 
-                self.timeOfLastWhipAttack = time
+                self.timeOfLastAttack = time
                 
             else
                 self:AcquireTarget()            
@@ -354,11 +354,8 @@ function Whip:OnAnimationComplete(animName)
 end
 
 function Whip:GetCanIdle()
-
     local target = self:GetTarget()
-    local stationary = self.mode == Whip.kMode.Rooted or (self.mode == Whip.kMode.UnrootedStationary and not self:GetCurrentOrder())
-    return Structure.GetCanIdle(self) and not target and stationary
-    
+    return not target and (self.mode == Whip.kMode.Rooted or (self.mode == Whip.kMode.UnrootedStationary and not self:GetCurrentOrder()))
 end
 
 function Whip:GetIsFuryActive()
@@ -374,7 +371,7 @@ function Whip:OnResearchComplete(structure, researchId)
         // Transform into mature whip
         if structure and (structure:GetId() == self:GetId()) and (researchId == kTechId.UpgradeWhip) then
         
-            success = self:UpgradeToTechId(kTechId.MatureWhip)
+            success = self:Upgrade(kTechId.MatureWhip)
             
         end
         

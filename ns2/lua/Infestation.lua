@@ -7,19 +7,16 @@
 // Patch of infestation created by alien commander.
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/ScriptActor.lua")
-Script.Load("lua/PointGiverMixin.lua")
-Script.Load("lua/GameEffectsMixin.lua")
-Script.Load("lua/LOSMixin.lua")
-Script.Load("lua/PathingMixin.lua")
+Script.Load("lua/LiveScriptActor.lua")
 
-class 'Infestation' (ScriptActor)
+class 'Infestation' (LiveScriptActor)
 
 Infestation.kMapName = "infestation"
 
 Infestation.kEnergyCost = kGrowCost
 Infestation.kInitialHealth = 50
 Infestation.kMaxHealth = 500
+Infestation.kVerticalSize = 1
 Infestation.kDecalVerticalSize = 1
 Infestation.kGrowthRateScalar = 1
 
@@ -32,7 +29,7 @@ if Server then
     Script.Load("lua/Infestation_Server.lua")
 end
 
-Infestation.networkVars = 
+local networkVars = 
 {
     // 0 to kMaxRadius
     radius                  = "interpolated float",
@@ -42,15 +39,11 @@ Infestation.networkVars =
     hostAlive               = "boolean",
 }
 
-PrepareClassForMixin(Infestation, GameEffectsMixin)
-
 function Infestation:OnCreate()
 
-    ScriptActor.OnCreate(self)
-    
-    InitMixin(self, GameEffectsMixin)
-    InitMixin(self, PointGiverMixin)
     InitMixin(self, PathingMixin)
+
+    LiveScriptActor.OnCreate(self)
     
     self.health = Infestation.kInitialHealth
     self.maxHealth = Infestation.kMaxHealth
@@ -76,12 +69,11 @@ function Infestation:OnCreate()
     // our personal thinktime; avoid clumping
     self.thinkTime = Infestation.kThinkTime + 0.001 * self:GetId() % 100
     
-    if Client then
+    if (Client) then
         self.decal = Client.CreateRenderDecal()
         self.decal:SetMaterial("materials/infestation/infestation_decal.material")
     else 
         self.lastUpdateThinkTime = 0
-		InitMixin(self, LOSMixin)
     end
     
     self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)    
@@ -91,22 +83,22 @@ function Infestation:SetGrowthRateScalar(scalar)
     self.growthRateScalar = scalar
 end
 
-function Infestation:OnDestroy()
-
-    ScriptActor.OnDestroy(self)
+function Infestation:OnDestroy()    
+    LiveScriptActor.OnDestroy(self)
 
     if Client then
-        Client.DestroyRenderDecal(self.decal)
+        Client.DestroyRenderDecal( self.decal )
         self.decal = nil
     else
         Server.infestationMap:RemoveInfestation(self)
     end
-   
+
+   // self:ClearPathingFlags(Pathing.PolyFlag_Infestation)
 end
 
 function Infestation:OnInit()
 
-    ScriptActor.OnInit(self)
+    LiveScriptActor.OnInit(self)
     
     self:SetAnimation("scale")
 
@@ -138,6 +130,10 @@ function Infestation:GetTechId()
     return kTechId.Infestation
 end
 
+function Infestation:GetIsSelectable()
+    return false
+end
+
 function Infestation:OnThink()
     PROFILE("Infestation:OnThink")
 
@@ -150,13 +146,12 @@ function Infestation:OnThink()
     end
        
     if self.radius ~= self.maxRadius then
-        // Why is OnUpdate called here? This is strange.
-        ScriptActor.OnUpdate(self, deltaTime)
+        LiveScriptActor.OnUpdate(self, deltaTime)
         self:SetNextThink(0.01) // update on every tick while we are changing the radius
         self.lastThinkTime = now 
         self:SetPathingFlags(Pathing.PolyFlag_Infestation)     
     else
-        ScriptActor.OnThink(self)
+        LiveScriptActor.OnThink(self)
         // avoid clumping and vary the thinkTime individually for each infestation patch (with 0-100ms)
         self.lastThinkTime = self.lastThinkTime + self.thinkTime
         // lastThinktime is now "now". Add in another dose of delta to find when we want to run next
@@ -172,7 +167,7 @@ function Infestation:OnThink()
 
 end
 
-function Infestation:GetIsPointOnInfestation(point, verticalSize)
+function Infestation:GetIsPointOnInfestation(point)
 
     local onInfestation = false
     
@@ -184,7 +179,7 @@ function Infestation:GetIsPointOnInfestation(point, verticalSize)
         local toPoint = point - self:GetOrigin()
         local verticalProjection = math.abs( self:GetCoords().yAxis:DotProduct( toPoint ) )
         
-        onInfestation = (verticalProjection < verticalSize)
+        onInfestation = (verticalProjection < Infestation.kVerticalSize)
         
     end
     
@@ -196,18 +191,11 @@ function Infestation:GetPathingFlagOverride(position, extents, flags)
     return position, Vector(self.radius, Infestation.kDecalVerticalSize, self.radius), flags
 end
 
-function Infestation:OnUpdate(deltatime)
-end
-
-function Infestation:OverrideCheckvision()
-  return false
-end
-
 if Client then
 
 function Infestation:UpdateRenderModel()
 
-    ScriptActor.UpdateRenderModel(self)
+    LiveScriptActor.UpdateRenderModel(self)
     
     if self.decal then
         self.decal:SetCoords( self:GetCoords() )
@@ -218,4 +206,4 @@ end
 
 end
 
-Shared.LinkClassToMap("Infestation", Infestation.kMapName, Infestation.networkVars)
+Shared.LinkClassToMap("Infestation", Infestation.kMapName, networkVars )

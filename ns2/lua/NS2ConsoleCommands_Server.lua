@@ -11,9 +11,9 @@
 
 Script.Load("lua/ScenarioHandler_Commands.lua")
 
-function JoinTeamOne(player)
+function JoinTeamOne(player, force)
     // Team balance
-    if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or Shared.GetCheatsEnabled() then
+    if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or force or Shared.GetCheatsEnabled() then
         return GetGamerules():JoinTeam(player, kTeam1Index, force)
     elseif (player:GetTeamNumber() ~= 1) then
         player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
@@ -22,9 +22,9 @@ function JoinTeamOne(player)
     return false
 end
 
-function JoinTeamTwo(player)
-    if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or Shared.GetCheatsEnabled() then
-        return GetGamerules():JoinTeam(player, kTeam2Index)
+function JoinTeamTwo(player, force)
+    if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or force or Shared.GetCheatsEnabled() then
+        return GetGamerules():JoinTeam(player, kTeam2Index, force)
     elseif (player:GetTeamNumber() ~= 2) then        
         player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
     end
@@ -32,8 +32,8 @@ function JoinTeamTwo(player)
     return false
 end
 
-function ReadyRoom(player)
-    return GetGamerules():JoinTeam(player, kTeamReadyRoom)
+function ReadyRoom(player, force)
+    return GetGamerules():JoinTeam(player, kTeamReadyRoom, force)
 end
 
 function Spectate(player)
@@ -108,9 +108,11 @@ function OnCommandEnergy(client)
     
     if Shared.GetCheatsEnabled() then
     
-        // Give energy to all structures on our team.
-        for index, ent in ipairs(GetEntitiesWithMixinForTeam("Energy", player:GetTeamNumber())) do
-            ent:SetEnergy(ent:GetMaxEnergy())
+        // Give energy to all structures on our team
+        for index, ent in ipairs(GetEntitiesForTeam("LiveScriptActor", player:GetTeamNumber())) do
+            if ent.SetEnergy then        
+                ent:SetEnergy(ent:GetMaxEnergy())
+            end
         end
         
     end
@@ -774,25 +776,6 @@ function OnCommandTarget(client, cmd)
     end
 end
 
-function OnCommandPhantom(client, cmd)
-
-    if client ~= nil and Shared.GetCheatsEnabled() then
-    
-        if type(cmd) == "string" then
-        
-            local player = client:GetControllingPlayer()
-            local origin = player:GetOrigin()
-            
-            StartPhantomMode(player, cmd, origin)
-            
-        else
-            Print("Must pass map name.")
-        end
-            
-    end
-    
-end
-
 // GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
 
@@ -864,4 +847,3 @@ Event.Hook("Console_setgameeffect",         OnCommandSetGameEffect)
 Event.Hook("Console_eject",                 OnCommandEject)
 Event.Hook("Console_cyst",                  OnCommandCyst)
 Event.Hook("Console_target",                OnCommandTarget)
-Event.Hook("Console_phantom",               OnCommandPhantom)

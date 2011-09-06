@@ -37,8 +37,6 @@ end
 
 function GUIOrders:Update(deltaTime)
 
-    PROFILE("GUIOrders:Update")
-
     self:UpdateOrderList(PlayerUI_GetOrderInfo())
     
 end

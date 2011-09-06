@@ -65,8 +65,6 @@ function GUIChat:Uninitialize()
 end
 
 function GUIChat:Update(deltaTime)
-
-    PROFILE("GUIChat:Update")
     
     local addChatMessages = ChatUI_GetMessages()
     local numberElementsPerMessage = 8

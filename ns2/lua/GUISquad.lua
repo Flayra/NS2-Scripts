@@ -184,8 +184,6 @@ end
 
 function GUISquad:Update(deltaTime)   
 
-    PROFILE("GUISquad:Update")
-
     local player = Client.GetLocalPlayer()
     if player and player:isa("Marine") then
     

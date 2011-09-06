@@ -23,21 +23,10 @@ function CommanderUI_UpdateMouseOverUIState(overUI)
 
 end
 
-function CommanderUI_IsLocalPlayerCommander()
-
-    local player = Client.GetLocalPlayer()
-    if player and player:isa("Commander") then
-        return true
-    end
-    
-    return false
-
-end
-
 function CommanderUI_IsAlienCommander()
 
     local player = Client.GetLocalPlayer()
-    if player and player:isa("AlienCommander") then
+    if(player and player:isa("AlienCommander")) then
         return true
     end
     
@@ -749,11 +738,9 @@ end
 
 function Commander:AddAlert(techId, worldX, worldZ, entityId, entityTechId)
     
-    assert(worldX)
-    assert(worldZ)
-    
     // Create alert blip
     local alertType = LookupTechData(techId, kTechDataAlertType, kAlertType.Info)
+    local xOffset, yOffset = GetMaterialXYOffset(entityTechId, self:isa("MarineCommander"))
 
     table.insert(self.alertBlips, worldX)
     table.insert(self.alertBlips, worldZ)
@@ -761,14 +748,6 @@ function Commander:AddAlert(techId, worldX, worldZ, entityId, entityTechId)
     
     // Create alert message => {text, icon x offset, icon y offset, -1, entity id}
     local alertText = GetDisplayNameForAlert(techId, "")
-    
-    local xOffset, yOffset = GetMaterialXYOffset(entityTechId, self:isa("MarineCommander"))
-    if not xOffset or not yOffset then
-        Shared.Message("Warning: Missing texture offsets for alert: " .. alertText)
-        xOffset = 0
-        yOffset = 0
-    end
-    
     table.insert(self.alertMessages, alertText)
     table.insert(self.alertMessages, xOffset)
     table.insert(self.alertMessages, yOffset)
@@ -1042,7 +1021,7 @@ function Commander:ClickSelect(x, y)
         // Try selecting a unit
         if self:ClickSelectEntities(pickVec) then
     
-            //self:SendClickSelectCommand(pickVec, 1)
+            self:SendClickSelectCommand(pickVec, 1)
             
         // If nothing, try to select a squad
         elseif self:isa("MarineCommander") then    
@@ -1081,12 +1060,6 @@ function Commander:SendClickSelectCommand(pickVec)
 
 end
 
-function Commander:SendSelectIdCommand(entityId)
-
-    local message = BuildSelectIdMessage(entityId)
-    Client.SendNetworkMessage("SelectId", message, true)
-
-end
 function Commander:SendControlClickSelectCommand(pickVec, screenStartVec, screenEndVec)
 
     local message = BuildControlClickSelectCommand(pickVec, screenStartVec, screenEndVec)

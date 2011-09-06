@@ -237,8 +237,6 @@ end
  */
 function GUIParticleSystem:Update(deltaTime)
 
-    PROFILE("GUIParticleSystem:Update")
-
     ASSERT(type(deltaTime) == "number")
     
     for i, emitter in pairs(self.emitters) do

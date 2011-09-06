@@ -15,7 +15,7 @@ function Door:Reset()
     self:SetOrigin(self.savedOrigin)
     self:SetAngles(self.savedAngles)
     
-    self:SetPhysicsType(PhysicsType.Kinematic)
+    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
     self:SetPhysicsGroup(0)
 
     self:SetState(Door.kState.Closed)    
@@ -107,6 +107,10 @@ function Door:ComputeDamageOverride(attacker, damage, damageType, time)
 end
 
 function Door:OnTakeDamage(damage, attacker, doer, point)
+
+    //Print("Door taking %s damage (alive: %s)", ToString(damage), ToString(self:GetIsAlive()))
+    
+    LiveScriptActor.OnTakeDamage(self, damage, attacker, doer, point)
     
     // Locked doors become unlocked when damaged
     if self:GetIsAlive() and (self:GetState() == Door.kState.Locked) then
@@ -117,7 +121,7 @@ end
 
 function Door:OnThink()
 
-    ScriptActor.OnThink(self)
+    LiveScriptActor.OnThink(self)
     
     // If any players are around, have door open if possible, otherwise close it
     local state = self:GetState()
@@ -194,6 +198,6 @@ function Door:OnAnimationComplete(animationName)
         
     end
     
-    ScriptActor.OnAnimationComplete(self, animationName)
+    LiveScriptActor.OnAnimationComplete(self, animationName)
     
 end

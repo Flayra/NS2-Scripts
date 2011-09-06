@@ -124,6 +124,11 @@ function Skulk:GetMaxViewOffsetHeight()
     return Skulk.kViewOffsetHeight
 end
 
+// Skulks can't crouch
+function Skulk:GetExtents()
+    return self:GetMaxExtents()
+end
+
 function Skulk:GetCrouchShrinkAmount()
     return 0
 end

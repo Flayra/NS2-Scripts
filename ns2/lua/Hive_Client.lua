@@ -10,27 +10,24 @@
 function Hive:OnUpdate(deltaTime)
 
     CommandStructure.OnUpdate(self, deltaTime)
-        
+    
     // Attach mist effect if we don't have one already
     local coords = self:GetCoords()
-    local effectName = Hive.kIdleMistEffect
     
     if self:GetTechId() == kTechId.Hive then
-        effectName = Hive.kIdleMistEffect                
+    
+        self:AttachEffect(Hive.kIdleMistEffect, coords, Cinematic.Repeat_Loop)
+        
     elseif self:GetTechId() == kTechId.HiveMass then
-        effectName = Hive.kL2IdleMistEffect
-        self:RemoveEffect(Hive.kIdleMistEffect)                
+    
+        self:RemoveEffect(Hive.kIdleMistEffect)
+        self:AttachEffect(Hive.kL2IdleMistEffect, coords, Cinematic.Repeat_Loop)
+        
     elseif self:GetTechId() == kTechId.HiveColony then
-        effectName = Hive.kL3IdleMistEffect    
+    
         self:RemoveEffect(Hive.kL2IdleMistEffect)
+        self:AttachEffect(Hive.kL3IdleMistEffect, coords, Cinematic.Repeat_Loop)
+        
     end
-    
-    
-    local isVisible = (not self:GetIsCloaked())
-    
-    self:AttachEffect(effectName, coords, Cinematic.Repeat_Loop)
-    self:SetEffectVisible(effectName, isVisible)
-    // Disable other stuff :P
-    self:SetEffectVisible(Hive.kSpecksEffect, isVisible)
-    self:SetEffectVisible(Hive.kGlowEffect, isVisible)
+
 end

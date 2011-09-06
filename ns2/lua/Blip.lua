@@ -40,7 +40,7 @@ function Blip:OnGetIsRelevant(player)
     return GetGamerules():GetIsRelevant(player, self)   
 end
 
-function Blip:Update(entity, blipType)
+function Blip:Update(entity, blipType, time)
 
     self.blipType = blipType
 
@@ -52,7 +52,35 @@ function Blip:Update(entity, blipType)
     
     self.entId = entity:GetId()
     
+    self.timeOfUpdate = time
+    
 end
 
+function CreateUpdateBlip(blips, entity, blipType, time)
+
+    // Update blip entity if exists, else create new one
+    local updated = false
+    
+    for index, blip in ipairs(blips) do
+    
+        if blip.entId == entity:GetId() and blip.entId ~= Entity.invalidId then
+        
+            blip:Update(entity, blipType, time)
+            updated = true
+            break
+            
+        end
+        
+    end
+    
+    if not updated then
+    
+        // Create new blip
+        local blip = CreateEntity(Blip.kMapName)
+        blip:Update(entity, blipType, time)
+        
+    end
+    
+end
 
 Shared.LinkClassToMap( "Blip", Blip.kMapName, Blip.networkVars )

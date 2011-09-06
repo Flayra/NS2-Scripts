@@ -38,7 +38,6 @@ Server.infestationMap = InfestationMap():Init()
 Server.readyRoomSpawnList = {}
 Server.playerSpawnList = {}
 Server.eggSpawnList = {}
-Server.sortedEggSpawnList = {}
 Server.playerBanList = {}
 
 // map name, group name and values keys for all map entities loaded to
@@ -97,8 +96,8 @@ local function LoadServerMapEntity(mapName, groupName, values)
             entity:SetMapEntity()
             LoadEntityFromValues(entity, values)
 
-            // Map Entities with LiveMixin can be destroyed during the game.
-            if HasMixin(entity, "Live") then
+            // LiveScriptActors can be destroyed during the game so
+            if entity:isa("LiveScriptActor") then
 
                 // Insert into table so we can re-create them all on map post load (and game reset)
                 table.insert(Server.mapLoadLiveEntityValues, {mapName, groupName, values})
@@ -225,7 +224,6 @@ function OnMapPreLoad()
     // Clear spawn points
     Server.readyRoomSpawnList = {}
     Server.playerSpawnList = {}
-    Server.sortedEggSpawnList = {}
     Server.eggSpawnList = {}
 
     Server.locationList = {}
@@ -251,7 +249,7 @@ end
 
 function CreateLiveMapEntities()
 
-    // Create new Live map entities
+    // Create new LiveScriptActor map entities
     for index, triple in ipairs(Server.mapLoadLiveEntityValues) do
 
         // {mapName, groupName, keyvalues}
@@ -334,30 +332,6 @@ function GenerateWaypoints()
 
 end
 
-function SortSpawnEntities()
-
-    for index = 1, table.count(Server.eggSpawnList) do
-    
-        local spawn = Server.eggSpawnList[index]
-        ASSERT(spawn ~= nil)
-        
-        local locationName = GetLocationForPoint(spawn:GetOrigin())
-        ASSERT(type(locationName) == "string")
-
-        // Insert new entity with location name        
-        if Server.sortedEggSpawnList[locationName] == nil then
-            Server.sortedEggSpawnList[locationName] = {}
-        end
-        
-        table.insert( Server.sortedEggSpawnList[locationName], spawn)
-        
-    end
-    
-    // Kill egg spawn list
-    Server.eggSpawnList = nil
-    
-end
-
 /**
  * Callback handler for when the map is finished loading.
  */
@@ -376,9 +350,6 @@ function OnMapPostLoad()
         end
     end
     Server.mapPostLoadEntities = { }
-    
-    // Sort spawn entities by location
-    SortSpawnEntities()
     
     // Build the data for pathing around the map.
     /*local dimensions = GenerateWaypoints()

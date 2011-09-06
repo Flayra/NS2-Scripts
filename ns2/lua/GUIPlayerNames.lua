@@ -53,8 +53,6 @@ end
 
 function GUIPlayerNames:Update(deltaTime)
 
-    PROFILE("GUIPlayerNames:Update")
-
     local player = Client.GetLocalPlayer()
     if not player then
         return 

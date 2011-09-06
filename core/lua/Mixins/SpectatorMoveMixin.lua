@@ -9,7 +9,7 @@
 Script.Load("lua/Mixins/BaseMoveMixin.lua")
 
 SpectatorMoveMixin = { }
-SpectatorMoveMixin.type = "MoveChild"
+SpectatorMoveMixin.type = "Move"
 
 SpectatorMoveMixin.expectedCallbacks = {
     GetAcceleration = "Should return a number value representing the acceleration.",

@@ -809,10 +809,6 @@ function Marine:GetChatSound()
     return Marine.kChatSound
 end
 
-function Marine:GetDeathMapName()
-    return MarineSpectator.kMapName
-end
-
 function Marine:UpdateHelp()
 
     local activeWeaponName = self:GetActiveWeaponName()   

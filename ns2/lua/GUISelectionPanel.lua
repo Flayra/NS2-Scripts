@@ -277,8 +277,6 @@ function GUISelectionPanel:Uninitialize()
 end
 
 function GUISelectionPanel:Update(deltaTime)
-
-    PROFILE("GUISelectionPanel:Update")
     
     self:UpdateSelected()
     

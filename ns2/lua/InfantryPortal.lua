@@ -6,7 +6,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
-Script.Load("lua/RagdollMixin.lua")
 
 class 'InfantryPortal' (Structure)
 
@@ -30,14 +29,6 @@ InfantryPortal.kTransponderUseTime = .5
 InfantryPortal.kThinkInterval = 0.25
 InfantryPortal.kTransponderPointValue = 15
 InfantryPortal.kLoginAttachPoint = "keypad"
-
-function InfantryPortal:OnCreate()
-
-    Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
-
-end
 
 function InfantryPortal:OnInit()
 

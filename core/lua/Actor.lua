@@ -7,7 +7,6 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 Script.Load("lua/TimedCallbackMixin.lua")
-Script.Load("lua/PhysicsGroups.lua")
 
 /**
  * An Actor is a type of Entity that has a model associated with it.
@@ -15,6 +14,14 @@ Script.Load("lua/PhysicsGroups.lua")
 class 'Actor' (Entity)
 
 Actor.kMapName = "actor"
+
+Actor.PhysicsType = enum
+    {
+        'None',             // No physics representation.
+        'Dynamic',          // Bones are driven by physics simulation (client-side only)
+        'DynamicServer',    // Bones are driven by physics simulation (synced with server)
+        'Kinematic'         // Physics model is updated by animation
+    }
 
 // Maximum number of animations we support on in a model. This is
 // limited for the sake of propagating animation indices.
@@ -31,7 +38,7 @@ Actor.networkVars =
         // Reset to 1 every time a new animation is set.
         animationSpeed      = "compensated float",
         
-        physicsType         = "enum PhysicsType",
+        physicsType         = "enum Actor.PhysicsType",
         physicsGroup        = "integer (0 to 31)",
     }
 
@@ -57,8 +64,6 @@ function Actor:OnCreate()
 
     Entity.OnCreate(self)
     
-    InitMixin(self, TimedCallbackMixin)
-    
     self.modelIndex         = 0
     self.animationSequence  = Model.invalidSequence
     self.animationStart     = 0
@@ -70,7 +75,7 @@ function Actor:OnCreate()
     self.animationSpeed     = 1.0
     self.boneCoords         = CoordsArray()
     self.poseParams         = PoseParams()
-    self.physicsType        = PhysicsType.None
+    self.physicsType        = Actor.PhysicsType.None
     self.physicsModel       = nil
     self.physicsGroup       = 0 //PhysicsGroup.DefaultGroup
     
@@ -98,6 +103,8 @@ end
 
 function Actor:OnInit()
 
+    InitMixin(self, TimedCallbackMixin)
+    
     if Client then
     
         self:TriggerEffects("on_init")
@@ -231,17 +238,17 @@ function Actor:UpdatePhysicsModelSimulation()
 
     if (self.physicsModel ~= nil) then
         
-        if (self.physicsType == PhysicsType.None) then
+        if (self.physicsType == Actor.PhysicsType.None) then
             self.physicsModel:SetPhysicsType(CollisionObject.None)
-        elseif (self.physicsType == PhysicsType.DynamicServer) then
+        elseif (self.physicsType == Actor.PhysicsType.DynamicServer) then
             if (Server) then
                 self.physicsModel:SetPhysicsType(CollisionObject.Dynamic)
             else
                 self.physicsModel:SetPhysicsType(CollisionObject.Kinematic)
             end
-        elseif (self.physicsType == PhysicsType.Dynamic) then
+        elseif (self.physicsType == Actor.PhysicsType.Dynamic) then
             self.physicsModel:SetPhysicsType(CollisionObject.Dynamic)
-        elseif (self.physicsType == PhysicsType.Kinematic) then
+        elseif (self.physicsType == Actor.PhysicsType.Kinematic) then
             self.physicsModel:SetPhysicsType(CollisionObject.Kinematic)
         end
         
@@ -252,9 +259,9 @@ end
 function Actor:GetIsDynamic()
 
     if (Server) then
-        return self.physicsType == PhysicsType.DynamicServer
+        return self.physicsType == Actor.PhysicsType.DynamicServer
     else
-        return self.physicsType == PhysicsType.Dynamic
+        return self.physicsType == Actor.PhysicsType.Dynamic
     end
 
 end
@@ -585,6 +592,13 @@ function Actor:OnUpdate(deltaTime)
         
     end
     
+    // Needed because of the problem where Actors can be created and updated on the client before being inited.
+    // "Spit created/destroyed in a single update" problem. Once that is fixed, this check won't be needed.
+    if HasMixin(self, "TimedCallback") then
+        // From TimedCallbackMixin.
+        self:UpdateTimedCallbacks(deltaTime)
+    end
+    
 end
 
 if (Client) then
@@ -656,9 +670,9 @@ function Actor:UpdatePhysicsModelCoords()
 
     if (self.physicsModel ~= nil) then
     
-        local update = self.physicsType == PhysicsType.Kinematic or self.physicsType == PhysicsType.None
+        local update = self.physicsType == Actor.PhysicsType.Kinematic or self.physicsType == Actor.PhysicsType.None
         
-        if Client and self.physicsType == PhysicsType.DynamicServer then
+        if Client and self.physicsType == Actor.PhysicsType.DynamicServer then
             update = true
         end
 
@@ -895,7 +909,7 @@ function Actor:OnUpdatePhysics()
     self:UpdateBoneCoords()
     self:UpdatePhysicsModel()
     
-    if (self.physicsType ~= PhysicsType.None) then
+    if (self.physicsType ~= Actor.PhysicsType.None) then
         
         if (self.physicsModel ~= nil and self:GetIsDynamic()) then
         
@@ -925,8 +939,6 @@ function Actor:OnUpdatePhysics()
 end
 
 function Actor:UpdatePhysicsModel()
-
-    PROFILE("Actor:UpdatePhysicsModel")
 
     // Create a physics model if necessary.
     if (self.physicsModel == nil and self:GetPhysicsModelAllowed()) then

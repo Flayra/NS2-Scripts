@@ -96,12 +96,12 @@ function Flamethrower:GetViewModelName()
     return Flamethrower.kViewModelName
 end
 
-function Flamethrower:FirePrimary(player)
+function Flamethrower:FirePrimary(player, bullets, range, penetration)
 
     if Server then
     
     local barrelPoint = self:GetBarrelPoint(player)
-    local ents = GetEntitiesWithMixinWithinRange("Live", barrelPoint, self:GetRange())
+    local ents = GetEntitiesWithinRange("LiveScriptActor", barrelPoint, range)
     
     local fireDirection = player:GetViewAngles():GetCoords().zAxis
     

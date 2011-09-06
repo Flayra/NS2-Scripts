@@ -352,6 +352,9 @@
     <filename>Commander_SelectionPanel.lua</filename>
   </file>
   <file>
+    <filename>Target.lua</filename>
+  </file>
+  <file>
     <filename>Weapons\ViewModel.lua</filename>
   </file>
   <file>
@@ -463,6 +466,12 @@
     <filename>Weapons\Alien\Absorb.lua</filename>
   </file>
   <file>
+    <filename>LiveScriptActor.lua</filename>
+  </file>
+  <file>
+    <filename>LiveScriptActor_Server.lua</filename>
+  </file>
+  <file>
     <filename>Whip_Server.lua</filename>
   </file>
   <file>
@@ -487,6 +496,9 @@
     <filename>Commander_FocusPanel.lua</filename>
   </file>
   <file>
+    <filename>LiveScriptActor_Client.lua</filename>
+  </file>
+  <file>
     <filename>BlendedActor.lua</filename>
   </file>
   <file>
@@ -500,6 +512,9 @@
   </file>
   <file>
     <filename>Weapons\Alien\Spit.lua</filename>
+  </file>
+  <file>
+    <filename>Weapons\Alien\Spike.lua</filename>
   </file>
   <file>
     <filename>MarineBuy_Client.lua</filename>
@@ -542,6 +557,12 @@
   </file>
   <file>
     <filename>NS2Utility.lua</filename>
+  </file>
+  <file>
+    <filename>Phantasm.lua</filename>
+  </file>
+  <file>
+    <filename>OnosPhantasm.lua</filename>
   </file>
   <file>
     <filename>Weapons\Alien\SwipeBlink.lua</filename>
@@ -638,6 +659,9 @@
   </file>
   <file>
     <filename>GUIRifleDisplay.lua</filename>
+  </file>
+  <file>
+    <filename>Weapons\Alien\Blink_Client.lua</filename>
   </file>
   <file>
     <filename>Weapons\Alien\Blink.lua</filename>
@@ -928,6 +952,9 @@
     <filename>GUIVoiceChat.lua</filename>
   </file>
   <file>
+    <filename>MakeMapBlipMixin.lua</filename>
+  </file>
+  <file>
     <filename>TeamInfo.lua</filename>
   </file>
   <file>
@@ -968,80 +995,5 @@
   </file>
   <file>
     <filename>DisorientableMixin.lua</filename>
-  </file>
-  <file>
-    <filename>FlinchMixin.lua</filename>
-  </file>
-  <file>
-    <filename>GameEffectsMixin.lua</filename>
-  </file>
-  <file>
-    <filename>PhantomMixin.lua</filename>
-  </file>
-  <file>
-    <filename>SelectableMixin.lua</filename>
-  </file>
-  <file>
-    <filename>PhantomEffigy.lua</filename>
-  </file>
-  <file>
-    <filename>AttackOrderMixin.lua</filename>
-  </file>
-  <file>
-    <filename>RagdollMixin.lua</filename>
-  </file>
-  <file>
-    <filename>UpgradableMixin.lua</filename>
-  </file>
-  <file>
-    <filename>PointGiverMixin.lua</filename>
-  </file>
-  <file>
-    <filename>ScoringMixin.lua</filename>
-  </file>
-  <file>
-    <filename>..\..\core\lua\Mixins\SpectatorMoveMixin.lua</filename>
-  </file>
-  <file>
-    <filename>..\..\core\lua\Mixins\BaseMoveMixin.lua</filename>
-  </file>
-  <file>
-    <filename>..\..\core\lua\Mixins\ControllerMixin.lua</filename>
-  </file>
-  <file>
-    <filename>..\..\core\lua\Mixins\GroundMoveMixin.lua</filename>
-  </file>
-  <file>
-    <filename>..\..\core\lua\Mixins\CommanderMoveMixin.lua</filename>
-  </file>
-  <file>
-    <filename>DeathTrigger.lua</filename>
-  </file>
-  <file>
-    <filename>NS2Utility_Server.lua</filename>
-  </file>
-  <file>
-    <filename>EggSpawn.lua</filename>
-  </file>
-  <file>
-    <filename>FuryMixin.lua</filename>
-  </file>
-  <file>
-    <filename>WeldableMixin.lua</filename>
-  </file>
-  <file>
-    <filename>ExtentsMixin.lua</filename>
-  </file>
-  <file>
-    <filename>LOSMixin.lua</filename>
-  </file>
-  <file>
-    <filename>FrenzyMixin.lua</filename>
-  </file>
-  <file>
-    <filename>MapBlipMixin.lua</filename>
-  </file>
-  <file>
-    <filename>HiveSightBlipMixin.lua</filename>
   </file>
 </project>

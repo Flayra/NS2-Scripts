@@ -28,15 +28,10 @@ function GUIDistressBeacon:Initialize()
 end
 
 function GUIDistressBeacon:Uninitialize()
-
-    GUI.DestroyItem(self.beacon)
     self.beacon = nil
-    
 end
 
 function GUIDistressBeacon:UpdateDistressBeacon(deltaTime)
-
-    PROFILE("GUIDistressBeacon:Update")
 
     local localPlayer = Client.GetLocalPlayer()
     

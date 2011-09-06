@@ -435,7 +435,7 @@ function Commander:OnEntityChange(oldEntityId, newEntityId)
     end
     
     if selectionChanged then
-        self:InternalSetSelection(newSelection, false)
+        self:InternalSetSelection(newSelection, true)
     end
     
     // Hotkey groups are handled in player.
@@ -501,8 +501,8 @@ function Commander:GetHostCommandStructure()
     return Shared.GetEntity(self.commandStationId)
 end
 
-function Commander:OverrideCheckvision()
-  return false
+function Commander:GetCanDoDamage()
+    return false
 end
 
 Shared.LinkClassToMap( "Commander", Commander.kMapName, Commander.networkVars )

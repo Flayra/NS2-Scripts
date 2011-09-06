@@ -242,8 +242,6 @@ end
 
 function GUIScoreboard:Update(deltaTime)
 
-    PROFILE("GUIScoreboard:Update")
-
     local teamsVisible = ScoreboardUI_GetVisible()
     
     ASSERT(teamsVisible ~= nil)

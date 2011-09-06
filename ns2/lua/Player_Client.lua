@@ -352,18 +352,21 @@ function PlayerUI_GetCrosshairY()
             elseif(mapname == Minigun.kMapName) then
                 index = 4
             elseif(mapname == Flamethrower.kMapName) then
-                index = 5
+                index = 5   
             // All alien crosshairs are the same for now
             elseif((mapname == Spikes.kMapName) or (mapname == Spores.kMapName) or (mapname == Parasite.kMapName)) then
                 index = 6
             elseif(mapname == SpitSpray.kMapName) then
-                index = 7
+                index = 7              
+            // Picking blink target
+            elseif (mapname == SwipeBlink.kMapName) and weapon:GetShowingGhost() then
+                index = 6
             // Blanks
             else
                 index = 9
             end
         
-            return index * 64
+            return index*64
             
         end
         
@@ -600,13 +603,13 @@ function GameUI_GetHealthStatus(entityId)
     local entity = Shared.GetEntity(entityId)
     if(entity ~= nil) then
     
-        if HasMixin(entity, "Live") then
+        if entity:isa("LiveScriptActor") then
         
-            return entity:GetHealth() / entity:GetMaxHealth()
+            return entity:GetHealth()/entity:GetMaxHealth()
             
         else
         
-            Print("GameUI_GetHealthStatus(%d) - Entity type %s is not alive.", entityId, entity:GetMapName())
+            Print("GameUI_GetHealthStatus(%d) - Entity not a ScriptActor (%s instead).", entityId, entity:GetMapName())
             
         end
         
@@ -1105,7 +1108,7 @@ end
  */
 function Player:OnDestroy()
 
-    ScriptActor.OnDestroy(self)
+    LiveScriptActor.OnDestroy(self)
     
     if (self.viewModel ~= nil) then
         Client.DestroyRenderViewModel(self.viewModel)
@@ -1707,35 +1710,37 @@ end
 
 function Player:OnSynchronized()
 
-    PROFILE("Player:OnSynchronized")
-
     local player = Client.GetLocalPlayer()
-
-    // Make sure to call OnInit() for client entities that have been propagated by the server
-    if(not self.clientInitedOnSynch) then
     
-        self:OnInit()
+    if player ~= nil then
         
-        // Only call OnInitLocalClient() for entities that are the local player
-        if(Client and (player == self)) then   
-            self:OnInitLocalClient()    
+        // Make sure to call OnInit() for client entities that have been propagated by the server
+        if(not self.clientInitedOnSynch) then
+        
+            self:OnInit()
+            
+            // Only call OnInitLocalClient() for entities that are the local player
+            if(Client and (player == self)) then   
+                self:OnInitLocalClient()    
+            end
+            
+            self.clientInitedOnSynch = true
+            
+        end
+
+        // Update these here because they could update hitboxes
+        local deltaTime = 0
+        local currentTime = Shared.GetTime()
+        if self.lastSynchronizedTime ~= nil then
+            deltaTime = currentTime - self.lastSynchronizedTime
         end
         
-        self.clientInitedOnSynch = true
+        self:UpdatePoseParameters(deltaTime)
+        self.lastSynchronizedTime = currentTime
+        
+        LiveScriptActor.OnSynchronized(self)
         
     end
-
-    // Update these here because they could update hitboxes
-    local deltaTime = 0
-    local currentTime = Shared.GetTime()
-    if self.lastSynchronizedTime ~= nil then
-        deltaTime = currentTime - self.lastSynchronizedTime
-    end
-    
-    self:UpdatePoseParameters(deltaTime)
-    self.lastSynchronizedTime = currentTime
-    
-    ScriptActor.OnSynchronized(self)
     
 end
 
@@ -1744,7 +1749,7 @@ function Player:OnUpdate(deltaTime)
     PROFILE("Player_Client:OnUpdate")
     
     // Need to update pose parameters every frame to keep them smooth
-    ScriptActor.OnUpdate(self, deltaTime)
+    LiveScriptActor.OnUpdate(self, deltaTime)
     
     local isLocal = (self == Client.GetLocalPlayer())
     
@@ -1759,8 +1764,6 @@ function Player:OnUpdate(deltaTime)
 end
 
 function Player:UpdateGUI()
-
-    PROFILE("Player:UpdateGUI")
 
     // Update the view model's GUI.
     

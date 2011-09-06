@@ -214,8 +214,6 @@ end
 
 function GUIManager:Update(deltaTime)
 
-    PROFILE("GUIManager:Update")
-
     self:UpdateAnimations(deltaTime)
     
     for index, script in ipairs(self.scripts) do

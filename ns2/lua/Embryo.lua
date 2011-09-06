@@ -194,8 +194,12 @@ if Server then
                 self:TriggerEffects("egg_death")
                 
                 // Now give new player all the upgrades they purchased
-                for index, upgradeId in ipairs(self.evolvingUpgrades) do                
-                    newPlayer:GiveUpgrade(upgradeId)
+                for index, upgradeId in ipairs(self.evolvingUpgrades) do
+                
+                    if newPlayer:GiveUpgrade(upgradeId) then
+                        newPlayer:OnGiveUpgrade(upgradeId)
+                    end
+                    
                 end    
 
                 newPlayer:SetHealth( self.healthScalar * LookupTechData(self.gestationTypeTechId, kTechDataMaxHealth) )
@@ -221,6 +225,10 @@ if Server then
         
     end
     
+end
+
+function Embryo:GetCanDoDamage()
+    return false
 end
 
 Shared.LinkClassToMap("Embryo", Embryo.kMapName, Embryo.networkVars)

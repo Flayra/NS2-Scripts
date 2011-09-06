@@ -126,7 +126,7 @@ function Ability:OnPrimaryAttack(player)
         local energyCost = self:GetEnergyCost(player)
         
         // No energy cost in Darwin mode
-        if(player and player:GetDarwinMode()) then
+        if(Server and GetGamerules():GetDarwinMode()) then
             energyCost = 0
         end
         
@@ -152,11 +152,6 @@ function Ability:OnSecondaryAttack(player)
         // Check energy cost
         local energyCost = self:GetSecondaryEnergyCost(player)
         
-        // No energy cost in Darwin mode
-        if(player and player:GetDarwinMode()) then
-            energyCost = 0
-        end
-
         if(player:GetEnergy() >= energyCost) then
 
             if self:PerformSecondaryAttack(player) then
@@ -186,7 +181,7 @@ function Ability:GetEffectParams(tableParams)
     local player = self:GetParent()
     if player then
     
-        tableParams[kEffectParamAnimationSpeed] = 1 / player:AdjustAttackDelay(1)
+        tableParams[kEffectParamAnimationSpeed] = 1/player:AdjustFuryFireDelay(1)
         
     end
     

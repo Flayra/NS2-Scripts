@@ -55,9 +55,7 @@ function Weapon:OnCreate()
     self.moveWithView = false
     
     self:SetIsVisible(false)
-    self.isHostered = true 
-
-    self:SetRelevancy(false)
+    self.isHostered = true
     
 end
 
@@ -286,10 +284,10 @@ end
 
 function Weapon:ApplyMeleeHitEffects(player, damage, target, endPoint, direction)
 
-    if target ~= nil and Server and HasMixin(target, "Live") then
+    if(target ~= nil and Server and target:isa("LiveScriptActor")) then
     
-        if target:TakeDamage(damage, player, self, endPoint, direction) then
-            self:OnTargetKilled(player)
+        if(target:TakeDamage(damage, player, self, endPoint, direction)) then
+            self:OnTargetKilled(player)        
         end
             
         self:GetParent():SetTimeTargetHit()
@@ -338,7 +336,7 @@ function Weapon:OnUpdate(deltaTime)
             // Stun after setting velocity as stun limits the ability to set velocity.
             if HasMixin(knockEntity, "Stun") then
                 knockEntity:SetStunTime(Shared.GetTime() + Weapon.kKnockbackStunTime)
-                knockEntity:SetAnimationWithBlending("stun")
+                knockEntity:SetAnimationWithBlending("death")
             end
         end
         
@@ -408,22 +406,6 @@ end
 
 function Weapon:GetSwingSensitivity()
     return .5
-end
-
-function Weapon:SetRelevancy(sighted)
-
-    local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)
-    if sighted then
-        mask = bit.bor(mask, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
-    else
-        if self:GetTeamNumber() == 1 then
-            mask = bit.bor(mask, kRelevantToTeam1Commander)
-        elseif self:GetTeamNumber() == 2 then
-            mask = bit.bor(mask, kRelevantToTeam2Commander)
-        end
-    end  
-  
-    self:SetExcludeRelevancyMask( mask )
 end
 
 Shared.LinkClassToMap("Weapon", Weapon.kMapName, networkVars)

@@ -8,7 +8,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
-Script.Load("lua/RagdollMixin.lua")
 
 class 'ResourceTower' (Structure)
 
@@ -24,21 +23,13 @@ ResourceTower.kMaxUpgradeLevel = 3
 // they find. Same as in NS1.
 ResourceTower.kBuildDelay = 4
 
-ResourceTower.networkVars = 
+local networkVars = 
 {
     upgradeLevel = string.format("integer (0 to %d)", ResourceTower.kMaxUpgradeLevel)
 }
 
 if (Server) then
     Script.Load("lua/ResourceTower_Server.lua")
-end
-
-function ResourceTower:OnCreate()
-
-    Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
-
 end
 
 function ResourceTower:OnInit()
@@ -65,4 +56,18 @@ function ResourceTower:GiveResourcesToTeam(player)
 
 end
 
-Shared.LinkClassToMap("ResourceTower", ResourceTower.kMapName, ResourceTower.networkVars)
+/*
+function ResourceTower:GetDescription()
+
+    local description = Structure.GetDescription(self)
+    
+    // Add upgrade level
+    local upgradeLevel = self:GetUpgradeLevel()
+    description = string.format("%s - +%d of %d", description, self:GetUpgradeLevel(), ResourceTower.kMaxUpgradeLevel)
+    
+    return description
+    
+end
+*/
+
+Shared.LinkClassToMap("ResourceTower", ResourceTower.kMapName, networkVars)

@@ -8,7 +8,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
-Script.Load("lua/RagdollMixin.lua")
 
 class 'Cocoon' (Structure)
 
@@ -18,14 +17,6 @@ Cocoon.kModelName = PrecacheAsset("models/alien/cocoon/cocoon.model")
 
 Cocoon.kHealth = 200
 Cocoon.kArmor = 50
-
-function Cocoon:OnCreate()
-
-    Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
-
-end
 
 function Cocoon:OnInit()
 

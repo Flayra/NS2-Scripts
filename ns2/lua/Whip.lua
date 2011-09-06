@@ -12,7 +12,6 @@
 Script.Load("lua/Structure.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/InfestationMixin.lua")
-Script.Load("lua/RagdollMixin.lua")
 
 class 'Whip' (Structure)
 
@@ -54,8 +53,6 @@ end
 function Whip:OnCreate()
 
     Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
     
     self.attackYaw = 0
     
@@ -157,7 +154,7 @@ function Whip:UpdatePoseParameters(deltaTime)
     
 end
 
-function Whip:GetCanGiveDamageOverride()
+function Whip:GetCanDoDamage()
     return true
 end
 

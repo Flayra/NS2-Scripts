@@ -74,8 +74,6 @@ end
 
 function GUIHiveBlips:Update(deltaTime)
 
-    PROFILE("GUIHiveBlips:Update")
-
     self:UpdateBlipList(PlayerUI_GetBlipInfo())
     
     self:UpdateAnimations(deltaTime)

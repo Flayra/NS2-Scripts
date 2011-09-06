@@ -58,7 +58,7 @@ end
 //
 function ScenarioHandler:Checkpoint()
     self.excludeTable = {}
-    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("ScriptActor")) do
+    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("LiveScriptActor")) do
         self.excludeTable["" .. entity:GetId()] = true
     end
 end
@@ -77,7 +77,7 @@ function ScenarioHandler:Save()
         Log("Use scencp to checkpoint the current state of the game")
     end
     Shared.Message(ScenarioHandler.kStartTag)
-    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("ScriptActor")) do
+    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("LiveScriptActor")) do
         local cname = entity:GetClassName()
         local excluded = self.excludeTable and self.excludeTable["" .. entity:GetId()]
         local handler = self.handlers[cname]
@@ -116,7 +116,7 @@ function ScenarioHandler:Load(data)
     end
     
     // update the infestations masks as otherwise whips will unroot and stuff will take damage
-    UpdateInfestationMasks()
+    UpdateInfestationMasks( Shared.GetEntitiesWithClassname("LiveScriptActor") )
     
     Shared.Message("END LOAD")
 end

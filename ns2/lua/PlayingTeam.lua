@@ -429,7 +429,7 @@ end
  */
 function PlayingTeam:ReplaceRespawnPlayer(player, origin, angles)
 
-    local newPlayer = player:Replace(self.respawnEntity, self:GetTeamNumber(), false, origin)
+    local newPlayer = player:Replace(self.respawnEntity, self:GetTeamNumber(), false)
     
     self:RespawnPlayer(newPlayer, origin, angles)
     
@@ -527,6 +527,152 @@ function PlayingTeam:TechRemoved(entity)
     
 end
 
+function PlayingTeam:ComputeLOS()
+    PROFILE("PlayingTeam:ComputeLOS")
+
+    local maxDistance = PlayingTeam.kStructureMinLOSDistance
+    
+    // Get all non-commander players on our team
+    local teamBuilderName = ConditionalValue(self:GetIsAlienTeam(), "Drifter", "MAC")
+    
+    function IsFriendlyLOSGivingUnit(entity)    
+        if(entity:GetTeamNumber() == self:GetTeamNumber()) then        
+            // Scan entities are structures
+            if( (entity:isa("Player") and not entity:GetIsCommander()) or 
+                (entity:isa(teamBuilderName)) or 
+                (entity:isa("Structure") and not entity:isa("PowerPoint") and not entity:isa("Door") and not entity:isa("Egg")) or 
+                (entity:isa("ARC")) ) then            
+                return true                
+            end            
+        end        
+        return false        
+    end
+    
+    // Get list of entities that can see (players and AI builder units). Do it this
+    // way to avoid unnecessarily iterating over all the entities in the world.
+    local seeingUnits = {}    
+    local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
+    local enemyEnts = GetEntitiesForTeam("ScriptActor", enemyTeamNumber)
+    for index, unit in ipairs(enemyEnts) do
+      unit.sighted = false
+      
+      // For each visible entity on other team
+      if not unit:GetIsVisible() then
+            unit:SetExcludeRelevancyMask( 0 )      
+      end
+                  
+      local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom) 
+      if unit:GetTeamNumber() == 1 then
+        mask = bit.bor(mask, kRelevantToTeam1Commander)
+      elseif unit:GetTeamNumber() == 2 then
+        mask = bit.bor(mask, kRelevantToTeam2Commander)
+      end
+      
+      unit:SetExcludeRelevancyMask( mask )
+    end
+    
+    local allScriptActors = GetEntitiesForTeam("ScriptActor", self:GetTeamNumber())
+    for index, entity in ipairs(allScriptActors) do
+    
+        if IsFriendlyLOSGivingUnit(entity) then
+            table.insert(seeingUnits, entity)
+        end        
+        
+        // For each visible entity on other team
+        if not entity:GetIsVisible() then
+            entity:SetExcludeRelevancyMask( 0 )      
+        end
+        
+    end
+    
+    // See if friendly buildings are near entity, with direct LOS to it (ala conventional RTS).
+    // Check in 2D to detect hives above.
+    for seeingIndex, seeingUnit in ipairs(seeingUnits) do
+       if (seeingUnit:isa("Structure")) then
+            maxDistance = PlayingTeam.kStructureMinLOSDistance
+       elseif (seeingUnit:isa("Scan")) then
+            maxDistance = Scan.kScanDistance
+       else       
+            maxDistance = PlayingTeam.kUnitMaxLOSDistance
+       end
+      local entities = {}    
+      Shared.GetEntitiesWithinRadius(seeingUnit:GetOrigin(), maxDistance, entities)
+      for entIndex, entityId in ipairs(entities) do      
+        local entity = Shared.GetEntity(entityId)         
+        if (entity ~= nil and entity:GetTeamNumber() == enemyTeamNumber) then            
+            entity.sighted = false 
+            local distance = seeingUnit:GetDistanceXZ(entity) 
+            
+            local isHidden = false
+            local hasBeenScanned = false
+                        
+            if (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) or (HasMixin(entity, "Camouflage") and entity:GetIsCamouflaged()) then
+               isHidden = true
+            end
+                        
+            // Structures give LOS to other structures and infestation within range, esp. so command stations can see infestation
+            if seeingUnit:isa("Structure") and seeingUnit:GetIsActive() and (entity:isa("Structure") or entity:isa("Infestation"))then                
+                // Check to make sure view isn't blocked by the level or big visible entities (add in a little height in case infestation is on ground)
+                local trace = Shared.TraceRay(seeingUnit:GetModelOrigin(), entity:GetModelOrigin() + Vector(0, 1, 0), PhysicsMask.AllButPCs, EntityFilterTwo(seeingUnit, entity))                
+                if trace.fraction == 1 then                     
+                    entity.sighted = true                        
+                end
+            elseif (distance <= PlayingTeam.kUnitMinLOSDistance) then                                     
+                entity.sighted = true
+            elseif seeingUnit:isa("Scan")then                     
+            
+                entity.sighted = true
+                
+                // Allow entities to respond
+                if entity.OnScan then
+                    entity:OnScan()
+                end
+                
+                hasBeenScanned = true
+                
+            elseif(not seeingUnit:isa("Structure") ) then                                      
+                if( seeingUnit:GetCanSeeEntity(entity) ) then
+                    entity.sighted = true                        
+                end
+            end
+
+            // Cloaked/camoued units aren't sighted unless they were scanned
+            if (isHidden and not hasBeenScanned) then
+                entity.sighted = false
+            end  
+
+            local mask = bit.bor(kRelevantToTeam1Unit, kRelevantToTeam2Unit, kRelevantToReadyRoom)        
+            if entity.sighted then
+                mask = bit.bor(mask, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
+            else
+                if entity:GetTeamNumber() == 1 then
+                    mask = bit.bor(mask, kRelevantToTeam1Commander)
+                elseif entity:GetTeamNumber() == 2 then
+                    mask = bit.bor(mask, kRelevantToTeam2Commander)
+                end
+            end            
+            entity:SetExcludeRelevancyMask( mask )
+        end
+      end
+    end
+end
+
+function PlayingTeam:UpdateLOS(timePassed)
+    PROFILE("PlayingTeam:UpdateLOS")
+    // Skip LOS check when debugging for perf. reasons
+    if(/*not GetIsDebugging() and*/ (self.timeSinceLastLOSUpdate > PlayingTeam.kLOSUpdateInterval)) then
+    
+        self:ComputeLOS()
+        self.timeSinceLastLOSUpdate = 0
+    
+    else
+ 
+        self.timeSinceLastLOSUpdate = self.timeSinceLastLOSUpdate + timePassed
+        
+    end
+    
+end
+
 function PlayingTeam:Update(timePassed)
 
     PROFILE("PlayingTeam:Update")
@@ -556,6 +702,9 @@ function PlayingTeam:Update(timePassed)
     end
     
     self:UpdateHelp()
+    
+    // Update line of sight for other team
+    self:UpdateLOS(timePassed)
 
     // Compute tech tree availability only so often because it's very slooow
     if self.techTree ~= nil and (self.timeOfLastTechTreeUpdate == nil or Shared.GetTime() > self.timeOfLastTechTreeUpdate + PlayingTeam.kTechTreeUpdateTime) then
@@ -762,9 +911,8 @@ function PlayingTeam:UpdateGameEffects(timePassed)
     
     if self.timeSinceLastGameEffectUpdate >= PlayingTeam.kUpdateGameEffectsInterval then
 
-        // Friendly entities that this team's structures can affect. Any entity on this team with
-        // the GameEffects Mixin.
-        local teamEntities = GetEntitiesWithMixinForTeam("GameEffects", self:GetTeamNumber())
+        // Friendly entities that alien structures can affect
+        local teamEntities = GetEntitiesForTeam("LiveScriptActor", self:GetTeamNumber())
         local enemyPlayers = GetEntitiesForTeam("Player", GetEnemyTeamNumber(self:GetTeamNumber()))
         
         self:UpdateTeamSpecificGameEffects(teamEntities, enemyPlayers)       
@@ -776,6 +924,19 @@ function PlayingTeam:UpdateGameEffects(timePassed)
 end
 
 function PlayingTeam:UpdateTeamSpecificGameEffects(teamEntities, enemyPlayers)
+
+    local catchFireEntities = {}
+    
+    for index, entity in ipairs(teamEntities) do
+        if HasMixin(entity, "Fire") then
+            entity:UpdateFire(PlayingTeam.kUpdateGameEffectsInterval)
+        end
+    end
+    
+    for index, catchFireEntity in ipairs(catchFireEntities) do
+        catchFireEntity:SetGameEffectMask(kGameEffect.OnFire, true)
+    end
+    
 end
 
 function PlayingTeam:VoteToEjectCommander(votingPlayer, targetCommander)

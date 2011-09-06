@@ -69,6 +69,10 @@ function Minigun:GetHUDSlot()
     return kPrimaryWeaponSlot
 end
 
+function Minigun:GetPenetration()
+    return 3
+end
+
 function Minigun:GetClipSize()
     return kMinigunClipSize
 end

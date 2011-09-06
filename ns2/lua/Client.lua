@@ -130,10 +130,7 @@ function OnMapLoadEntity(className, groupName, values)
         ParsePropStatic(groupName, values)
     
     elseif (className == "color_grading") then
-
-        // Disabled temporarily because it's crashing
-        Print("color_grading map entity ignored (temporarily disabled)")
-        /*
+    
         local renderColorGrading = Client.CreateRenderColorGrading()
         
         renderColorGrading:SetOrigin( values.origin )
@@ -142,8 +139,7 @@ function OnMapLoadEntity(className, groupName, values)
         renderColorGrading:SetContrast( values.contrast )
         renderColorGrading:SetRadius( values.distance )
         renderColorGrading:SetGroup(groupName)
-        */
-        
+
     elseif (className == "fog_controls") then
             
         Client.SetZoneFogDepthScale(RenderScene.Zone_ViewModel, 1.0 / values.view_zone_scale)
@@ -297,8 +293,6 @@ function SetCommanderPropState(isComm)
 end
 
 function UpdateAmbientSounds(deltaTime)
-    
-    PROFILE("UpdateAmbientSounds")
 
     for index, ambientSound in ipairs(Client.ambientSoundList) do
         ambientSound:OnUpdate(deltaTime)
@@ -308,8 +302,6 @@ end
 
 function UpdateParticles(deltaTime)
 
-    PROFILE("UpdateParticles")
-
     for index, particles in ipairs(Client.particlesList) do
         particles:OnUpdate(deltaTime)
     end
@@ -317,8 +309,6 @@ function UpdateParticles(deltaTime)
 end
 
 function UpdatePowerPointLights()
-
-    PROFILE("UpdatePowerPointLights")
 
     // Only get power nodes on client every so often for performance reasons
     local time = Shared.GetTime()
@@ -351,8 +341,6 @@ function UpdatePowerPointLights()
 end
 
 function OnUpdateClient(deltaTime)
-
-    PROFILE("OnUpdateClient")
     
     local player = Client.GetLocalPlayer()
     if player ~= nil then
@@ -432,8 +420,6 @@ function CreateTracer(startPoint, endPoint, velocity)
 end
 
 function UpdateTracers(deltaTime)
-
-    PROFILE("UpdateTracers")
     
     for index, tracer in ipairs(Client.tracersList) do
     

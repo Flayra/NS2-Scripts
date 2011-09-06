@@ -43,8 +43,6 @@ end
 
 function GUIEmbryoHUD:Update(deltaTime)
 
-    PROFILE("GUIEmbryoHUD:Update")
-
     if self.evolveText then
     
         local player = Client.GetLocalPlayer()

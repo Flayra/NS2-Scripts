@@ -108,13 +108,13 @@ kTechId = enum({
     'Crag', 'UpgradeCrag', 'MatureCrag', 'CragHeal', 'CragUmbra', 'CragBabblers',
     'Whip', 'UpgradeWhip', 'MatureWhip', 'WhipAcidStrike', 'WhipFury', 'WhipBombard',
     'Shift', 'UpgradeShift', 'MatureShift', 'ShiftRecall', 'ShiftEcho', 'ShiftEnergize', 
-    'Shade', 'UpgradeShade', 'MatureShade', 'ShadeDisorient', 'ShadeCloak', 'ShadePhantomMenu', 'ShadePhantomFade', 'ShadePhantomOnos',
+    'Shade', 'UpgradeShade', 'MatureShade', 'ShadeDisorient', 'ShadeCloak', 'ShadePhantasmMenu', 'ShadePhantasmFade', 'ShadePhantasmOnos', 'ShadePhantasmHive',
     
     // Whip movement
     'WhipRoot', 'WhipUnroot',
     
     // Alien abilities and upgrades - BabblerTech
-    'BabblerTech', 'EchoTech', 'PhantomTech', 'PhantomEffigy',
+    'BabblerTech', 'EchoTech', 'PhantasmTech', 
     'Melee1Tech', 'Melee2Tech', 'Melee3Tech', 'AlienArmor1Tech', 'AlienArmor2Tech', 'AlienArmor3Tech',
     'AdrenalineTech', 'BileBombTech', 'LeapTech', 'BacteriaTech', 'FeintTech', 'SapTech', 'StompTech', 'BoneShieldTech', 'CarapaceTech', 'PiercingTech',
     'FrenzyTech', 'SwarmTech', 'RegenerationTech', 'CamouflageTech', 
@@ -146,9 +146,7 @@ kTechId = enum({
     'MetabolizeTech', 'Metabolize',
     
     // Voting commands
-    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3',
-    
-    'DeathTrigger',
+    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3', 
 
     // Maximum index
     'Max'

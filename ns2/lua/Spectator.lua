@@ -36,27 +36,17 @@ if Client then
     Script.Load("lua/Spectator_Client.lua")
 end
 
-function Spectator:OnCreate()
-
-    Player.OnCreate(self)
-    
-    InitMixin(self, SpectatorMoveMixin)
-    InitMixin(self, CameraHolderMixin, { kFov = Player.kFov })
-
-end
-
 function Spectator:OnInit()
 
+    InitMixin(self, SpectatorMoveMixin)
+    InitMixin(self, CameraHolderMixin, { kFov = Player.kFov })
+    
     Player.OnInit(self)
     
     // Spectator cannot have orders.
-    // Todo: Move OrdersMixin out of Player and into leaf classes.
+    // Todo: Move OrdersMixin out of LiveScriptActor and into leaf classes.
     // Don't include the OrdersMixin on Spectators.
     self:SetIgnoreOrders(true)
-    
-    self.lastTargetId = Entity.invalidId
-    self.specTargetId = Entity.invalidId
-    self.timeOfLastInput = 0
     
     if Server then
         
@@ -64,7 +54,8 @@ function Spectator:OnInit()
         
         self:SetIsAlive(false)
         
-        self:SetSpectatorMode(Spectator.kSpectatorMode.FreeLook)
+        // Set spectator mode to first target if possible    
+        self:SetInitialSpecMode()
 
     else
               
@@ -78,6 +69,9 @@ function Spectator:OnInit()
         end
  
     end
+    
+    self.lastTargetId = Entity.invalidId
+    self.specTargetId = Entity.invalidId
     
     self:DestroyController()
 
@@ -180,11 +174,27 @@ function Spectator:GetIsValidTarget(entity)
 end
 
 if Server then
+
+    function Spectator:SetInitialSpecMode()
+
+        // If we have a valid target, set it
+        self:SetSpectatorMode(Spectator.kSpectatorMode.Following)
+        
+        // If no valid targets, start in free look    
+        if self.specTargetId == Entity.invalidId then
+            self.specMode = Spectator.kSpectatorMode.FreeLook
+        end
+        
+        self.timeOfLastInput = 0
+
+    end
     
     function Spectator:SetSpectatorMode(mode)
     
         if mode == Spectator.kSpectatorMode.Following then
-
+        
+            self.specMode = mode
+            
             // Try to follow last target
             if self.lastTargetId ~= Entity.invalidId and self.lastTargetId and Shared.GetEntity(self.lastTargetId) and self:GetIsValidTarget(Shared.GetEntity(self.lastTargetId)) then
             
@@ -197,12 +207,7 @@ if Server then
                 
             end
             
-            if self.specTargetId ~= Entity.invalidId then
-            
-                self:SetIsThirdPerson(3)
-                self.specMode = mode
-                
-            end
+            self:SetIsThirdPerson(3)
             
         elseif mode == Spectator.kSpectatorMode.FreeLook then
         
@@ -249,18 +254,6 @@ if Server then
         else
             self:AddTooltip("Free look mode")    
         end
-        
-    end
-    
-    function Spectator:GetFollowingPlayerId()
-    
-        local playerId = Entity.invalidId
-        
-        if (self.specMode == Spectator.kSpectatorMode.Following) then
-            playerId = self.specTargetId
-        end
-        
-        return playerId
         
     end
     
@@ -320,6 +313,16 @@ if Server then
         end
         
     end
+    
+end
+
+function Spectator:GetTarget()
+
+    local target = nil
+    if self.specTargetId ~= Entity.invalidId then
+        target = Shared.GetEntity(self.specTargetId)
+    end
+    return target
     
 end
 

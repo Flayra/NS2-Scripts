@@ -78,7 +78,8 @@ function SporeCloud:OnThink()
     local filterNonDoors = EntityFilterAllButIsa("Door")
     for index, entity in ipairs(enemies) do
     
-        local attackPoint = entity:GetEyePos()        
+        local attackPoint = entity:GetModelOrigin()
+        
         if (attackPoint - self:GetOrigin()):GetLength() < damageRadius then
 
             if not entity:isa("Commander") and not GetEntityRecentlyHurt(entity:GetId(), (time - SporeCloud.kThinkInterval)) then

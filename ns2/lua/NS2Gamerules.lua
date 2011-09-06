@@ -131,7 +131,50 @@ end
 
 // All damage is routed through here.
 function NS2Gamerules:CanEntityDoDamageTo(attacker, target)
-    return CanEntityDoDamageTo(attacker, target, Shared.GetCheatsEnabled(), Shared.GetDevMode(), self:GetFriendlyFire())
+   
+    if not target:isa("LiveScriptActor") then
+        return false
+    end
+
+    if (not target:GetCanTakeDamage()) then
+        return false
+    end
+   
+    if (target == nil or target == {} or self:GetDarwinMode()) then
+        return false
+    elseif(Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
+        return true
+    elseif attacker == nil then
+        return true
+    end
+
+    // You can always do damage to yourself
+    if (attacker == target) then
+        return true
+    end
+    
+    // Command stations can kill even friendlies trapped inside
+    if attacker ~= nil and attacker:isa("CommandStation") then
+        return true
+    end
+    
+    // Your own grenades can hurt you
+    local owner = attacker:GetOwner()
+    if attacker:isa("Grenade") and owner and owner:GetId() == target:GetId() then
+        return true
+    end
+    
+    // Same teams not allowed to hurt each other unless friendly fire enabled
+    local teamsOK = true
+    if attacker ~= nil then
+
+        teamsOK = (attacker:GetTeamNumber() ~= target:GetTeamNumber()) or self:GetFriendlyFire()
+        
+    end
+    
+    // Allow damage of own stuff when testing
+    return teamsOK
+
 end
 
 function NS2Gamerules:OnClientDisconnect(client)
@@ -377,7 +420,7 @@ function NS2Gamerules:GetUpgradedDamage(attacker, doer, damage, damageType)
         end
         
         // Add more if under influence of whip. This looks like it should be revisited.
-        if HasMixin(attacker, "GameEffects") then
+        if attacker:isa("LiveScriptActor") then
         
             local numFuries = attacker:GetStackableGameEffectCount(kFuryGameEffect)
             if numFuries > 0 then
@@ -671,7 +714,7 @@ function NS2Gamerules:UpdateInfestationEffects()
     
     if self.timeLastInfestationEffectsUpdate == nil or (time > self.timeLastInfestationEffectsUpdate + NS2Gamerules.kInfestationEffectsUpdateRate) then
     
-        UpdateInfestationMasks()
+        UpdateInfestationMasks( Shared.GetEntitiesWithClassname("LiveScriptActor") )
         
         self.timeLastInfestationEffectsUpdate = time
         
@@ -1104,36 +1147,10 @@ function NS2Gamerules:GetOrderSelf()
     return self.orderSelf
 end
 
-function NS2Gamerules:GetIsPlayerFollowingTeamNumber(player, teamNumber)
-
-    local following = false
-    
-    if player:isa("Spectator") then
-    
-        local playerId = player:GetFollowingPlayerId()
-        
-        if playerId ~= Entity.invalidId then
-        
-            local followedPlayer = Shared.GetEntity(playerId)
-            
-            if followedPlayer and followedPlayer:GetTeamNumber() == teamNumber then
-            
-                following = true
-                
-            end
-            
-        end
-
-    end
-    
-    return following
-
-end
-
 // Function for allowing teams to hear each other's voice chat
 function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
 
-    local canHear = false
+    local success = false
     
     // Check if the listerner has the speaker muted.
     if listenerPlayer:GetClientMuted(speakerPlayer:GetClientIndex()) then
@@ -1142,20 +1159,20 @@ function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
     
     // If both players have the same team number, they can hear each other
     if(listenerPlayer:GetTeamNumber() == speakerPlayer:GetTeamNumber()) then
-        canHear = true
+        success = true
     end
         
     // Or if cheats or dev mode is on, they can hear each other
     if(Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
-        canHear = true
+        success = true
     end
     
-    // If we're spectating a player, we can hear their team (but not in tournamentmode, once that's in)
-    if self:GetIsPlayerFollowingTeamNumber(listenerPlayer, speakerPlayer:GetTeamNumber()) then
-        canHear = true
+    // Or if game hasn't started
+    if(not self:GetGameStarted()) then
+        success = true
     end
     
-    return canHear
+    return success
     
 end
 

@@ -125,8 +125,6 @@ function GUIResourceDisplay:Uninitialize()
 end
 
 function GUIResourceDisplay:Update(deltaTime)
-
-    PROFILE("GUIResourceDisplay:Update")
     
     self.personalText:SetText(ToString(PlayerUI_GetPlayerResources()))
     

@@ -21,11 +21,11 @@ end
 
 function DeathTrigger:OnTriggerEntered(enterEnt, triggerEnt)
 
-    if HasMixin(enterEnt, "Live") and enterEnt:GetIsAlive() then
+    if(enterEnt.Kill) then
     
         local direction = GetNormalizedVector(enterEnt:GetModelOrigin() - self:GetOrigin())
         
-        enterEnt:Kill(self, self, self:GetOrigin(), direction)
+        enterEnt:Kill(nil, self, self:GetOrigin(), direction)
         
     end
     

@@ -80,16 +80,4 @@ function Scan:GetRequiresPower()
     return false
 end
 
-function Scan:OverrideLineOfSight(entity)
-  // Allow entities to respond
-  if entity.OnScan then
-    entity:OnScan()
-  end
-  return true
-end
-
-function Scan:OverrideVisionRadius()
-  return Scan.kScanDistance
-end
-
 Shared.LinkClassToMap("Scan", Scan.kMapName, {})

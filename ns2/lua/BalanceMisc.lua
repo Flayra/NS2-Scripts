@@ -105,6 +105,3 @@ kMiniCystParentRange = 15 // distance from a minicyst a cyst can be placed
 
 // Damage over time that all cysts take when not connected
 kCystUnconnectedDamage = 12
-
-kPhantomEffigyLifetime = 120
-kPhantomLifetime = 10

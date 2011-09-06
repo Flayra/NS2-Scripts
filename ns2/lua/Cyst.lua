@@ -7,7 +7,6 @@
 // A cyst controls and spreads infestation
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/RagdollMixin.lua")
 
 class 'Cyst' (Structure)
 
@@ -67,14 +66,6 @@ end
 
 if Server then
     Script.Load("lua/Cyst_Server.lua")
-end
-
-function Cyst:OnCreate()
-
-    Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
-
 end
 
 function Cyst:OnInit()
@@ -251,10 +242,14 @@ function Cyst:GetDeployAnimation()
     return ""
 end
 
+function Cyst:GetCanDoDamage()
+    return false
+end
+
 function Cyst:GetEngagementPoint()
    // Structure:GetEngagementPoint requires a target attachment point on the model, which Cyst doesn't have right now,
    // so override to get rid of the console spam
-    return ScriptActor.GetEngagementPoint(self) 
+    return LiveScriptActor.GetEngagementPoint(self) 
 end
 
 function Cyst:OnOverrideSpawnInfestation(infestation)

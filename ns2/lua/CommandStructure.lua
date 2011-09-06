@@ -7,7 +7,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
-Script.Load("lua/RagdollMixin.lua")
 
 class 'CommandStructure' (Structure)
 CommandStructure.kMapName = "commandstructure"
@@ -16,7 +15,7 @@ if (Server) then
     Script.Load("lua/CommandStructure_Server.lua")
 end
 
-CommandStructure.networkVars = 
+local networkVars = 
 {
     occupied            = "boolean",
     commanderId         = "entityid",
@@ -25,8 +24,6 @@ CommandStructure.networkVars =
 function CommandStructure:OnCreate()
 
     Structure.OnCreate(self)
-    
-    InitMixin(self, RagdollMixin)
     
     self.occupied = false
     self.commanderId = Entity.invalidId
@@ -48,4 +45,4 @@ function CommandStructure:GetEffectParams(tableParams)
     
 end
 
-Shared.LinkClassToMap("CommandStructure", CommandStructure.kMapName, CommandStructure.networkVars)
+Shared.LinkClassToMap("CommandStructure", CommandStructure.kMapName, networkVars)

@@ -24,7 +24,7 @@ function MapBlip:OnCreate()
 
     Entity.OnCreate(self)
     
-    self:SetUpdates(false)
+    self:SetUpdates(true)
     
     self.mapBlipType = kMinimapBlipType.TechPoint
     self.mapBlipTeam = kTeamReadyRoom
@@ -100,10 +100,7 @@ function MapBlip:GetIsSighted()
     
 end
 
-// Called (server side) when a mapblips owner has changed its map-blip dependent state
-function MapBlip:Update(deltaTime)
-
-    PROFILE("MapBlip:Update")
+function MapBlip:OnUpdate(deltaTime)
 
     if self.ownerEntityId and Shared.GetEntity(self.ownerEntityId) then
     
