@@ -40,7 +40,7 @@ end
 
 function Parasite:PerformPrimaryAttack(player)
     
-    player:SetActivityEnd(player:AdjustFuryFireDelay(Parasite.kDelay))
+    player:SetActivityEnd(player:AdjustAttackDelay(Parasite.kDelay))
 
     // Trace ahead to see if hit enemy player or structure
     if Server then

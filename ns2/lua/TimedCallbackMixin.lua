@@ -22,7 +22,8 @@ function TimedCallbackMixin:AddTimedCallback(addFunction, callRate)
     table.insert(self.timedCallbacks, { Function = addFunction, Rate = callRate, Time = 0 })
 
 end
-AddFunctionContract(TimedCallbackMixin.AddTimedCallback, { Arguments = { "Entity", "function", "number" }, Returns = { } })
+AddFunctionContract(TimedCallbackMixin.AddTimedCallback,
+                    { Arguments = { "Entity", "function", "number" }, Returns = { } })
 
 function TimedCallbackMixin:OnUpdate(deltaTime)
     
@@ -46,16 +47,22 @@ function TimedCallbackMixin:OnUpdate(deltaTime)
             end
         end
         
-        for index, removeCallback in ipairs(removeCallbacks) do
-            // Find the callback in the timedCallbacks list.
-            for index, timedCallback in ipairs(self.timedCallbacks) do
-                if timedCallback == removeCallback then
-                    table.remove(self.timedCallbacks, i)
-                end
-            end
-        end
+        self:_RemoveCallbacks(removeCallbacks)
         
     end
 
 end
 AddFunctionContract(TimedCallbackMixin.OnUpdate, { Arguments = { "Entity", "number" }, Returns = { } })
+
+function TimedCallbackMixin:_RemoveCallbacks(removeCallbacks)
+
+    for index, removeCallback in ipairs(removeCallbacks) do
+        // Find the callback in the timedCallbacks list.
+        for index, timedCallback in ipairs(self.timedCallbacks) do
+            if timedCallback == removeCallback then
+                table.remove(self.timedCallbacks, i)
+            end
+        end
+    end
+
+end

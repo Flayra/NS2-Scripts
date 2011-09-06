@@ -242,7 +242,6 @@ Event.Hook("Console_tooltip",                   OnCommandTooltip)
 Event.Hook("Console_localizedtooltip",          OnLocalizedTooltip)
 Event.Hook("Console_reset",                     OnCommandRoundReset)
 Event.Hook("Console_deathmsg",                  OnCommandDeathMsg)
-Event.Hook("Console_onresetgame",               OnCommandOnResetGame)
 Event.Hook("Console_clientdisconnect",          OnCommandOnClientDisconnect)
 Event.Hook("Console_points",                    OnCommandPoints)
 Event.Hook("Console_soundgeometry",             OnCommandSoundGeometry)
@@ -272,4 +271,4 @@ Client.HookNetworkMessage("TechNodeBase",       OnCommandTechNodeBase)
 Client.HookNetworkMessage("TechNodeUpdate",     OnCommandTechNodeUpdate)
 
 Client.HookNetworkMessage("ResetMouse",         OnCommandResetMouse)
-
+Client.HookNetworkMessage("ResetGame",          OnCommandOnResetGame)

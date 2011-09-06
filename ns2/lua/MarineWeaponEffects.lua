@@ -104,7 +104,7 @@ kMarineWeaponEffects =
         // Adjust animation speed to change animation speed and reload time ("speed")
         gunReloadEffects =
         {
-            {viewmodel_animation = "reload", classname = "Rifle"},
+            {viewmodel_animation = "reload", classname = "Rifle", speed = 1.25},
             {sound = "sound/ns2.fev/marine/rifle/reload", classname = "Rifle"},
             {overlay_animation = "rifle_reload", classname = "Rifle", done = true},
             

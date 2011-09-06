@@ -11,10 +11,6 @@ Script.Load("lua/FunctionContracts.lua")
 DoorMixin = { }
 DoorMixin.type = "Door"
 
-function DoorMixin.__prepareclass(toClass)
-    
-end
-
 function DoorMixin:__initmixin()    
 end
 

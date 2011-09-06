@@ -82,26 +82,136 @@ function Hive:GetNumDesiredEggs()
     return Hive.kHiveNumEggs
 end
 
+// Find random spot near hive that we could put an egg. Allow spawn points that are on the other side of walls
+// but pathable. Returns point on ground.
+function Hive:FindPotentialEggSpawn(origin, minRange, maxRange)
+
+    PROFILE("Hive:FindPotentialEggSpawn")
+
+    local kBigUpVector = Vector(0, 1000, 0)
+    local extents = LookupTechData(kTechId.Egg, kTechDataMaxExtents)
+    local capsuleHeight, capsuleRadius = GetTraceCapsuleFromExtents(extents)
+
+    // Find random spot within range, using random orientation (0 to -45 degrees)
+    local randomRange = minRange + math.random() * (maxRange - minRange)
+    local randomRadians = math.random() * math.pi * 2
+    local randomVerticalRadians = Math.Radians(- math.random() * 45) 
+    local randomPoint = Vector( origin.x + randomRange * math.cos(randomRadians), 
+                                origin.y + randomRange * math.sin(randomVerticalRadians), 
+                                origin.z + randomRange * math.sin(randomRadians))
+
+    // Trace random point to ceiling and then floor, to see if it's inside the world. 
+    local pointToUse = nil
+    local trace = Shared.TraceCapsule(  randomPoint, randomPoint + kBigUpVector, 
+                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
+                                        
+    if trace.fraction < 1 then
+    
+        // Trace capsule from ceiling point to ground, making sure we're not on something like a player or structure
+        trace = Shared.TraceCapsule(    trace.endPoint, trace.endPoint - kBigUpVector, 
+                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
+        local success = false
+        if trace.fraction < 1 and (trace.entity == nil or not trace.entity:isa("ScriptActor")) then
+        
+            success = true
+            pointToUse = trace.endPoint
+            
+        end
+        
+    end
+    
+    // Otherwise trace from origin to random point and use the first collision point
+    if not pointToUse then
+    
+        trace = Shared.TraceCapsule(    origin, randomPoint, 
+                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
+        
+        if (trace.entity == nil or not trace.entity:isa("ScriptActor")) then                                
+        
+            pointToUse = trace.endPoint
+
+            // Drop point down to ground if we didn't hit anything
+            if trace.fraction == 1 then
+            
+                trace = Shared.TraceCapsule(    pointToUse, pointToUse - kBigUpVector, 
+                                                capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
+            
+                if trace.fraction ~= 1 then
+                
+                    pointToUse = trace.endPoint
+                    
+                end
+                
+            end
+            
+        end
+        
+    end
+    
+    if pointToUse then
+    
+        return pointToUse - Vector(0, capsuleHeight/2 + capsuleRadius, 0)
+        
+    end
+        
+    return nil
+    
+end
+
+function Hive:CalculateRandomEggSpawn()
+
+    PROFILE("Hive:CalculateRandomEggSpawn")
+    
+    // Pick random spot on ground within range
+    for i = 0, 20 do
+    
+        local possibleSpawn= self:FindPotentialEggSpawn(self:GetModelOrigin(), Hive.kEggMinRange, Hive.kEggMaxRange)
+        if possibleSpawn then
+
+            // See if it's a valid egg spot
+            if GetIsValidEggPlacement(possibleSpawn, false) then
+    
+                return possibleSpawn
+                
+            end
+                
+        end
+        
+    end
+
+    return nil
+    
+end
+
 // Make sure there's enough room here for an egg
 function Hive:SpawnEgg()
 
-    local success, spawn = GetRandomFreeEggSpawn(self:GetLocationName())
-
-    if success then
+    PROFILE("Hive:SpawnEgg")
     
-        local egg = CreateEntity(Egg.kMapName, spawn:GetOrigin(), self:GetTeamNumber())
+    for index = 1, 15 do
+    
+        local position = table.random(self.eggSpawnPoints)
         
-        if egg ~= nil then 
+        if position and GetIsValidEggPlacement(position, true) then
+
+            local egg = CreateEntity(Egg.kMapName, position, self:GetTeamNumber())
             
-            egg:SetAngles(spawn:GetAngles())
+            if egg ~= nil then 
+                
+                // Randomize starting angles
+                local angles = self:GetAngles()
+                angles.yaw = math.random() * math.pi * 2
+                egg:SetAngles(angles)
+                
+                // To make sure physics model is updated without waiting a tick
+                egg:UpdatePhysicsModel()
             
-            // To make sure physics model is updated without waiting a tick
-            egg:UpdatePhysicsModel()
-        
-            self.timeOfLastEgg = Shared.GetTime()
-            
-            return egg
-            
+                self.timeOfLastEgg = Shared.GetTime()
+                
+                return egg
+                
+            end
+
         end
         
     end
@@ -111,7 +221,46 @@ function Hive:SpawnEgg()
 end
 
 function Hive:GetEggSpawnTime()
-    return kAlienRespawnTime
+
+    // Compute spawn time dynamically, depending on team size
+    local numPlayers = Clamp(self:GetTeam():GetNumPlayers(), 1, kMaxPlayers)
+    
+    // The team should have spawn equilibrium when players live at least this long.
+    // This should be higher than normal to account for the transition from early
+    // game to mid/late game (where there are multiple hives).
+    local eggSpawnTime = Clamp(kAlienPlayerSpawnTime / numPlayers, kAlienEggMinSpawnTime, kAlienEggMaxSpawnTime)    
+    
+    if Shared.GetDevMode() then
+        eggSpawnTime = 3
+    end
+    
+    return eggSpawnTime
+    
+end
+
+function Hive:GenerateEggSpawns()
+
+    PROFILE("Hive:GenerateEggSpawns")
+    
+    self.eggSpawnPoints = {}
+    
+    // Pre-generate many spawns
+    for index = 1, 75 do
+    
+        local spawnPoint = self:CalculateRandomEggSpawn()
+        
+        if spawnPoint ~= nil then
+        
+            table.insert(self.eggSpawnPoints, spawnPoint)
+            
+        end
+        
+    end
+    
+    if table.count(self.eggSpawnPoints) < Hive.kHiveNumEggs then
+        Print("Hive in location \"%s\" only generated %d egg spawns (needs %d). Make room more open.", GetLocationForPoint(self:GetModelOrigin()), table.count(self.eggSpawnPoints), Hive.kHiveNumEggs)
+    end
+        
 end
 
 function Hive:GetCanSpawnEgg()
@@ -120,7 +269,7 @@ function Hive:GetCanSpawnEgg()
     
     if self:GetIsBuilt() then
     
-        if self.timeOfLastEgg == nil or (Shared.GetTime() > (self.timeOfLastEgg + self:GetEggSpawnTime())) then
+        if (Shared.GetTime() > (self.timeOfLastEgg + self:GetEggSpawnTime())) then
         
             canSpawnEgg = true
             
@@ -132,6 +281,7 @@ function Hive:GetCanSpawnEgg()
     
 end
 
+/*
 function Hive:SpawnEggs()
 
     local numEggsSpawned = 0
@@ -149,6 +299,7 @@ function Hive:SpawnEggs()
     return numEggsSpawned
     
 end
+*/
 
 // Create pheromone marker
 function Hive:OverrideTechTreeAction(techNode, position, orientation, commander, trace)
@@ -174,7 +325,7 @@ end
 
 // Spawn initial eggs and infestation
 function Hive:SpawnInitial()
-    self:SpawnEggs()
+    //self:SpawnEggs()
     self:SpawnInitialInfestation()
 end
 

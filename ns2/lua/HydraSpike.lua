@@ -34,10 +34,8 @@ if (Server) then
         // Don't hit parent - shooter
         if targetHit == nil or (targetHit ~= nil and self:GetParentId() ~= targetHit:GetId()) then
 
-            if targetHit ~= nil and targetHit:isa("LiveScriptActor") and GetGamerules():CanEntityDoDamageTo(self, targetHit) then
-
+            if targetHit ~= nil and HasMixin(targetHit, "Live") and GetGamerules():CanEntityDoDamageTo(self, targetHit) then
                 targetHit:TakeDamage(HydraSpike.kDamage, self, self, self:GetOrigin(), nil)
-
             end            
 
             TriggerHitEffects(self, targetHit, self:GetOrigin(), nil, false)

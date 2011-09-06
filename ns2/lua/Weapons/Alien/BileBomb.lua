@@ -37,7 +37,7 @@ function BileBomb:PerformPrimaryAttack(player)
 
     self:FireBombProjectile(player)        
         
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
     
     return true
 end

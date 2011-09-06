@@ -30,10 +30,7 @@ function AmmoPack:OnInit()
         
     end
     
-    Shared.CreateEffect(nil, DropPack.kPackDropEffect, self)
-    
-    self:SetPathingFlag(kPathingFlags.UnBuildable)
-    
+    Shared.CreateEffect(nil, DropPack.kPackDropEffect, self)    
 end
 
 function AmmoPack:OnTouch(player)
@@ -42,7 +39,7 @@ function AmmoPack:OnTouch(player)
     
         local weapon = player:GetActiveWeapon()
         
-        if(weapon ~= nil and weapon:isa("ClipWeapon") and (weapon:GetAmmo() < weapon:GetMaxAmmo()) ) then
+        if(weapon ~= nil and weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo() ) then
         
             if(weapon:GiveAmmo(AmmoPack.kNumClips)) then
 
@@ -66,7 +63,7 @@ function AmmoPack:GetPackRecipient()
     
         local weapon = player:GetActiveWeapon()
         
-        if(weapon ~= nil and weapon:isa("ClipWeapon") and (weapon:GetAmmo() < weapon:GetMaxAmmo()) ) then
+        if(weapon ~= nil and weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo() ) then
         
             return player
             

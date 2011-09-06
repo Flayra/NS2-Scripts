@@ -46,6 +46,8 @@ function GUIGrenadeDisplay:Initialize()
 end
 
 function GUIGrenadeDisplay:Update(deltaTime)
+
+    PROFILE("GUIGrenadeDisplay:Update")
     
     for i = 1, GUIGrenadeDisplay.kMaxGrenades do
         // We subtract one from the aux weapon clip, because one grenade is

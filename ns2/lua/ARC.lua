@@ -9,18 +9,25 @@
 // siege attacks.
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/LiveMixin.lua")
 Script.Load("lua/UpgradableMixin.lua")
 Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FuryMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/OrdersMixin.lua")
+Script.Load("lua/FireMixin.lua")
 Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
+Script.Load("lua/PathingMixin.lua")
+Script.Load("lua/HiveSightBlipMixin.lua")
 
-class 'ARC' (LiveScriptActor)
+class 'ARC' (ScriptActor)
 
 ARC.kMapName = "arc"
 
@@ -41,7 +48,7 @@ ARC.kAttackDamage           = kARCDamage
 ARC.kFireRange              = kARCRange         // From NS1
 ARC.kSplashRadius           = 10
 ARC.kUpgradedSplashRadius   = 13
-ARC.kMoveSpeed              = 2.5               // units per second
+ARC.kMoveSpeed              = 5.0               // units per second
 ARC.kFov                    = 160    
 ARC.kBarrelMoveRate         = 100
 ARC.kMaxPitch               = 45
@@ -56,8 +63,6 @@ if Server then
     Script.Load("lua/ARC_Server.lua")
 end
 
-PrepareClassForMixin(ARC, ControllerMixin)
-
 ARC.networkVars =
 {
     // ARCs can only fire when deployed and can only move when not deployed
@@ -71,24 +76,37 @@ ARC.networkVars =
     targetDirection             = "vector",
 }
 
+PrepareClassForMixin(ARC, ControllerMixin)
+PrepareClassForMixin(ARC, LiveMixin)
 PrepareClassForMixin(ARC, UpgradableMixin)
 PrepareClassForMixin(ARC, GameEffectsMixin)
+PrepareClassForMixin(ARC, FuryMixin)
 PrepareClassForMixin(ARC, FlinchMixin)
+PrepareClassForMixin(ARC, OrdersMixin)
+PrepareClassForMixin(ARC, FireMixin)
 
 function ARC:OnCreate()
 
-    LiveScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, DoorMixin)
+    InitMixin(self, LiveMixin)
     InitMixin(self, RagdollMixin)
     InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FuryMixin)
     InitMixin(self, FlinchMixin)
     InitMixin(self, PointGiverMixin)
+    InitMixin(self, OrdersMixin)
+    InitMixin(self, FireMixin)
     InitMixin(self, PathingMixin)
     InitMixin(self, SelectableMixin)
     if Server then
+        InitMixin(self, WeldableMixin)
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
+        InitMixin(self, HiveSightBlipMixin)
     end
     
     // Create the controller for doing collision detection.
@@ -97,13 +115,14 @@ function ARC:OnCreate()
 end
 
 function ARC:OnInit()
-    InitMixin(self, DoorMixin)
+
+    ScriptActor.OnInit(self)
     
-    LiveScriptActor.OnInit(self)
     
     self:SetModel(ARC.kModelName)
     
     if Server then
+    
         self.targetSelector = TargetSelector():Init(
                 self,
                 ARC.kFireRange,
@@ -115,10 +134,12 @@ function ARC:OnInit()
                 
         // Cannons start out mobile
         self:SetDesiredMode(ARC.kMode.UndeployedStationary)
-        self:SetMode(ARC.kMode.UndeployedStationary)        
+        self:SetMode(ARC.kMode.UndeployedStationary)
+     
     end
-        
+    
     self:SetUpdates(true)
+    
 end
 
 // Required by ControllerMixin.
@@ -241,7 +262,7 @@ end
 
 function ARC:GetEffectParams(tableParams)
 
-    LiveScriptActor.GetEffectParams(self, tableParams)   
+    ScriptActor.GetEffectParams(self, tableParams)   
     tableParams[kEffectFilterDeployed] = (self.mode == ARC.kMode.Deployed)
     
 end
@@ -319,7 +340,7 @@ end
 
 function ARC:OnUpdate(deltaTime)
 
-   LiveScriptActor.OnUpdate(self, deltaTime)
+   ScriptActor.OnUpdate(self, deltaTime)
    
    if Server then 
     self:UpdateOrders(deltaTime)    
@@ -332,31 +353,34 @@ function ARC:OnUpdate(deltaTime)
    end
    
    self:UpdatePoseParameters(deltaTime)
+   
 end
 
 function ARC:OnKill(damage, attacker, doer, point, direction)
+
     // HACK!
     self:TriggerEffects("arc_stop_effects")
     
-if Server then  
-    self:ClearTargetDirection()
-    self:ClearOrders()
+    if Server then
     
-    self:SetDesiredMode(ARC.kMode.Destroyed)
-    self:SetMode(ARC.kMode.Destroyed)
-end 
-
-    LiveScriptActor.OnKill(self, damage, killer, doer, point, direction)    
+        self:ClearTargetDirection()
+        self:ClearOrders()
+        
+        self:SetDesiredMode(ARC.kMode.Destroyed)
+        self:SetMode(ARC.kMode.Destroyed)
+        
+    end 
+  
 end
-
 
 function ARC:GetVisualRadius()
 
-    if (self.mode == ARC.kMode.UndeployedStationary or self.mode == ARC.kMode.Moving) then
+    if self.mode == ARC.kMode.UndeployedStationary or self.mode == ARC.kMode.Moving then
         return nil
     end
     
-    return LiveScriptActor.GetVisualRadius(self)
+    return ScriptActor.GetVisualRadius(self)
+    
 end
 
 Shared.LinkClassToMap("ARC", ARC.kMapName, ARC.networkVars)

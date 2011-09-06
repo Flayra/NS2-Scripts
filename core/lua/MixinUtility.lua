@@ -166,7 +166,10 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
             classInstance.MixinWatchEvent = MixinWatchEvent
             classInstance.__watchedEvents = { }
         end
-        table.insert(classInstance.__mixinlist, theMixin)
+        assert(classInstance.__mixinlist[theMixin.type] == nil or
+               classInstance.__mixinlist[theMixin.type] == theMixin,
+               "Different Mixin with the same type name already exists in table!")
+        classInstance.__mixinlist[theMixin.type] = theMixin
         
         // Add the static mixin data to this class instance.
         if classInstance.__mixindata == nil then
@@ -193,18 +196,17 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
 end
 AddFunctionContract(InitMixin, { Arguments = { { "userdata", "table" }, "table", { "table", "nil" } }, Returns = { } })
 
-// Returns true if the passed in class instance has a Mixin that
-// matches the passed in mixin table or mixin type name.
-// Note, this name can be shared by multiple Mixin types.
-// It is more of an implicit interface the Mixin adheres to.
-function HasMixin(classInstance, mixinTypeOrTypeName)
+/**
+ * Returns true if the passed in class instance has a Mixin that
+ * matches the passed in mixin type name.
+ * Note, this type name can be shared by multiple Mixin types.
+ * It is more of an implicit interface the Mixin adheres to.
+ */
+function HasMixin(classInstance, mixinTypeName)
 
     if classInstance.__mixinlist then
-        for index, currentMixin in ipairs(classInstance.__mixinlist) do
-            if (type(mixinTypeOrTypeName) == "string" and currentMixin.type == mixinTypeOrTypeName) or
-               (type(mixinTypeOrTypeName) == "table" and currentMixin == mixinTypeOrTypeName) then
-                return true
-            end
+        if classInstance.__mixinlist[mixinTypeName] ~= nil then
+            return true
         end
     end
     return false
@@ -218,7 +220,7 @@ function NumberOfMixins(classInstance)
     ASSERT(type(classInstance) == "userdata", "First parameter to InitMixin() must be a class instance")
     
     if classInstance.__mixinlist then
-        return table.count(classInstance.__mixinlist)
+        return table.countkeys(classInstance.__mixinlist)
     end
     return 0
 

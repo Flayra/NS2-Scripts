@@ -53,19 +53,19 @@ function FlinchMixin:OnTakeDamage(damage, attacker, doer, point)
         damageType = doer:GetDamageType()
     end
     
-    local flinchParams = { damagetype = damageType, flinch_severe = ConditionalValue(damage > 20, true, false) }
-    if point then
-        flinchParams[kEffectHostCoords] = Coords.GetTranslation(point)
-    end
-    
-    if doer then
-        flinchParams[kEffectFilterDoerName] = doer:GetClassName()
-    end
-    
     // Don't flinch too often.
     local time = Shared.GetTime()
     if self.lastFlinchEffectTime == nil or (time > (self.lastFlinchEffectTime + 1)) then
     
+        local flinchParams = { damagetype = damageType, flinch_severe = ConditionalValue(damage > 20, true, false) }
+        if point then
+            flinchParams[kEffectHostCoords] = Coords.GetTranslation(point)
+        end
+        
+        if doer then
+            flinchParams[kEffectFilterDoerName] = doer:GetClassName()
+        end
+        
         self:TriggerEffects("flinch", flinchParams)
         self.lastFlinchEffectTime = time
         
@@ -101,6 +101,7 @@ end
 AddFunctionContract(FlinchMixin.OnUpdate, { Arguments = { "Entity", "number" }, Returns = { } })
 
 function FlinchMixin:OnSynchronized()
+    PROFILE("FlinchMixin:OnSynchronized")
     self:_UpdateFlinchPoseParams()
 end
 AddFunctionContract(FlinchMixin.OnSynchronized, { Arguments = { "Entity" }, Returns = { } })

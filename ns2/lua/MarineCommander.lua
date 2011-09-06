@@ -137,7 +137,10 @@ function MarineCommander:GetCurrentTechButtons(techId, entity)
             techButtons[kRecycleCancelButtonIndex] = kTechId.Cancel
         // Otherwise add recycle button if it can be
         elseif entity:isa("Structure") and not entity:isa("PowerPoint") then
-            techButtons[kRecycleCancelButtonIndex] = kTechId.Recycle
+            local isCommandStation = (entity:isa("CommandStation") and entity:GetIsOccupied())
+            if not isCommandStation then
+              techButtons[kRecycleCancelButtonIndex] = kTechId.Recycle
+            end
         end
     
     end

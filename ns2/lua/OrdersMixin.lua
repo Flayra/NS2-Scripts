@@ -312,6 +312,8 @@ AddFunctionContract(OrdersMixin.ProcessRallyOrder, { Arguments = { "Entity", "En
 
 function OrdersMixin:UpdateOrder()
 
+    PROFILE("OrdersMixin:UpdateOrder")
+
     local currentOrder = self:GetCurrentOrder()
     
     if(currentOrder ~= nil) then

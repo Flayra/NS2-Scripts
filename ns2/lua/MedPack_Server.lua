@@ -16,9 +16,6 @@ function MedPack:OnInit()
     self.timeSpawned = Shared.GetTime()
     
     Shared.CreateEffect(nil, DropPack.kPackDropEffect, self)
-    
-    self:SetPathingFlag(kPathingFlags.UnBuildable)
-    
 end
 
 function MedPack:OnTouch(player)

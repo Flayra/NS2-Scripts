@@ -39,9 +39,13 @@ function CameraHolderMixin.__prepareclass(toClass)
         viewYaw         = "compensated interpolated angle",
         viewPitch       = "compensated interpolated angle",
         viewRoll        = "compensated interpolated angle",
-        basePitch       = "compensated angle",
-        baseRoll        = "compensated angle",
-        baseYaw         = "compensated angle",
+        
+        // Player prediction relies on these, so we network at full precision
+        // so that the server and client don't have slightly different values
+        // due to quantization.
+        basePitch       = "compensated float",
+        baseRoll        = "compensated float",
+        baseYaw         = "compensated float",
         
         // Third person support
         cameraDistance          = "float",
@@ -78,18 +82,7 @@ function CameraHolderMixin:GetCameraViewCoords()
 
     // Adjust for third person
     if self.cameraDistance ~= 0 then
-
-        // Do traceline and put camera closer if we hit level geometry
-        local endPoint = viewCoords.origin - viewCoords.zAxis * self.cameraDistance
-        local trace = Shared.TraceRay(viewCoords.origin, endPoint, EntityFilterOne(self))
-        
-        if trace.fraction < 1 then
-            // Add a little extra to avoid wall interpenetration
-            viewCoords.origin = trace.endPoint + viewCoords.zAxis * 0.2
-        else
-            viewCoords.origin = endPoint
-        end       
-    
+        viewCoords.origin = viewCoords.origin - viewCoords.zAxis * self.cameraDistance
     end
     
     if self.GetCameraViewCoordsOverride then

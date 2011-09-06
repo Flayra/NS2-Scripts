@@ -43,11 +43,11 @@ PrecacheMultipleAssets(Sentry.kRicochetEffect, kSurfaceList)
 Sentry.kPingInterval = 4
 Sentry.kFov = 160
 Sentry.kMaxPitch = 45
-Sentry.kMaxYaw = Sentry.kFov/2
+Sentry.kMaxYaw = Sentry.kFov / 2
 
 Sentry.kBaseROF = kSentryAttackBaseROF
 Sentry.kRandROF = kSentryAttackRandROF
-Sentry.kSpread = Vector( 0.02618, 0.02618, 0.02618 )
+Sentry.kSpread = Math.Radians(3)
 Sentry.kBulletsPerSalvo = kSentryAttackBulletsPerSalvo
 Sentry.kDamagePerBullet = kSentryAttackDamage
 Sentry.kBarrelScanRate = 60      // Degrees per second to scan back and forth with no target
@@ -151,7 +151,7 @@ function Sentry:OnInit()
             Sentry.kRange, 
             true,
             { kMarineStaticTargets, kMarineMobileTargets },
-            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter() })
+            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter(), CamouflageTargetFilter() })
     end
 end
 

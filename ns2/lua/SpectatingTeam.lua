@@ -25,8 +25,8 @@ end
  * Transform player to appropriate team respawn class and respawn them at an appropriate spot for the team.
  */
 function SpectatingTeam:ReplaceRespawnPlayer(player, origin, angles)
-    
-    local spectatorPlayer = player:Replace(Spectator.kMapName, self:GetTeamNumber())
+
+    local spectatorPlayer = player:Replace(Spectator.kMapName, self:GetTeamNumber(), false, origin)
     
     spectatorPlayer:ClearGameEffects()
    

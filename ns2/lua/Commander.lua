@@ -435,7 +435,7 @@ function Commander:OnEntityChange(oldEntityId, newEntityId)
     end
     
     if selectionChanged then
-        self:InternalSetSelection(newSelection, true)
+        self:InternalSetSelection(newSelection, false)
     end
     
     // Hotkey groups are handled in player.

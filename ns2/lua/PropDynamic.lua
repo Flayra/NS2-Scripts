@@ -29,8 +29,8 @@ if (Server) then
             self:SetAnimation(self.animationName)
         end
         
-        if self.dynamic then
-            self:SetPhysicsType(PhysicsType.Dynamic)
+        if self.dynamic and self.animationName ~= "" and self.animationName ~= nil then
+            self:SetPhysicsType(PhysicsType.DynamicServer)
             self:SetPhysicsGroup(PhysicsGroup.RagdollGroup)
         else
             self:SetPhysicsType(PhysicsType.Kinematic)

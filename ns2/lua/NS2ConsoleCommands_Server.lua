@@ -11,9 +11,9 @@
 
 Script.Load("lua/ScenarioHandler_Commands.lua")
 
-function JoinTeamOne(player, force)
+function JoinTeamOne(player)
     // Team balance
-    if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or force or Shared.GetCheatsEnabled() then
+    if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or Shared.GetCheatsEnabled() then
         return GetGamerules():JoinTeam(player, kTeam1Index, force)
     elseif (player:GetTeamNumber() ~= 1) then
         player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
@@ -22,9 +22,9 @@ function JoinTeamOne(player, force)
     return false
 end
 
-function JoinTeamTwo(player, force)
-    if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or force or Shared.GetCheatsEnabled() then
-        return GetGamerules():JoinTeam(player, kTeam2Index, force)
+function JoinTeamTwo(player)
+    if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or Shared.GetCheatsEnabled() then
+        return GetGamerules():JoinTeam(player, kTeam2Index)
     elseif (player:GetTeamNumber() ~= 2) then        
         player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
     end
@@ -32,8 +32,8 @@ function JoinTeamTwo(player, force)
     return false
 end
 
-function ReadyRoom(player, force)
-    return GetGamerules():JoinTeam(player, kTeamReadyRoom, force)
+function ReadyRoom(player)
+    return GetGamerules():JoinTeam(player, kTeamReadyRoom)
 end
 
 function Spectate(player)
@@ -108,11 +108,9 @@ function OnCommandEnergy(client)
     
     if Shared.GetCheatsEnabled() then
     
-        // Give energy to all structures on our team
-        for index, ent in ipairs(GetEntitiesForTeam("LiveScriptActor", player:GetTeamNumber())) do
-            if ent.SetEnergy then        
-                ent:SetEnergy(ent:GetMaxEnergy())
-            end
+        // Give energy to all structures on our team.
+        for index, ent in ipairs(GetEntitiesWithMixinForTeam("Energy", player:GetTeamNumber())) do
+            ent:SetEnergy(ent:GetMaxEnergy())
         end
         
     end

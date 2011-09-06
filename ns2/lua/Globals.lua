@@ -125,7 +125,7 @@ kDeathMessageIcon = enum( {'None', 'Rifle', 'RifleButt', 'Pistol', 'Axe', 'Shotg
 kMinimapBlipType = enum( { 'TechPoint', 'ResourcePoint',
                            'Sentry', 'CommandStation', 'CommandStationL2', 'CommandStationL3',
                            'Extractor', 'InfantryPortal', 'Armory', 'Observatory',
-                           'Hive', 'HiveL2', 'HiveL3', 'Harvester', 'Hydra', 'Egg', 'Crag', 'Whip',
+                           'Hive', 'Harvester', 'Hydra', 'Egg', 'Crag', 'Whip',
                            'Marine', 'Heavy', 'Jetpack', 'Skulk', 'Lerk', 'Onos', 'Fade', 'Gorge',
                            'Door', 'PowerPoint',
                            'ARC', 'Drifter', 'MAC' } )

@@ -145,7 +145,7 @@ end
 
 function Armory:AddChildModel(modelName)
 
-    local scriptActor = CreateEntity(ScriptActor.kMapName, nil, self:GetTeamNumber())
+    local scriptActor = CreateEntity(ArmoryAddon.kMapName, nil, self:GetTeamNumber())
     
     scriptActor:SetModel(modelName)
     scriptActor:SetParent(self)
@@ -157,7 +157,7 @@ end
 
 function Armory:TriggerChildDeployAnimation(modelName)
 
-    local children = GetChildEntities(self, "ScriptActor")
+    local children = GetChildEntities(self, "ArmoryAddon")
     
     for index, child in ipairs(children) do
     

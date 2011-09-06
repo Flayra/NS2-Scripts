@@ -9,7 +9,7 @@
 //   Research (eg, research siege) - Costs team resources, queued from a structure, non-positional
 //   Upgrade (eg, upgrade command station) - Like research but can be performed more than once
 //   Action (eg, medpack, drifter flare) - Optionally costs energy, optional position, optionally must be researched
-//   Buy (eg, create siege cannon from factory, player buy weapon) - Costs resources, position implied from buyer or originating structure (unless targeted). Requires target for commander.
+//   Buy (eg, create siege cannon from factory, player buy weapon) - Costs resources, position implied from buyer or originating structure (unless targeted). Requires target for commander. Can be built on entities.
 //   Build (eg, build structure from drifter) - Costs team resources, requires position
 //   EnergyManufacture (add to manufacture queue, create unit when done) - Costs energy, takes time to complete, no position (MACs, Drifters). Only use for AI units that don't need a position.
 //   PlasmaManufacture (add to manufacture queue, create unit when done) - Costs player resources, takes time to complete, no position (MACs, Drifters). Only use for AI units that don't need a position.

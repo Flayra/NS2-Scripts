@@ -404,18 +404,15 @@ end
 
 function Rifle:ApplyMeleeHitEffects(player, damage, target, endPoint, direction)
 
-    // Apply damage
-    if target and target:isa("LiveScriptActor") then
-    
-        target:TakeDamage(damage, player, self, endPoint, direction)
-        
-    end
-    
     if target then
     
-        // Throw back (or stun?) target a bit        
+        if HasMixin(target, "Live") then
+            target:TakeDamage(damage, player, self, endPoint, direction)
+        end
+        
+        // Throw back target a bit.
         target:AddImpulse(endPoint, direction)
-
+        
     end
     
 end

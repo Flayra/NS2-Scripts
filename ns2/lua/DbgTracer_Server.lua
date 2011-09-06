@@ -71,7 +71,7 @@ end
 
 
 function DbgTracer:_TraceHitMiss(attacker, startPoint, trace, hitTracer, missTracer, capsule)
-     if trace.entity ~= nil and trace.entity:isa("LiveScriptActor") then
+     if trace.entity ~= nil and HasMixin(trace.entity, "Live") then
         hitTracer:Trace(attacker, startPoint, trace, capsule)
     else
         missTracer:Trace(attacker, startPoint, trace, capsule)
@@ -250,7 +250,7 @@ function DbgBulletTracer:Trace(shooter, startPoint, trace, capsule)
     if self.enabled then
 
         local entity, bbox, bbox2, targetId, targetId2 = trace.entity, "","","","" // bloody nil-in-table..
-        if entity and (not entity:isa("LiveScriptActor") or entity:isa("Infestation")) then
+        if entity and not HasMixin(entity, "Live") then
             entity = nil
         end
         

@@ -186,7 +186,7 @@ function Ability:GetEffectParams(tableParams)
     local player = self:GetParent()
     if player then
     
-        tableParams[kEffectParamAnimationSpeed] = 1/player:AdjustFuryFireDelay(1)
+        tableParams[kEffectParamAnimationSpeed] = 1 / player:AdjustAttackDelay(1)
         
     end
     

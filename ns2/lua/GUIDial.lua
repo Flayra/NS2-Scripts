@@ -14,7 +14,7 @@ Script.Load("lua/GUIScript.lua")
 class 'GUIDial' (GUIScript)
 
 // Extra height buffer just to make sure everything is covered.
-GUIDial.kMaskHeightBuffer = 20
+GUIDial.kMaskHeightBuffer = 5
 
 function GUIDial:Initialize(settingsTable)
 
@@ -91,6 +91,8 @@ function GUIDial:Uninitialize()
 end
 
 function GUIDial:Update(deltaTime)
+
+    PROFILE("GUIDial:Update")
 
     local leftPercentage = math.max(0, (self.percentage - 0.5) / 0.5)
     self.leftSideMask:SetRotation(Vector(0, 0, math.pi * (1 - leftPercentage)))

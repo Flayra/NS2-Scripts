@@ -9,7 +9,8 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Globals.lua")
 Script.Load("lua/BlendedActor.lua")
-Script.Load("lua/MakeMapBlipMixin.lua")
+Script.Load("lua/MapBlipMixin.lua")
+Script.Load("lua/ExtentsMixin.lua")
 
 class 'ScriptActor' (BlendedActor)
 
@@ -21,7 +22,7 @@ else
     Script.Load("lua/ScriptActor_Client.lua", true)
 end
 
-local networkVars = 
+ScriptActor.networkVars = 
 {   
     // Team type (marine, alien, neutral)
     teamType                    = string.format("integer (0 to %d)", kRandomTeamType),
@@ -45,8 +46,7 @@ local networkVars =
     // Id used to look up precached string representing room location ("Marine Start")
     locationId                  = "integer",
     
-    // pathing flags
-    pathingFlags                = "integer"
+    activityEnd                 = "float"
     
 }
 
@@ -59,8 +59,6 @@ function ScriptActor:OnCreate()
     BlendedActor.OnCreate(self)
 
     self.teamType = kNeutralTeamType
-    
-    self.sighted = false
     
     self.teamNumber = -1
 
@@ -76,7 +74,9 @@ function ScriptActor:OnCreate()
     
     self.pathingFlags = 0
     
-    if(Server) then
+    self.activityEnd = 0
+    
+    if Server then
         
         self.selectedCount   = 0
         self.hotgroupedCount = 0
@@ -87,12 +87,12 @@ function ScriptActor:OnCreate()
         
     end
     
-    // Remember if we've called OnInit() for entities that are propagated to the client
-    if(Client) then
-    
+    // Remember if we've called OnInit() for entities that are propagated to the client.
+    if Client then
         self.clientInitedOnSynch = false
-        
     end
+    
+    InitMixin(self, ExtentsMixin)
     
 end
 
@@ -136,7 +136,8 @@ function ScriptActor:OnInit()
     BlendedActor.OnInit(self)
     
     if Server then
-        InitMixin(self, MakeMapBlipMixin)
+        // This Mixin must be inited inside this OnInit() function.
+        InitMixin(self, MapBlipMixin)
     end
 
 end
@@ -154,6 +155,26 @@ end
 // Called when the game ends and a new game begins (or when the reset command is typed in console).
 function ScriptActor:Reset()
     self:ComputeLocation()  
+end
+
+// If false, then MoveToTarget() projects entity down to floor
+function ScriptActor:GetIsFlying()
+    return false
+end
+
+function ScriptActor:ClearActivity()
+    self.activityEnd = 0
+end
+
+function ScriptActor:SetActivityEnd(deltaTime)
+    self.activityEnd = Shared.GetTime() + deltaTime
+end
+
+function ScriptActor:GetCanNewActivityStart()
+    if(self.activityEnd == 0 or (Shared.GetTime() > self.activityEnd)) then
+        return true
+    end
+    return false
 end
 
 function ScriptActor:SetOrigin(origin)
@@ -345,11 +366,6 @@ function ScriptActor:ForEachChild(functor)
 
 end
 
-// Returns true if seen visible by the enemy
-function ScriptActor:GetIsSighted()
-    return self.sighted
-end
-
 function ScriptActor:GetAttached()
 
     local attached = nil
@@ -462,16 +478,4 @@ function ScriptActor:GetEffectParams(tableParams)
     
 end
 
-function ScriptActor:SetPathingFlag (flag)  
-  self.pathingFlags = bit.bor(self.pathingFlags, bit.lshift(1, flag))
-end
-
-function ScriptActor:GetHasPathingFlag (flag)
-    return (bit.band(self.pathingFlags, bit.lshift(1, flag)) ~= 0)
-end
-
-function ScriptActor:ClearPathingFlag (flag)
-  self.pathingFlags = bit.band(self.pathingFlags, bit.bnot(bit.lshift(1, flag)))
-end
-
-Shared.LinkClassToMap("ScriptActor", ScriptActor.kMapName, networkVars )
+Shared.LinkClassToMap("ScriptActor", ScriptActor.kMapName, ScriptActor.networkVars)

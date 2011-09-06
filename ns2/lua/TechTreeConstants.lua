@@ -146,7 +146,9 @@ kTechId = enum({
     'MetabolizeTech', 'Metabolize',
     
     // Voting commands
-    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3', 
+    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3',
+    
+    'DeathTrigger',
 
     // Maximum index
     'Max'

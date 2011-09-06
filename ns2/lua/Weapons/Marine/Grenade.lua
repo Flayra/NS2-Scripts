@@ -39,7 +39,7 @@ if (Server) then
 
     function Grenade:OnCollision(targetHit)
     
-        if targetHit and (targetHit:isa("LiveScriptActor") and GetGamerules():CanEntityDoDamageTo(self, targetHit)) and self:GetOwner() ~= targetHit then
+        if targetHit and (HasMixin(targetHit, "Live") and GetGamerules():CanEntityDoDamageTo(self, targetHit)) and self:GetOwner() ~= targetHit then
             self:Detonate(targetHit)            
         else
             if self:GetVelocity():GetLength() > 2 then
@@ -56,10 +56,10 @@ if (Server) then
     
     function Grenade:Detonate(targetHit)
     
-        // Do damage to targets
-        local hitEntities = GetEntitiesForTeamWithinRange("LiveScriptActor", GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), Grenade.kDamageRadius)
+        // Do damage to nearby targets.
+        local hitEntities = GetEntitiesWithMixinForTeamWithinRange("Live", GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), Grenade.kDamageRadius)
         
-        // Remove grenade and add firing player
+        // Remove grenade and add firing player.
         table.removevalue(hitEntities, self)
         table.insertunique(hitEntities, self:GetOwner())
         
@@ -73,7 +73,6 @@ if (Server) then
         
         self:TriggerEffects("grenade_explode", params)
 
-        // Destroy first, just in case there are script errors below somehow
         DestroyEntity(self)
         
     end

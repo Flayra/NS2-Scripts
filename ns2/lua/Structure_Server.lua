@@ -230,7 +230,7 @@ end
 
 function Structure:OnEntityChange(oldId, newId)
 
-    LiveScriptActor.OnEntityChange(self, oldId, newId)
+    ScriptActor.OnEntityChange(self, oldId, newId)
     
     if (oldId == self.researchingPlayerId) and (self.researchingPlayerId ~= Entity.invalidId) then
     
@@ -311,9 +311,7 @@ end
 
 function Structure:OnInit()    
 
-    InitMixin(self, EnergyMixin)
-
-    LiveScriptActor.OnInit(self)
+    ScriptActor.OnInit(self)
     
     self.researchingId = kTechId.None
     self.researchProgress = 0
@@ -375,7 +373,7 @@ end
 
 function Structure:OnLoad()
 
-    LiveScriptActor.OnLoad(self)
+    ScriptActor.OnLoad(self)
     
     self.startsBuilt = GetAndCheckBoolean(self.startsBuilt, "startsBuilt", false)
     
@@ -389,8 +387,7 @@ function Structure:OnReplace(newStructure)
 
     // Copy attachments
     newStructure:SetAttached(self.attached)
-    
-    // TODO: Do we need to call down into LiveScriptActor?
+
     newStructure.buildTime = self.buildTime
     newStructure.buildFraction = self.buildFraction
 
@@ -445,7 +442,7 @@ function Structure:OnDestroy()
     
     self:RemoveFromMesh()
     
-    LiveScriptActor.OnDestroy(self)
+    ScriptActor.OnDestroy(self)
     
 end
 
@@ -462,7 +459,7 @@ function Structure:Reset()
     
     self:OnInit()
     
-    LiveScriptActor.Reset(self)
+    ScriptActor.Reset(self)
     
     if self.startsBuilt then
         self:SetConstructionComplete()
@@ -541,7 +538,7 @@ end
 
 function Structure:SetLocationName(name)
 
-    LiveScriptActor.SetLocationName(self, name)
+    ScriptActor.SetLocationName(self, name)
     self:UpdatePoweredState()
 
 end
@@ -772,7 +769,7 @@ function Structure:PerformAction(techNode, position)
     
     else
     
-        return LiveScriptActor.PerformAction(self, techNode, position)
+        return ScriptActor.PerformAction(self, techNode, position)
         
     end
     

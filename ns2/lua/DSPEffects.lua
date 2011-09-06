@@ -99,6 +99,8 @@ end
 
 function UpdateDSPEffects()
 
+    PROFILE("UpdateDSPEffects")
+
     local player = Client.GetLocalPlayer()
     
     // Near death

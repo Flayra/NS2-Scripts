@@ -377,7 +377,7 @@ function NS2Gamerules:GetUpgradedDamage(attacker, doer, damage, damageType)
         end
         
         // Add more if under influence of whip. This looks like it should be revisited.
-        if attacker:isa("LiveScriptActor") then
+        if HasMixin(attacker, "GameEffects") then
         
             local numFuries = attacker:GetStackableGameEffectCount(kFuryGameEffect)
             if numFuries > 0 then
@@ -1104,10 +1104,36 @@ function NS2Gamerules:GetOrderSelf()
     return self.orderSelf
 end
 
+function NS2Gamerules:GetIsPlayerFollowingTeamNumber(player, teamNumber)
+
+    local following = false
+    
+    if player:isa("Spectator") then
+    
+        local playerId = player:GetFollowingPlayerId()
+        
+        if playerId ~= Entity.invalidId then
+        
+            local followedPlayer = Shared.GetEntity(playerId)
+            
+            if followedPlayer and followedPlayer:GetTeamNumber() == teamNumber then
+            
+                following = true
+                
+            end
+            
+        end
+
+    end
+    
+    return following
+
+end
+
 // Function for allowing teams to hear each other's voice chat
 function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
 
-    local success = false
+    local canHear = false
     
     // Check if the listerner has the speaker muted.
     if listenerPlayer:GetClientMuted(speakerPlayer:GetClientIndex()) then
@@ -1116,20 +1142,20 @@ function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
     
     // If both players have the same team number, they can hear each other
     if(listenerPlayer:GetTeamNumber() == speakerPlayer:GetTeamNumber()) then
-        success = true
+        canHear = true
     end
         
     // Or if cheats or dev mode is on, they can hear each other
     if(Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
-        success = true
+        canHear = true
     end
     
-    // Or if game hasn't started
-    if(not self:GetGameStarted()) then
-        success = true
+    // If we're spectating a player, we can hear their team (but not in tournamentmode, once that's in)
+    if self:GetIsPlayerFollowingTeamNumber(listenerPlayer, speakerPlayer:GetTeamNumber()) then
+        canHear = true
     end
     
-    return success
+    return canHear
     
 end
 

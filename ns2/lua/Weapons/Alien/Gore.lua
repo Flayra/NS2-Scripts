@@ -66,8 +66,8 @@ end
 function Gore:PerformPrimaryAttack(player)
     
     // Play random animation
-    player:SetViewAnimation( Gore.kAnimAttackTable, nil, nil, 1/player:AdjustFuryFireDelay(1) )
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetViewAnimation( Gore.kAnimAttackTable, nil, nil, 1 / player:AdjustAttackDelay(1) )
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
     
     player:SetOverlayAnimation(Gore.kAnimPlayerAttack)
 
@@ -110,7 +110,7 @@ end
 function Gore:PerformSecondaryAttack(player)
     
     // Play random animation
-    player:SetViewAnimation(Gore.kAnimAttackTable, nil, nil, 1/player:AdjustFuryFireDelay(1))
+    player:SetViewAnimation(Gore.kAnimAttackTable, nil, nil, 1 / player:AdjustAttackDelay(1))
     player:SetActivityEnd(self:GetSecondaryAttackDelay())
 
     // Play the attack animation on the character.

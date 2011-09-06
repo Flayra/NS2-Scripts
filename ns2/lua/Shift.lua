@@ -98,7 +98,7 @@ function Shift:TriggerEnergize()
     Shared.CreateEffect(nil, Shift.kEnergizeEffect, self)
     self:PlaySound(Shift.kEnergizeSoundEffect)
 
-    local ents = GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), kEnergizeRange)
+    local ents = GetEntitiesWithMixinForTeamWithinRange("GameEffects", self:GetTeamNumber(), self:GetOrigin(), kEnergizeRange)
     table.removevalue(ents, self)
     
     for index, ent in ipairs(ents) do
@@ -113,6 +113,7 @@ function Shift:TriggerEnergize()
     end
     
     return true
+    
 end
 
 function Shift:PerformActivation(techId, position, normal, commander)

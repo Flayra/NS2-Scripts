@@ -58,7 +58,6 @@ function PowerPoint:OnThink()
     else
         self:PlaySound(PowerPoint.kAuxPowerBackupSound)
     end    
-    
 end
 
 function PowerPoint:Reset()
@@ -158,6 +157,10 @@ function PowerPoint:OnWeld(entity, elapsedTime)
         
     end
     
+    if (welded) then
+      self:AddAttackTime(-0.1)
+    end
+    
     return welded
     
 end
@@ -201,6 +204,8 @@ function PowerPoint:OnTakeDamage(damage, attacker, doer, point)
         end
         
     end
+    
+    self:AddAttackTime(0.9)
     
 end
 
@@ -262,4 +267,8 @@ end
 
 function PowerPoint:GetSendDeathMessageOverride()
     return self.powered
+end
+
+function PowerPoint:AddAttackTime(value)
+  self.attackTime =  math.max(self.attackTime + value, 0)
 end

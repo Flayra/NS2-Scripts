@@ -419,8 +419,8 @@ function Gorge:UpdateViewAngles(input)
 
     PROFILE("Gorge:UpdateViewAngles")
 
-    local desiredPitch = nil
-    local desiredRoll = nil
+    local desiredPitch = 0
+    local desiredRoll = 0
    
     if(self:GetIsSliding()) then
     

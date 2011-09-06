@@ -86,6 +86,40 @@ function ScriptActor:RemoveEffect(effectName)
 
 end
 
+function ScriptActor:SetEffectVisible(effectName, visible)
+    if self.attachedEffects ~= nil then
+    
+        for index, attachedEffect in ipairs(self.attachedEffects) do
+            
+            if attachedEffect[2] == effectName then               
+                attachedEffect[1]:SetIsVisible(visible)                                                
+                return true
+                
+            end
+            
+        end
+        
+    end
+    
+    return false
+end
+
+function ScriptActor:HideAllEffects()
+   if self.attachedEffects ~= nil then    
+        for index, attachedEffect in ipairs(self.attachedEffects) do
+            attachedEffect[1]:SetIsVisible(false)                                                
+        end        
+    end
+end
+
+function ScriptActor:ShowAllEffects()
+    if self.attachedEffects ~= nil then    
+        for index, attachedEffect in ipairs(self.attachedEffects) do
+            attachedEffect[1]:SetIsVisible(true)
+        end        
+    end
+end
+
 // Uses loopmode endless by default
 function ScriptActor:AttachEffect(effectName, coords, loopMode)
 
@@ -151,6 +185,8 @@ function ScriptActor:UpdateAttachedEffects()
 end
 
 function ScriptActor:OnUpdate(deltaTime)
+
+    PROFILE("ScriptActor_Client:OnUpdate")
 
     BlendedActor.OnUpdate(self, deltaTime)
     

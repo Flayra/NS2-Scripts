@@ -254,7 +254,7 @@ end
 function Cyst:GetEngagementPoint()
    // Structure:GetEngagementPoint requires a target attachment point on the model, which Cyst doesn't have right now,
    // so override to get rid of the console spam
-    return LiveScriptActor.GetEngagementPoint(self) 
+    return ScriptActor.GetEngagementPoint(self) 
 end
 
 function Cyst:OnOverrideSpawnInfestation(infestation)

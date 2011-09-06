@@ -66,7 +66,7 @@ end
 function BiteLeap:PerformPrimaryAttack(player)
     
     // Play random animation, speeding it up if we're under effects of fury
-    player:SetActivityEnd( player:AdjustFuryFireDelay(kBiteFireDelay) )
+    player:SetActivityEnd( player:AdjustAttackDelay(kBiteFireDelay) )
 
     // do a left and right melee attack, choose the juiciest target if any
 

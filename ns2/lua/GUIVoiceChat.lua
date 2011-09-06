@@ -80,6 +80,8 @@ end
 
 function GUIVoiceChat:Update(deltaTime)
 
+    PROFILE("GUIVoiceChat:Update")
+
     self:_ClearAllBars()
     
     local allPlayers = ScoreboardUI_GetAllScores()

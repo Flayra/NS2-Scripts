@@ -413,6 +413,19 @@ function BuildDebugLineMessage(startPoint, endPoint, lifetime, r, g, b, a)
     
 end
 
+function BuildSelectIdMessage(entityId)
+
+    local t = {}	    
+    t.entityId = entityId	    
+    return t
+
+end
+
+function ParseSelectIdMessage(t)
+
+	    return t.entityId
+	    
+end
 function ParseDebugLineMessage(t)
     return t.startPoint, t.endPoint, t.lifetime, t.r, t.g, t.b, t.a
 end
@@ -426,14 +439,21 @@ local kMinimapAlertMessage =
     entityTechId = "enum kTechId"
 }
 
+local kSelectIdMessage =
+{
+    entityId = "entityid"
+}
+
 Shared.RegisterNetworkMessage("EntityChanged", kEntityChangedMessage)
 Shared.RegisterNetworkMessage("ResetMouse", {} )
+Shared.RegisterNetworkMessage("ResetGame", {} )
 
 // Selection
 Shared.RegisterNetworkMessage("MarqueeSelect", kMarqueeSelectMessage)
 Shared.RegisterNetworkMessage("ClickSelect", kClickSelectMessage)
 Shared.RegisterNetworkMessage("ControlClickSelect", kControlClickSelectMessage)
 Shared.RegisterNetworkMessage("SelectHotkeyGroup", kSelectHotkeyGroupMessage)
+Shared.RegisterNetworkMessage("SelectId", kSelectIdMessage)
 
 // Commander actions
 Shared.RegisterNetworkMessage("CommAction", kCommAction)

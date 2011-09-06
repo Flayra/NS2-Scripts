@@ -10,6 +10,10 @@
 Script.Load("lua/Table.lua")
 Script.Load("lua/Utility.lua")
 
+if Server then
+    Script.Load("lua/NS2Utility_Server.lua")
+end
+
 function GetAttachEntity(techId, position, snapRadius)
 
     local attachClass = LookupTechData(techId, kStructureAttachClass)    
@@ -188,7 +192,7 @@ function CheckBuildEntityRequirements(techId, position, player, ignoreEntity)
         local trace = Shared.TraceBox(GetExtents(techId), position + Vector(0, 1, 0), position - Vector(0, 3, 0), PhysicsMask.AllButPCs, EntityFilterOne(ignoreEntity))
         
         // $AS - We special case Drop Packs you should not be able to build on top of them.
-        if trace.entity and trace.entity:GetHasPathingFlag(kPathingFlags.UnBuildable) then
+        if trace.entity and HasMixin(trace.entity, "Pathing") then
             legalBuild = false
         end
         
@@ -217,7 +221,7 @@ function CheckBuildEntityRequirements(techId, position, player, ignoreEntity)
         
         for index, entity in ipairs(entities) do
             
-            if not entity:isa("Infestation") then
+            if not entity:isa("Infestation") and not entity:isa("Egg") then
             
                 // Count number of friendly non-player units nearby and don't allow too many units in one area (prevents MAC/Drifter/Sentry spam/abuse)
                 if not entity:isa("Player") and (entity:GetTeamNumber() == player:GetTeamNumber()) and entity:GetIsVisible() then
@@ -305,7 +309,14 @@ function GetIsBuildLegal(techId, position, snapRadius, player, ignoreEntity)
         // Check collision
         local trace = nil
         if legalBuild then    
-            legalBuild, trace = GetBuildNoCollision(techId, legalPosition, attachEntity, ignoreEntity)
+        
+            // Allow buy nodes to be built on top of entities
+            local techTree = GetTechTree(teamNumber)
+            local techNode = techTree:GetTechNode(techId)
+            if not techNode:GetIsBuy() then
+                legalBuild, trace = GetBuildNoCollision(techId, legalPosition, attachEntity, ignoreEntity)
+            end
+            
         end
         
          // check special build requirements. We do it here because we have the trace from the building available to find out the normal
@@ -395,57 +406,6 @@ function GetTriggerEntity(position, teamNumber)
     
     return triggerEntity
     
-end
-
-if Server then
-
-function CreateEntityForTeam(techId, position, teamNumber, player)
-
-    local newEnt = nil
-    
-    local mapName = LookupTechData(techId, kTechDataMapName)
-    
-    // Allow entities to be positioned off ground (eg, hive hovers over tech point)        
-    local spawnHeight = LookupTechData(techId, kTechDataSpawnHeightOffset, .05)
-    local spawnHeightPosition = Vector(position.x, position.y + LookupTechData(techId, kTechDataSpawnHeightOffset, .05), position.z)
-    
-    newEnt = CreateEntity( mapName, spawnHeightPosition, teamNumber )
-    
-    // Hook it up to attach entity
-    local attachEntity = GetAttachEntity(techId, position)    
-    if attachEntity then    
-        newEnt:SetAttached(attachEntity)        
-    end
-    
-    return newEnt
-    
-end
-
-function CreateEntityForCommander(techId, position, commander)
-    
-    local newEnt = CreateEntityForTeam(techId, position, commander:GetTeamNumber(), commander)
-    
-    if newEnt then
-        newEnt:SetOwner(commander)
-    end
-    
-    UpdateInfestationMask(newEnt)
-    
-    return newEnt
-    
-end
-
-if Server then
-function GetAlienEvolveResearchTime(evolveResearchTime, entity)
-
-    local metabolizeEffects = entity:GetStackableGameEffectCount(kMetabolizeGameEffect)
-    
-    // Diminishing returns?
-    return evolveResearchTime + evolveResearchTime * metabolizeEffects * kMetabolizeResearchScalar
-            
-end
-end
-
 end
 
 function GetBlockedByUmbra(entity)
@@ -684,201 +644,6 @@ function GetEnemyTeamNumber(entityTeamNumber)
         return kTeamInvalid
     end    
     
-end
-
-// Returns true or false along with location (on ground, inside level) that has space for entity. 
-// Last parameter is length of box size that is used to make sure location is big enough (can be nil).
-// Returns point sitting on ground. Pass optional entity min distance parameter to return point at least
-// that far from any other ScriptActor (radii in XZ). Check visible entities only.
-// Perform some extra traces to make sure the entity is on a flat surface and not on top of a railing.
-if Server then
-function GetRandomSpaceForEntity(basePoint, minRadius, maxRadius, boxExtents, minEntityDistance)
-   
-    // Find clear space at radius 
-    for i = 0, 30 do
-    
-        local randomRadians = math.random() * 2 * math.pi
-        local distance = minRadius + NetworkRandom()*(maxRadius - minRadius)
-        local offset = Vector( math.cos(randomRadians) * distance, .2, math.sin(randomRadians) * distance )
-        local testLocation = basePoint + offset
-        
-        local finalLocation = Vector(testLocation)
-        DropToFloor(finalLocation)
-        
-        //DebugLine(basePoint, finalLocation, .1, 1, 0, 0, 1)
-        
-        local valid = true
-        
-        // Perform trace at center, then at each of the extent corners
-        if boxExtents then
-        
-            local tracePoints = {   finalLocation + Vector(-boxExtents, boxExtents, -boxExtents),
-                                    finalLocation + Vector(-boxExtents, boxExtents,  boxExtents),
-                                    finalLocation + Vector( boxExtents, boxExtents, -boxExtents),
-                                    finalLocation + Vector( boxExtents, boxExtents,  boxExtents) }
-                                    
-            for index, point in ipairs(tracePoints) do
-            
-                local trace = Shared.TraceRay(finalLocation, tracePoints[index], PhysicsMask.AllButPCs, EntityFilterOne(nil))
-                if (trace.fraction < 1) and (math.abs(trace.endPoint.y - finalLocation.y) > .1) then
-                
-                    valid = false
-                    break
-                    
-                end
-                
-            end
-            
-        end        
-
-        if valid then  
-      
-            // Make sure we don't drop out of the world
-            if((finalLocation - testLocation):GetLength() < 20) then
-            
-                //finalLocation.y = finalLocation.y + .01
-            
-                if(boxExtents == nil) then
-                
-                    return true, finalLocation
-                    
-                else
-                
-                    if minEntityDistance == nil then
-                    
-                        return true, finalLocation
-                    
-                    else
-                    
-                        // Check visible entities only
-                        local ents = GetEntitiesWithinXZRangeAreVisible("ScriptActor", finalLocation, minEntityDistance, true)
-                        
-                        if table.count(ents) == 0 then
-                        
-                            return true, finalLocation
-                            
-                        end
-                        
-                    end
-                        
-                end
-                
-            end
-            
-        end
-
-    end
-
-    return false, nil
-    
-end
-
-// Find place for player to spawn, within range of origin. Makes sure that a line can be traced between the two points
-// without hitting anything, to make sure you don't spawn on the other side of a wall. Returns nil if it can't find a 
-// spawn point after a few tries.
-function GetRandomSpawnForCapsule(capsuleHeight, capsuleRadius, origin, minRange, maxRange, filter)
-
-    ASSERT(capsuleHeight > 0)
-    ASSERT(capsuleRadius > 0)
-    ASSERT(origin ~= nil)
-    ASSERT(type(minRange) == "number")   
-    ASSERT(type(maxRange) == "number")   
-    ASSERT(maxRange > minRange) 
-    ASSERT(minRange > 0)
-    ASSERT(maxRange > 0)
-    
-    local center = Vector(0, capsuleHeight * 0.5 + capsuleRadius, 0)
-    
-    for i = 0, 15 do
-    
-        // Find random spot within range
-        local randomRange = minRange + math.random() * (maxRange - minRange)
-        local randomRadians = math.random() * math.pi * 2        
-        local spawnPoint = Vector(origin.x + randomRange * math.cos(randomRadians), origin.y + 2, origin.z + randomRange * math.sin(randomRadians))
-        
-        // Make sure capsule isn't interpenetrating something (TraceCapsule may not return 0 if it's moving "away" from a collision)
-        if not Shared.CollideCapsule(spawnPoint + center, capsuleRadius, capsuleHeight, PhysicsMask.AllButPCs, nil) then
-        
-            // Trace capsule to ground, making sure we're not on something like a player or structure
-            local trace = Shared.TraceCapsule(spawnPoint + center, spawnPoint - Vector(0, 10, 0), capsuleRadius, capsuleHeight, PhysicsMask.AllButPCs)            
-            if trace.fraction > 0 and trace.fraction < 1 and (trace.entity == nil or not trace.entity:isa("LiveScriptActor")) then
-            
-                VectorCopy(trace.endPoint, spawnPoint)
-                
-                trace = Shared.TraceRay(trace.endPoint + Vector(0, capsuleHeight / 2, 0), origin, PhysicsMask.AllButPCs, filter)
-                
-                if (trace.fraction == 1) then
-                
-                    // Return origin for player
-                    return spawnPoint - Vector(0, capsuleHeight/2, 0)
-                    
-                end
-                
-            end
-            
-        end
-        
-    end
-    
-    return nil
-    
-end
-
-
-// Assumes position is at the bottom center of the egg
-function GetCanEggFit(position)
-
-    local extents = LookupTechData(kTechId.Egg, kTechDataMaxExtents)
-    local maxExtentsDimension = math.max(extents.x, extents.y)
-    ASSERT(maxExtentsDimension > 0, "invalid x extents for")
-
-    local eggCenter = position + Vector(0, extents.y + .05, 0)
-
-    local filter = nil
-    local physicsMask = PhysicsMask.AllButPCs
-    
-    if not Shared.CollideBox(extents, eggCenter, physicsMask, filter) then
-            
-        return true
-                    
-    end
-    
-    return false
-    
-end
-
-function GetRandomFreeEggSpawn(locationName)
-
-    // Look for free egg_spawns in this location
-    local numEggSpawns = table.count(Server.eggSpawnList)
-    if numEggSpawns > 0 then
-        
-        // Start at a random base offset
-        local randomBaseOffset = math.floor(math.random() * numEggSpawns)
-        
-        for index = 1, numEggSpawns do
-        
-            local offset = ((randomBaseOffset + index) % numEggSpawns) + 1
-            local spawn = Server.eggSpawnList[offset]
-            
-            if GetLocationForPoint(spawn:GetOrigin()) == locationName then
-            
-                if GetCanEggFit(spawn:GetOrigin()) then
-            
-                    return true, spawn
-                    
-                end
-            
-            end
-            
-        end
-        
-    end
-    
-    return false, nil
-    
-end
-
 end
 
 function SpawnPlayerAtPoint(player, origin, angles)
@@ -1265,8 +1030,8 @@ function GetMinimapNormCoordsFromPlayable(map, playableX, playableY)
     
 end
 
-// If we hit something, create an effect (sparks, blood, etc.).        
-function TriggerHitEffects(doer, target, origin, surface, melee)
+// If we hit something, create an effect (sparks, blood, etc)
+function TriggerHitEffects(doer, target, origin, surface, melee, extraEffectParams)
 
     local tableParams = {}
 
@@ -1290,6 +1055,13 @@ function TriggerHitEffects(doer, target, origin, surface, melee)
     
     tableParams[kEffectFilterInAltMode] = (melee == true)
 
+    // Add in extraEffectParams if specified    
+    if extraEffectParams then
+        for key, element in pairs(extraEffectParams) do
+            tableParams[key] = element
+        end
+    end
+    
     GetEffectManager():TriggerEffects("hit_effect", tableParams, doer)
     
 end
@@ -1301,7 +1073,7 @@ function GetIsPointOnInfestation(point)
     // See if entity is on infestation
     for infestationIndex, infestation in ientitylist(Shared.GetEntitiesWithClassname("Infestation")) do
     
-        if infestation:GetIsPointOnInfestation(point) then
+        if infestation:GetIsPointOnInfestation(point, GetInfestationVerticalSize(nil)) then
         
             onInfestation = true
             break
@@ -1356,22 +1128,6 @@ function GetActivationTarget(teamNumber, position)
     
     return nearestTarget
     
-end
-
-// Translate from SteamId to player (returns nil if not found)
-if Server then
-function GetPlayerFromUserId(userId)
-
-    for index, currentPlayer in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-        local owner = Server.GetOwner(currentPlayer)
-        if owner and owner:GetUserId() == userId then
-            return currentPlayer
-        end
-    end
-    
-    return nil
-    
-end
 end
 
 // Get information about entity when looking at it. 
@@ -1654,7 +1410,7 @@ end
 // All damage is routed through here.
 function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire)
    
-    if not target:isa("LiveScriptActor") then
+    if not HasMixin(target, "Live") then
         return false
     end
 
@@ -1704,3 +1460,38 @@ function CanEntityDoDamageTo(attacker, target, cheats, devMode, friendlyFire)
 
 end
 
+// Get the effective height that we trace down for this entity to see if it is "on" infestation
+// Should be tall enough for hives and drifters to be on infestation most of the time
+function GetInfestationVerticalSize(entity)
+
+    //ASSERT(entity ~= nil)
+
+    local infestationVerticalSize = 1
+    
+    if (entity == nil) then
+      return infestationVerticalSize
+    end
+    
+    if entity.GetTechId then
+    
+        local spawnHeight = LookupTechData(entity:GetTechId(), kTechDataSpawnHeightOffset)
+        
+        if spawnHeight ~= nil and spawnHeight > infestationVerticalSize then
+            infestationVerticalSize = spawnHeight
+        end
+        
+    end
+    
+    if entity.GetHoverHeight then
+    
+        local hoverHeight = entity:GetHoverHeight()
+        
+        if hoverHeight ~= nil and hoverHeight > infestationVerticalSize then
+            infestationVerticalSize = hoverHeight
+        end
+        
+    end
+    
+    return infestationVerticalSize
+    
+end

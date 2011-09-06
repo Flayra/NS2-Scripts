@@ -47,7 +47,7 @@ if (Server) then
         
             local didDamage = false
             
-            if targetHit == nil or (targetHit:isa("LiveScriptActor") and GetGamerules():CanEntityDoDamageTo(self, targetHit)) then
+            if targetHit == nil or (HasMixin(targetHit, "Live") and GetGamerules():CanEntityDoDamageTo(self, targetHit)) then
 
                 if targetHit ~= nil then
                 

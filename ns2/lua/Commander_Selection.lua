@@ -249,6 +249,19 @@ function Commander:GetUnitIdUnderCursor(pickVec)
 
 end
 
+function Commander:SelectEntityId(entitId)
+
+	return self:InternalSetSelection({ {entitId, Shared.GetTime()} } )
+
+end
+
+// TODO: call when selection should be added to current selection
+function Commander:AddSelectEntityId(entitId)
+
+	return self:InternalSetSelection({ {entitId, Shared.GetTime()} } )
+
+end
+
 function Commander:ClickSelectEntities(pickVec)
 
     local newSelection = {}
@@ -260,6 +273,10 @@ function Commander:ClickSelectEntities(pickVec)
         for index, entity in ipairs(clickEntities) do  
         
             table.insertunique(newSelection, {entity:GetId(), Shared.GetTime()} )
+            
+            if Client then
+                self:SendSelectIdCommand(entity:GetId())
+            end
             
         end
         
@@ -429,7 +446,13 @@ end
 // selection to empty unless allowEmpty is passed. Returns true if selection is different after calling.
 function Commander:InternalSetSelection(newSelection, allowEmpty)
 
-    if (table.maxn(newSelection) > 0 or allowEmpty) then
+    // If the selection is empty and allowEmpty was not true,
+    // select the home command station.
+    if table.maxn(newSelection) == 0 and not allowEmpty then
+        newSelection = { { self.commandStationId, Shared.GetTime() } }
+    end
+    
+    if table.maxn(newSelection) > 0 or allowEmpty then
     
         // Reset sub group
         self.focusGroupIndex = 1

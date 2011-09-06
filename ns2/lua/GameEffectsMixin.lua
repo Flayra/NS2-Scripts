@@ -72,7 +72,7 @@ function GameEffectsMixin:SetGameEffectMask(effect, state)
     if state then
     
         // Set game effect bit
-        if not self:GetGameEffectMask(effect) then
+        if self.OnGameEffectMaskChanged and not self:GetGameEffectMask(effect) then
             self:OnGameEffectMaskChanged(effect, true)
         end
         
@@ -81,7 +81,7 @@ function GameEffectsMixin:SetGameEffectMask(effect, state)
     else
     
         // Clear game effect bit
-        if self:GetGameEffectMask(effect) then
+        if self.OnGameEffectMaskChanged and self:GetGameEffectMask(effect) then
             self:OnGameEffectMaskChanged(effect, false)
         end
 

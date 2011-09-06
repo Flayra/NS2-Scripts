@@ -7,7 +7,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Weapons/Alien/Ability.lua")
-Script.Load("lua/Weapons/Alien/Spike.lua")
 
 class 'Spikes' (Ability)
 
@@ -26,10 +25,7 @@ Spikes.kZoomedSensScalar = 0.25
 Spikes.kSpikeEnergy = kSpikeEnergyCost
 Spikes.kSnipeEnergy = kSpikesAltEnergyCost
 Spikes.kSnipeDamage = kSpikesAltDamage
-Spikes.kRange = kSpikeMinDamageRange
-Spikes.kMinDamageRange = kSpikeMaxDamageRange
-Spikes.kMaxDamageRange = kSpikeMinDamageRange
-Spikes.kSpread = Math.Radians(6)
+Spikes.kSpread = Math.Radians(8)
 Spikes.kNumSpikesOnSecondary = 5
 
 // Does full damage up close then falls off over the max distance
@@ -118,7 +114,7 @@ function Spikes:PerformPrimaryAttack(player)
     end
     */
 
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
     
     return true
 end
@@ -140,10 +136,11 @@ function Spikes:FireSpike(player)
     // Calculate spread for each shot, in case they differ    
     local randomAngle  = NetworkRandom() * math.pi * 2
     local randomRadius = NetworkRandom() * NetworkRandom() * math.tan(Spikes.kSpread)    
-    local fireDirection = viewCoords.zAxis + (viewCoords.xAxis * math.cos(randomAngle) + viewCoords.yAxis * math.sin(randomAngle)) * randomRadius
+    local spreadDirection = (viewCoords.xAxis * math.cos(randomAngle) + viewCoords.yAxis * math.sin(randomAngle))
+    local fireDirection = viewCoords.zAxis + spreadDirection * randomRadius
     fireDirection:Normalize()
    
-    local endPoint = startPoint + fireDirection * Spikes.kRange    
+    local endPoint = startPoint + fireDirection * 10000     
     local trace = Shared.TraceRay(startPoint, endPoint, PhysicsMask.Bullets, filter)
     
     if Server then
@@ -152,7 +149,7 @@ function Spikes:FireSpike(player)
     
     if trace.fraction < 1 and trace.entity then
     
-        if trace.entity:isa("LiveScriptActor") and Server and GetGamerules():CanEntityDoDamageTo(self, trace.entity) then
+        if Server and HasMixin(trace.entity, "Live") and GetGamerules():CanEntityDoDamageTo(self, trace.entity) then
         
             // Do max damage for short time and then fall off over time to encourage close quarters combat instead of 
             // hanging back and sniping
@@ -160,7 +157,7 @@ function Spikes:FireSpike(player)
             local distToTarget = (trace.endPoint - startPoint):GetLength()
             
             // Have damage increase to reward close combat
-            local damageDistScalar = Clamp(1 - (distToTarget / Spikes.kRange), 0, 1)
+            local damageDistScalar = Clamp(1 - (distToTarget / kSpikeMinDamageRange), 0, 1)
             local damage = Spikes.kMinDamage + damageDistScalar * (Spikes.kMaxDamage - Spikes.kMinDamage)            
             local direction = (trace.endPoint - startPoint):GetUnit()
             trace.entity:TakeDamage(damage * damageScalar, player, self, self:GetOrigin(), direction)
@@ -198,7 +195,7 @@ function Spikes:PerformZoomedAttack(player)
     
     local hasPiercing = player:GetHasUpgrade(kTechId.Piercing)
     
-    if Server and trace.fraction < 1 and trace.entity ~= nil and trace.entity:isa("LiveScriptActor")then
+    if Server and trace.fraction < 1 and trace.entity ~= nil and HasMixin(trace.entity, "Live") then
     
         local direction = GetNormalizedVector(endPoint - startPoint)
         
@@ -213,7 +210,7 @@ function Spikes:PerformZoomedAttack(player)
         self:TriggerEffects("spikes_snipe_miss", {kEffectHostCoords = Coords.GetTranslation(trace.endPoint)})
     end
     
-    player:SetActivityEnd(player:AdjustFuryFireDelay(Spikes.kSnipeDelay))
+    player:SetActivityEnd(player:AdjustAttackDelay(Spikes.kSnipeDelay))
     
 end
 
@@ -248,7 +245,7 @@ function Spikes:PerformSecondaryAttack(player)
             self:FireSpike(player)        
         end
     
-        player:SetActivityEnd(player:AdjustFuryFireDelay(Spikes.kZoomDelay))
+        player:SetActivityEnd(player:AdjustAttackDelay(Spikes.kZoomDelay))
         
         return true
         

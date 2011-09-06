@@ -202,7 +202,7 @@ function Observatory:PerformActivation(techId, position, normal, commander)
             success = self:TriggerDistressBeacon()
             
         else        
-            success = LiveScriptActor.PerformActivation(self, techId, position, normal, commander)
+            success = Structure.PerformActivation(self, techId, position, normal, commander)
         end
     
     end
@@ -232,9 +232,9 @@ if Server then
     function OnConsoleDistress()
     
         if Shared.GetCheatsEnabled() or Shared.GetDevMode() then
-            local beacons = EntityListToTable(Shared.GetEntitiesWithClassname("Observatory"))
-            if #beacons > 0 then
-                beacons[1]:TriggerDistressBeacon()
+            local beacons = Shared.GetEntitiesWithClassname("Observatory")
+            for i, beacon in ientitylist(beacons) do
+                beacon:TriggerDistressBeacon()
             end
         end
         

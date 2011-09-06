@@ -121,6 +121,8 @@ end
 
 function GUINotifications:Update(deltaTime)
 
+    PROFILE("GUINotifications:Update")
+
     if PlayerUI_IsACommander() then
         // The commander has their own location text.
         self.locationText:SetIsVisible(false)

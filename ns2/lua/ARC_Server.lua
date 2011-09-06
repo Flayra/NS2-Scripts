@@ -257,3 +257,18 @@ function ARC:UpdateMode()
     
 end
 
+function ARC:OnWeld(entity, elapsedTime)
+
+    // MACs repair structures
+    local health = 0
+    
+    if entity:isa("MAC") then
+    
+        health = self:AddHealth(MAC.kRepairHealthPerSecond * elapsedTime)
+        
+    end
+    
+    return (health > 0)
+    
+end
+

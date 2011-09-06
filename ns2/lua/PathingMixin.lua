@@ -72,14 +72,14 @@ local function GeneratePath(src, dst)
     Pathing.GetPathPoints(src, dst, points)
 
     // HACKS
-   /* if (#(points) > 0) then
+    if (#(points) > 0) then
         table.insert( points, #(points) - 1, dst )    
-    end */
+    end 
     
-    if (#(points) ~= 0 ) then        
+    if (#(points) ~= 0 ) then
         SplitPathPoints( points, 0.5 )        
         return points
-    end        
+    end    
     
     for i=1,maxIterations do
 
@@ -127,9 +127,6 @@ end
 
 PathingMixin = { }
 PathingMixin.type = "Pathing"
-
-function PathingMixin.__prepareclass(toClass)      
-end
 
 function PathingMixin:__initmixin()
     self.obstacleId = nil
@@ -227,6 +224,22 @@ function PathingMixin:GetPath(src, dst)
     return GeneratePath(src, dst)
 end
 
+function PathingMixin:DrawPath(src, dst, lifetime, r, g, b, a)
+
+    self.points = GeneratePath(src, dst)    
+    
+    if self.points then
+    
+        DebugLine(src, self.points[1], lifetime, r, g, b, a)
+        
+        for index = 2, table.count(self.points) do
+            DebugLine(self.points[index - 1], self.points[index], lifetime, r, g, b, a)    
+        end
+        
+    end
+    
+end
+
 function PathingMixin:IsPathValid(src, dst)
     if self.points == nil or #(self.points) == 0 then
       return false
@@ -254,7 +267,7 @@ end
 
 function PathingMixin:IsTargetReached(dst, withIn, clearValue)
    if (self.distanceRemain  == nil) then
-     self.distanceRemain = (dst - self:GetOrigin()):GetLength()
+     self.distanceRemain = (dst - self:GetOrigin()):GetLengthXZ()
    end
    
    local result = false
@@ -287,7 +300,7 @@ function PathingMixin:GetPathDirection()
 end
 
 function PathingMixin:GetNextPoint(time, speed)
-    self.currentPoint = self:AdvanceToNextPoint(time, speed)
+    self.currentPoint = self:AdvanceToNextPoint(time, speed)    
     return self.currentPoint
 end
 
@@ -389,27 +402,25 @@ function PathingMixin:MoveToTarget(physicsGroupMask, location, movespeed, time)
     
     local movement = nil
     local newLocation = self:GetOrigin()
-    local now = Shared.GetTime()    
+    local now = Shared.GetTime()
     local hasReachedLocation = false//self:IsTargetReached(location, 0.01, true)
     
-    local direction = (location - self:GetOrigin()):GetUnit();            
-    if self.pathingEnabled then
-        if not (hasReachedLocation) then            
-            if not self:IsPathValid(self:GetOrigin(), location) then                
-                if not (self:BuildPath(self:GetOrigin(), location)) then                
-                  return
-                end
+    local direction = (location - self:GetOrigin()):GetUnit()
+    if not (hasReachedLocation) then
+        if not self:IsPathValid(self:GetOrigin(), location) then
+            if not (self:BuildPath(self:GetOrigin(), location)) then
+              return
             end
-            
-            if (self:GetCurrentPathPoint() ~= nil and self:GetNumPoints() >= 1) then                 
-                self:RestartPathing(now)
-                local point = self:GetNextPoint(time, movespeed)
-                if (point ~= nil) then
-                    newLocation = point
-                    direction = self:GetPathDirection()
-                    SetAnglesFromVector(self, direction)
-                end                
-            end                                
+        end
+        
+        if (self:GetCurrentPathPoint() ~= nil and self:GetNumPoints() >= 1) then
+            self:RestartPathing(now)
+            local point = self:GetNextPoint(time, movespeed)
+            if (point ~= nil) then
+                newLocation = point
+                direction = self:GetPathDirection()
+                SetAnglesFromVector(self, direction)
+            end
         end
     end
             

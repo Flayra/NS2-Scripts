@@ -40,7 +40,7 @@ function Sentry:OnOverrideOrder(order)
     end
     
     // Default orders to enemies => attack
-    if(order:GetType() == kTechId.Default and orderTarget and orderTarget:isa("LiveScriptActor") and GetEnemyTeamNumber(orderTarget:GetTeamNumber()) == self:GetTeamNumber()) then
+    if order:GetType() == kTechId.Default and orderTarget and HasMixin(orderTarget, "Live") and GetEnemyTeamNumber(orderTarget:GetTeamNumber()) == self:GetTeamNumber() then
     
         order:SetType(kTechId.Attack)
         
@@ -366,7 +366,10 @@ function Sentry:FireBullets()
 
     // Use x-axis of muzzle node, so when the model flinches, it becomes less accurate
     local fireCoords = self:GetAttachPointCoords(Sentry.kMuzzleNode)
-    local direction = fireCoords.xAxis    
+    // Need to swap the x and z axis.
+    local tempZAxis = fireCoords.zAxis
+    fireCoords.zAxis = fireCoords.xAxis
+    fireCoords.xAxis = tempZAxis
     
     local startPoint = self:GetAttackOrigin()
     local alertToTrigger = kTechId.None
@@ -375,12 +378,8 @@ function Sentry:FireBullets()
 
         if self:GetAmmo() > 0 then
         
-            // Add some spread to bullets
-            local x = (NetworkRandom(string.format("%s:FireBullet %d, %d", self:GetClassName(), bullet, 1)) - .5) + (NetworkRandom(string.format("%s:FireBullet %d, %d", self:GetClassName(), bullet, 2)) - .5)
-            local y = (NetworkRandom(string.format("%s:FireBullet %d, %d", self:GetClassName(), bullet, 3)) - .5) + (NetworkRandom(string.format("%s:FireBullet %d, %d", self:GetClassName(), bullet, 4)) - .5)
-            
-            local spreadDirection = direction + x * Sentry.kSpread.x * fireCoords.xAxis + y * Sentry.kSpread.y * fireCoords.yAxis
-            spreadDirection:Normalize()
+            // Add some spread to bullets.
+            local spreadDirection = CalculateSpread(fireCoords, Sentry.kSpread, math.random)
             
             local endPoint = startPoint + spreadDirection * Sentry.kRange
             
@@ -394,8 +393,7 @@ function Sentry:FireBullets()
             
                 if not GetBlockedByUmbra(trace.entity) then
                 
-                    if Server then
-                    if trace.entity and trace.entity.TakeDamage then
+                    if trace.entity and HasMixin(trace.entity, "Live") then
                     
                         local direction = (trace.endPoint - startPoint):GetUnit()
                         
@@ -403,8 +401,6 @@ function Sentry:FireBullets()
                     
                     else
                         TriggerHitEffects(self, trace.entity, trace.endPoint, trace.surface)    
-                    end
-                    
                     end
                     
                 end

@@ -3,6 +3,7 @@
 // lua\Egg.lua
 //
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com)
+//                  Andreas Urwalek (a_urwa@sbox.tugraz.at)
 //
 // Thing that aliens spawn out of.
 //
@@ -33,6 +34,9 @@ Egg.kArmor = kEggArmor
 
 Egg.kThinkInterval = .5
 
+// automatically spawn the player after a while
+Egg.kHatchTime = 4
+
 function Egg:OnCreate()
 
     Structure.OnCreate(self)
@@ -44,6 +48,7 @@ function Egg:OnCreate()
 end
 
 function Egg:OnInit()
+
     InitMixin(self, InfestationMixin)
     
     Structure.OnInit(self)
@@ -88,18 +93,7 @@ function Egg:QueueWaitingPlayer()
         if(playerToSpawn ~= nil) then
             
             team:RemovePlayerFromRespawnQueue(playerToSpawn)        
-            
-            self.queuedPlayerId = playerToSpawn:GetId()
-            self.timeQueuedPlayer = Shared.GetTime()
-            
-            if playerToSpawn:isa("AlienSpectator") then
-            
-                playerToSpawn:SetEggId(self:GetId())
-                success = true    
-                
-            else
-                Print("Egg:QueueWaitingPlayer(): queuing %s instead of AlienSpectator", playerToSpawn:GetClassName())
-            end
+            self:SetQueuedPlayerId(playerToSpawn:GetId())
             
         end
         
@@ -127,8 +121,7 @@ function Egg:RequeuePlayer()
     end
     
     // Don't spawn player
-    self.queuedPlayerId = nil
-    self.timeQueuedPlayer = nil
+    self:SetEggFree()
 
 end
 
@@ -183,6 +176,50 @@ function Egg:GetQueuedPlayerId()
     return self.queuedPlayerId
 end
 
+function Egg:SetQueuedPlayerId(playerId)
+
+    self.queuedPlayerId = playerId
+    self.timeQueuedPlayer = Shared.GetTime()
+    
+    local playerToSpawn = Shared.GetEntity(playerId)
+    if playerToSpawn:isa("AlienSpectator") then
+    
+        playerToSpawn:SetEggId(self:GetId())
+        success = true
+        
+    else
+        Print("Egg:QueueWaitingPlayer(): queuing %s instead of AlienSpectator", playerToSpawn:GetClassName())
+    end
+    
+    // set camera
+    if Server then
+    
+        playerToSpawn.lastTargetId = playerToSpawn.specTargetId
+        playerToSpawn.specTargetId = Entity.invalidId
+        playerToSpawn.specMode = Spectator.kSpectatorMode.FreeLook
+    
+        if playerToSpawn.SetIsThirdPerson then
+            playerToSpawn:SetIsThirdPerson(3)
+        end
+        
+        if playerToSpawn.SetOrigin then
+            playerToSpawn:SetOrigin(self:GetOrigin()) 
+        end
+    end
+    
+end
+
+function Egg:SetEggFree()
+
+    self.queuedPlayerId = nil
+    self.timeQueuedPlayer = nil
+
+end
+
+function Egg:GetIsFree()
+    return self.queuedPlayerId == nil
+end
+
 function Egg:GetTimeQueuedPlayer()
     return self.timeQueuedPlayer
 end
@@ -192,8 +229,10 @@ function Egg:OverrideCheckvision()
 end
 
 if Server then
-function Egg:OnThink()
 
+// spawn the player automatically after some time. That's just a measure against AFK players
+function Egg:OnThink()
+    
     if self:GetIsAlive() then
     
         Structure.OnThink(self)
@@ -207,31 +246,60 @@ function Egg:OnThink()
         else
         
             local startTime = self:GetTimeQueuedPlayer()
-            if startTime ~= nil and (Shared.GetTime() > (startTime + kAlienSpawnTime)) then
-            
-                local player = Shared.GetEntity(self.queuedPlayerId)
-                if player ~= nil then
-                    player:AddTooltipOncePer("HOWTO_HATCH_TOOLTIP", 8)   
-                else
-                    self.queuedPlayerId = nil
-                end
+            if startTime ~= nil then
+                
+                // auto spawn player
+                if startTime + Egg.kHatchTime < Shared.GetTime() then
+                    self:SpawnPlayer()
+                end                 
+                
             end
+            
         end
         
     end
     
     self:SetNextThink(Egg.kThinkInterval)
+
+end
+
+// delete the egg to avoid invalid ID's and reset the player to spawn queue if one is occupying it
+function Egg:OnDestroy()
+
+    self:ClearInfestation()
+    local team = self:GetTeam()
+    
+    // can be nil on map change / server shutdown
+    if team ~= nil then
+    
+        team:RemoveEgg(self:GetId())
+
+	    if self.queuedPlayerId ~= nil then
+	    
+	        if not team:FindEggForPlayerAndQueue(self:GetId(), self.queuedPlayerId) then
+	            // Put the player back in queue only if we could not find any new egg for him (new created eggs will fetch them for respawning)
+	            self:RequeuePlayer()
+	        end
+	        
+	    end
+	    
+    end
+     
+    Structure.OnDestroy(self)
     
 end
 
-function Egg:OnDestroy()
-    self:ClearInfestation()
+// it's important to add the egg to the teams' table for cycling through them
+function Egg:OnConstructionComplete()
+
+    Structure.OnConstructionComplete(self)
+    local team = self:GetTeam()
+    team:AddEgg(self:GetId())
     
-    Structure.OnDestroy(self)
-    
-    // Put the player back in queue if there was one hoping to spawn at this now destroyed Egg. 
-    self:RequeuePlayer()   
+    self:SetNextThink(Egg.kThinkInterval)
+
 end
+    
 end
 
 Shared.LinkClassToMap("Egg", Egg.kMapName, {})
