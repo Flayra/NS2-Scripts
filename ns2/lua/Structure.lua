@@ -25,6 +25,7 @@ Script.Load("lua/LOSMixin.lua")
 Script.Load("lua/WeldableMixin.lua")
 Script.Load("lua/PathingMixin.lua")
 Script.Load("lua/HiveSightBlipMixin.lua")
+Script.Load("lua/InfestedMixin.lua")
 
 class 'Structure' (ScriptActor)
 
@@ -110,6 +111,7 @@ function Structure:OnCreate()
         InitMixin(self, LOSMixin)
         InitMixin(self, WeldableMixin)
         InitMixin(self, HiveSightBlipMixin)
+        InitMixin(self, InfestedMixin)
     end
     
     self:SetLagCompensated(true)
