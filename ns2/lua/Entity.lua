@@ -211,6 +211,70 @@ function GetEntitiesMatchAnyTypes(typeList)
 
 end
 
+function GetEntitiesWithMixin(mixinType)
+
+    ASSERT(type(mixinType) == "string")
+    
+    return EntityListToTable(Shared.GetEntitiesWithTag(mixinType))
+
+end
+
+function GetEntitiesWithMixinForTeam(mixinType, teamNumber)
+
+    ASSERT(type(mixinType) == "string")
+    ASSERT(type(teamNumber) == "number")
+    
+    local function onTeamFilterFunction(entity)
+        return entity:GetTeamNumber() == teamNumber
+    end
+    return GetEntitiesWithFilter(Shared.GetEntitiesWithTag(mixinType), onTeamFilterFunction)
+
+end
+
+function GetEntitiesWithMixinWithinRange(mixinType, origin, range)
+
+    ASSERT(type(mixinType) == "string")
+    ASSERT(origin ~= nil)
+    ASSERT(type(range) == "number")
+    
+    local function inRangeFilterFunction(entity)
+        local inRange = (entity:GetOrigin() - origin):GetLengthSquared() <= (range * range)
+        return inRange
+    end
+    return GetEntitiesWithFilter(Shared.GetEntitiesWithTag(mixinType), inRangeFilterFunction)
+    
+end
+
+function GetEntitiesWithMixinWithinRangeAreVisible(mixinType, origin, range, visibleState)
+
+    ASSERT(type(mixinType) == "string")
+    ASSERT(origin ~= nil)
+    ASSERT(type(range) == "number")
+    ASSERT(type(visibleState) == "boolean")
+    
+    local function teamInRangeVisibleStateFilterFunction(entity)
+        local inRange = (entity:GetOrigin() - origin):GetLengthSquared() <= (range * range)
+        return inRange and entity:GetIsVisible() == visibleState
+    end
+    return GetEntitiesWithFilter(Shared.GetEntitiesWithTag(mixinType), teamInRangeVisibleStateFilterFunction)
+    
+end
+
+function GetEntitiesWithMixinForTeamWithinRange(mixinType, teamNumber, origin, range)
+
+    ASSERT(type(mixinType) == "string")
+    ASSERT(type(teamNumber) == "number")
+    ASSERT(origin ~= nil)
+    ASSERT(type(range) == "number")
+    
+    local function teamInRangeFilterFunction(entity)
+        local inRange = (entity:GetOrigin() - origin):GetLengthSquared() <= (range * range)
+        return entity:GetTeamNumber() == teamNumber and inRange
+    end
+    return GetEntitiesWithFilter(Shared.GetEntitiesWithTag(mixinType), teamInRangeFilterFunction)
+    
+end
+
 // Fades damage linearly from center point to radius (0 at far end of radius)
 function RadiusDamage(entities, centerOrigin, radius, fullDamage, attacker, ignoreLOS)
 

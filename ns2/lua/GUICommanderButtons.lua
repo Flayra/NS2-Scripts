@@ -380,6 +380,8 @@ end
 
 function GUICommanderButtons:Update(deltaTime)
 
+    PROFILE("GUICommanderButtons:Update")
+
     self:UpdateTabs()
     
     local tooltipButtonIndex = self:UpdateInput()

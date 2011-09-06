@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'RoboticsFactory' (Structure)
 
@@ -26,15 +27,25 @@ local networkVars =
         currentBuiltId      = "entityid"   
     }
 
+function RoboticsFactory:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
+
 function RoboticsFactory:OnInit()
 
     self:SetModel(RoboticsFactory.kModelName)
     
     Structure.OnInit(self)
     
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)       
+    self:SetPhysicsType(PhysicsType.Kinematic)       
         
     self.currentArcId = Entity.invalidId
+    
+    self.currentBuiltId = Entity.invalidId
     
     if Server then
         self:SetState(RoboticsFactory.kState.Idle)
@@ -87,14 +98,22 @@ function RoboticsFactory:ProcessOpenOrders()
         builtEntity:SetCoords(coords)
         self:SetActivityEnd(RoboticsFactory.kCloseDelay)
         self:SetState(RoboticsFactory.kState.Closing)
+        self.currentBuiltId = Entity.invalidId
     end
+end
+
+// Don't allow researching when we're still finishing up building the ARC
+function RoboticsFactory:GetIsResearching()
+    return Structure.GetIsResearching(self) or (self.currentBuiltId ~= Entity.invalidId)
 end
 
 function RoboticsFactory:OnResearchComplete(structure, researchId)
 
     local researchNode = self:GetTeam():GetTechTree():GetTechNode(researchId)
-    if structure == self and (researchId == kTechId.ARC or researchId == kTechId.MAC) then                
+    if structure == self and (researchId == kTechId.ARC or researchId == kTechId.MAC) then
+    
         if researchNode then
+        
             local mapName = LookupTechData(researchId, kTechDataMapName)
             local builtEntity = CreateEntity(mapName, self:GetOrigin(), structure:GetTeamNumber())
             
@@ -102,33 +121,41 @@ function RoboticsFactory:OnResearchComplete(structure, researchId)
             local owner = Shared.GetEntity(self.researchingPlayerId)
             builtEntity:SetOwner(owner)
                         
-            if (researchNode:GetIsManufacture()) then               
+            if researchNode:GetIsManufacture() then
+            
                 self.currentBuiltId = builtEntity:GetId()
                 self:TriggerEffects("robo_factory_open")                                  
                 self:SetState(RoboticsFactory.kState.Deploying)
+                
             else
+            
                 self.currentBuiltId = Entity.invalidId
                 self:SetState(RoboticsFactory.kState.Idle)
+                
             end
             
-            
         end
+        
     end
     
-    return Structure.OnResearchComplete(self, structure, researchId)            
+    return Structure.OnResearchComplete(self, structure, researchId)
+        
 end
 
 
 if Server then
+
     function RoboticsFactory:OnAnimationComplete(animName)
+    
         Structure.OnAnimationComplete(self, animName)
     
-        if (animName == RoboticsFactory.kAnimOpen) then
+        if animName == RoboticsFactory.kAnimOpen then
             self:SetState(RoboticsFactory.kState.Deployed)
         end
-        if (animName == RoboticsFactory.kAnimClose) then
+        if animName == RoboticsFactory.kAnimClose then
             self:SetState(RoboticsFactory.kState.Idle)
         end
+        
     end
 
     function RoboticsFactory:OnResearch(researchId)    
@@ -141,32 +168,32 @@ if Server then
     end
 
     function RoboticsFactory:SetState(state)
-        if self.state ~= state then        
-            self.state = state                   
-        end
+        self.state = state
     end
 
     function RoboticsFactory:OnUpdate(deltaTime)
 
-        LiveScriptActor.OnUpdate(self, deltaTime)
+        Structure.OnUpdate(self, deltaTime)
     
-        if (self.state == RoboticsFactory.kState.Building) then
+        if self.state == RoboticsFactory.kState.Building then
             self:TriggerEffects("robo_factory_building")
         end
         
         if self.state == RoboticsFactory.kState.Deployed then
-                self:ProcessOpenOrders()
+            self:ProcessOpenOrders()
         end
         
         if self.state == RoboticsFactory.kState.Closing then
-            if (self:GetCanNewActivityStart()) then
+        
+            if self:GetCanNewActivityStart() then
                 self:TriggerEffects("robo_factory_close")
             end
+            
         end
             
     end
+    
 end
 
 
 Shared.LinkClassToMap("RoboticsFactory", RoboticsFactory.kMapName, networkVars)
-

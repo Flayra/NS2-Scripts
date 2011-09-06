@@ -8,15 +8,29 @@
 // and has other special abilities. 
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/EnergyMixin.lua")
 Script.Load("lua/BuildingMixin.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/AttackOrderMixin.lua")
+Script.Load("lua/LiveMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FuryMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/OrdersMixin.lua")
+Script.Load("lua/FireMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
+Script.Load("lua/PathingMixin.lua")
+Script.Load("lua/HiveSightBlipMixin.lua")
 
-class 'Drifter' (LiveScriptActor)
+class 'Drifter' (ScriptActor)
 
 Drifter.kMapName = "drifter"
 
@@ -39,8 +53,10 @@ Drifter.kFlareMaxDistance = 15
             
 Drifter.kCapsuleHeight = .05
 Drifter.kCapsuleRadius = .5
-Drifter.kStartDistance = 4
+Drifter.kStartDistance = 5
 Drifter.kHoverHeight = 1.2
+
+Drifter.kMoveToDistance = 1
 
 Drifter.networkVars = {
     // 0-1 scalar used to set move_speed model parameter according to how fast we recently moved
@@ -52,17 +68,41 @@ Drifter.networkVars = {
 
 PrepareClassForMixin(Drifter, EnergyMixin)
 PrepareClassForMixin(Drifter, ControllerMixin)
+PrepareClassForMixin(Drifter, LiveMixin)
+PrepareClassForMixin(Drifter, UpgradableMixin)
+PrepareClassForMixin(Drifter, GameEffectsMixin)
+PrepareClassForMixin(Drifter, FuryMixin)
+PrepareClassForMixin(Drifter, FlinchMixin)
+PrepareClassForMixin(Drifter, OrdersMixin)
+PrepareClassForMixin(Drifter, FireMixin)
 PrepareClassForMixin(Drifter, CloakableMixin)
 
 function Drifter:OnCreate()
 
-    LiveScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
 
-    InitMixin(self, ControllerMixin )
+    InitMixin(self, ControllerMixin)
+    InitMixin(self, DoorMixin)
+    InitMixin(self, EnergyMixin)
+    InitMixin(self, BuildingMixin)
+    InitMixin(self, LiveMixin)
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, CloakableMixin)
     InitMixin(self, PathingMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FuryMixin)
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, OrdersMixin)
+    InitMixin(self, FireMixin)
+    InitMixin(self, SelectableMixin)
     
     if Server then
+        InitMixin(self, AttackOrderMixin, { kMoveToDistance = Drifter.kMoveToDistance })
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
+        InitMixin(self, HiveSightBlipMixin)
     end
 
     // Create the controller for doing collision detection.
@@ -75,17 +115,12 @@ function Drifter:OnCreate()
 end
 
 function Drifter:OnInit()
-
-    InitMixin(self, DoorMixin)
-    InitMixin(self, EnergyMixin)
-    InitMixin(self, BuildingMixin)
-    InitMixin(self, CloakableMixin)
     
     self:SetModel(Drifter.kModelName)
     
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
 
-    LiveScriptActor.OnInit(self)
+    ScriptActor.OnInit(self)
     
     self.moveSpeed = 0
     self.timeOfLastUpdate = 0
@@ -116,8 +151,8 @@ function Drifter:GetMovePhysicsMask()
     return PhysicsMask.Movement
 end
 
-function Drifter:GetExtents()
-    return Vector(Drifter.kCapsuleRadius, Drifter.kCapsuleHeight/2, Drifter.kCapsuleRadius)
+function Drifter:GetExtentsOverride()
+    return Vector(Drifter.kCapsuleRadius, Drifter.kCapsuleHeight / 2, Drifter.kCapsuleRadius)
 end
 
 function Drifter:GetIsFlying()
@@ -140,7 +175,7 @@ function Drifter:GetDeathIconIndex()
     return kDeathMessageIcon.Drifter
 end
 
-function Drifter:GetCanTakeDamage()
+function Drifter:GetCanTakeDamageOverride()
     return not self.landed
 end
 
@@ -192,7 +227,7 @@ function Drifter:OnOverrideOrder(order)
     // If target is enemy, attack it
     if (order:GetType() == kTechId.Default) then
     
-        if orderTarget ~= nil and orderTarget:isa("LiveScriptActor") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
+        if orderTarget ~= nil and HasMixin(orderTarget, "Live") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
             order:SetType(kTechId.Attack)
         else
             order:SetType(kTechId.Move)
@@ -203,12 +238,14 @@ function Drifter:OnOverrideOrder(order)
 end
 
 function Drifter:GetPositionForEntity(hive)
+
     local angle = NetworkRandom() * math.pi*2
     local startPoint = self:GetOrigin() + Vector( math.cos(angle)*Drifter.kStartDistance , Drifter.kHoverHeight, math.sin(angle)*Drifter.kStartDistance )
     local direction = Vector(self:GetAngles():GetCoords().zAxis)                               
-    startPoint = self:GetHoverAt(startPoint)
+    startPoint = GetHoverAt(self, startPoint)
     
     return BuildCoords(Vector(0, 1, 0), direction, startPoint)
+    
 end
 
 function Drifter:ProcessJustSpawned()
@@ -223,9 +260,11 @@ function Drifter:ProcessJustSpawned()
         self:ProcessRallyOrder(ents[1])
         
     end  
-               
+    
+          
+    // Give move order to random location nearby
     local startPoint = self:GetPositionForEntity(ents[1])
-    self:SetCoords(startPoint)
+    self:GiveOrder(kTechId.Move, Entity.invalidId, startPoint.origin, nil, false, false)
 
     self:OnIdle()
     
@@ -233,7 +272,7 @@ end
 
 function Drifter:OnThink()
 
-    LiveScriptActor.OnThink(self)
+    ScriptActor.OnThink(self)
 
     if(Server and self.justSpawned) then
         self:ProcessJustSpawned()           
@@ -271,6 +310,7 @@ function Drifter:OnThink()
             self:ProcessMoveOrder(drifterMoveSpeed)
         elseif(currentOrder:GetType() == kTechId.Attack) then
         
+            // From AttackOrderMixin.
             self:ProcessAttackOrder(5, drifterMoveSpeed, Drifter.kMoveThinkInterval)
                         
         elseif(currentOrder:GetType() == kTechId.Build) then 
@@ -313,8 +353,8 @@ function Drifter:ProcessBuildOrder(moveSpeed)
     local currentOrder = self:GetCurrentOrder()    
     local distToTarget = (currentOrder:GetLocation() - self:GetOrigin()):GetLengthXZ()
     local reset = (self:GetCanNewActivityStart() and self.landed)
-    if(self:IsTargetReached(currentOrder:GetLocation(), 0.45, reset) and currentOrder) then
-           
+    local engagementDist = ConditionalValue(currentOrder:GetType() == kTechId.Build, GetEngagementDistance(currentOrder:GetParam(), true), GetEngagementDistance(currentOrder:GetParam()))
+    if (distToTarget < engagementDist) then        
         // the location we move to is always at the correct height to move to.
         // the place we are going to build on is located on the ground though, so
         // drop the order location to the ground location
@@ -408,7 +448,7 @@ function Drifter:ProcessMoveOrder(moveSpeed)
     
     if (currentOrder ~= nil) then
         local isBuild = (currentOrder:GetType() == kTechId.Build)
-        local hoverAdjustedLocation = self:GetHoverAt(currentOrder:GetLocation())
+        local hoverAdjustedLocation = currentOrder:GetLocation()
         self:MoveToTarget(PhysicsMask.AIMovement, hoverAdjustedLocation, moveSpeed, Drifter.kMoveThinkInterval)
         if(not isBuild and self:IsTargetReached(hoverAdjustedLocation, kEpsilon, true)) then
             self:CompletedCurrentOrder()
@@ -418,7 +458,7 @@ end
 
 function Drifter:OnUpdate(deltaTime)
 
-    LiveScriptActor.OnUpdate(self, deltaTime)
+    ScriptActor.OnUpdate(self, deltaTime)
     
     self:UpdateControllerFromEntity()
     
@@ -430,7 +470,9 @@ function Drifter:OnUpdate(deltaTime)
         
     end
     
-    self:UpdateEnergy(deltaTime)
+    if Server then    
+        self:UpdateEnergy(deltaTime)
+    end
     
     self.timeOfLastUpdate = Shared.GetTime()
     
@@ -488,7 +530,7 @@ function Drifter:PerformActivation(techId, position, normal, commander)
         
     else
 
-        return LiveScriptActor.PerformActivation(self, techId, position, normal, commander)
+        return ScriptActor.PerformActivation(self, techId, position, normal, commander)
         
     end
     
@@ -500,7 +542,7 @@ function Drifter:OnEntityChange(oldId, newId)
         self.parasiteTargetId = newId
     end
     
-    LiveScriptActor.OnEntityChange(self, oldId, newId)
+    ScriptActor.OnEntityChange(self, oldId, newId)
     
 end
 
@@ -583,16 +625,16 @@ function Drifter:PerformParasite()
     
 end
 
-function Drifter:GetWaypointGroupName()
-    return kAirWaypointsGroup
-end
-
 function Drifter:GetMeleeAttackDamage()
     return kDrifterAttackDamage
 end
 
 function Drifter:GetMeleeAttackInterval()
     return kDrifterAttackFireDelay
+end
+
+function Drifter:GetMeleeAttackOrigin()
+    return self:GetOrigin()
 end
 
 function Drifter:OnOverrideDoorInteraction(inEntity)

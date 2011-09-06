@@ -34,8 +34,8 @@ kAlienWeaponEffects =
         {
             //{sound = "sound/ns2.fev/alien/common/spike_hit_marine", world_space = true, doer = "HydraSpike", classname = "Marine", done = true},
             //{sound = "sound/ns2.fev/alien/common/spike_hit_marine", world_space = true, doer = "Spike", classname = "Marine", done = true},
-            {sound = "sound/ns2.fev/alien/skulk/bite_hit_marine", doer = "BiteLeap", classname = "Marine", done = true},
-            {sound = "sound/ns2.fev/alien/skulk/bite_hit_%s", doer = "BiteLeap", done = true},
+            {sound = "sound/ns2.fev/alien/skulk/bite_hit_marine", doer = "BiteLeap", world_space = true, classname = "Marine", done = true},
+            {sound = "sound/ns2.fev/alien/skulk/bite_hit_%s", doer = "BiteLeap", world_space = true, done = true},
             {sound = "sound/ns2.fev/alien/skulk/parasite_hit", doer = "Parasite", done = true},
             {sound = "sound/ns2.fev/alien/gorge/spit_hit", doer = "Spit", done = true},
             {sound = "sound/ns2.fev/alien/gorge/bilebomb_hit", doer = "Bomb", done = true},
@@ -127,6 +127,7 @@ kAlienWeaponEffects =
               //{.5, "bite_attack3"},
               //{.5, "bite_attack4"},
               },
+              force = true
             },
             {overlay_animation = "bite", force = true},
         },
@@ -139,7 +140,7 @@ kAlienWeaponEffects =
         {
             // TODO: Take volume or hasLeap
             {sound = "sound/ns2.fev/alien/skulk/bite_alt"},
-            {viewmodel_animation = "bite_leap"},
+            {viewmodel_animation = "bite_leap", force = true},
             {animation = "leap"},
         },
     },   
@@ -182,7 +183,7 @@ kAlienWeaponEffects =
         sprayedEffects =
         {   
             {player_cinematic = "cinematics/alien/heal.cinematic"},
-            {sound = "sound/ns2.fev/alien/common/regeneration"},
+            {sound = "sound/ns2.fev/alien/common/regeneration", world_space = true},
         },
     },
 
@@ -354,11 +355,11 @@ kAlienWeaponEffects =
     {
         sporesAttackEffects = 
         {
-            {looping_sound = "sound/ns2.fev/alien/lerk/spore_spray"},
             {overlay_animation = "spore"},
-            
-            //{viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "?"},
-            //{weapon_cinematic = "cinematics/alien/lerk/spores.cinematic", attach_point = "?"},
+            {viewmodel_animation = "spores_attack"},
+            {sound = "sound/ns2.fev/alien/lerk/spore_spray"},
+            {viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "fxnode_hole_left"},
+            {viewmodel_cinematic = "cinematics/alien/lerk/spore_view_fire.cinematic", attach_point = "fxnode_hole_right"},
         },
     },
     
@@ -489,7 +490,7 @@ kAlienWeaponEffects =
     {
         swarmEffects =
         {
-            {sound = "sound/ns2.fev/alien/common/swarm"},
+            {sound = "sound/ns2.fev/alien/common/swarm", world_space = true},
         },
     },
     
@@ -497,7 +498,7 @@ kAlienWeaponEffects =
     {
         frenzyEffects =
         {
-            {sound = "sound/ns2.fev/alien/common/frenzy"},
+            {sound = "sound/ns2.fev/alien/common/frenzy", world_space = true},
         },
     },
 }

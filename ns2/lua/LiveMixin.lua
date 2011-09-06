@@ -11,11 +11,16 @@ Script.Load("lua/BalanceHealth.lua")
 
 LiveMixin = { }
 LiveMixin.type = "Live"
-// Whatever uses the LiveMixin needs to implement the following callback functions.
-LiveMixin.expectedCallbacks = {
-    GetCanTakeDamage = "Should return false if the object cannot take damage.",
+
+// These may be optionally implemented.
+LiveMixin.optionalCallbacks =
+{
     OnTakeDamage = "A callback to alert when the object has taken damage.",
-    OnKill = "A callback to alert when the object has been killed." }
+    OnKill = "A callback to alert when the object has been killed.",
+    GetCanTakeDamageOverride = "Should return false if the entity cannot take damage. If this function is not provided it will be assumed that the entity can take damage.",
+    GetCanGiveDamageOverride = "Should return false if the entity cannot give damage to other entities. If this function is not provided it will be assumed that the entity cannot do damage.",
+    GetSendDeathMessageOverride = "Should return false if the entity doesn't send a death message on death."
+}
 
 LiveMixin.kHealth = 100
 LiveMixin.kArmor = 0
@@ -48,11 +53,11 @@ function LiveMixin:__initmixin()
 
     self.alive = true
     
-    self.health = LookupTechData(self:GetTechId(), kTechDataMaxHealth, self:GetMixinConstants().kHealth)
+    self.health = LookupTechData(self:GetTechId(), kTechDataMaxHealth, 100)
     ASSERT(self.health ~= nil)
     self.maxHealth = self.health
 
-    self.armor = LookupTechData(self:GetTechId(), kTechDataMaxArmor, self:GetMixinConstants().kArmor)
+    self.armor = LookupTechData(self:GetTechId(), kTechDataMaxArmor, 0)
     ASSERT(self.armor ~= nil)
     self.maxArmor = self.armor
     
@@ -180,10 +185,7 @@ end
 AddFunctionContract(LiveMixin.GetIsAlive, { Arguments = { "Entity" }, Returns = { "boolean" } })
 
 function LiveMixin:SetIsAlive(state)
-
-    ASSERT(type(state) == "boolean")
     self.alive = state
-    
 end
 AddFunctionContract(LiveMixin.SetIsAlive, { Arguments = { "Entity", "boolean" }, Returns = { } })
 
@@ -238,6 +240,8 @@ function LiveMixin:ComputeDamageFromUpgrades(attacker, damage, damageType, time)
     end
     
     // Give damage bonus if someone else hit us recently
+    // Note: Game specific things like "Swarm" should not be in here. The "Swarm" upgrade should
+    // apply whatever effect is needed itself.
     if attacker and attacker.GetHasUpgrade and attacker:GetHasUpgrade(kTechId.Swarm) then
     
         if self.timeOfLastDamage ~= nil and (time <= (self.timeOfLastDamage + kSwarmInterval)) then
@@ -338,14 +342,17 @@ function LiveMixin:ComputeDamage(attacker, damage, damageType, time)
 end
 AddFunctionContract(LiveMixin.ComputeDamage, { Arguments = { "Entity", "Entity", "number", "number", { "number", "nil" } }, Returns = { "number", "number", "number" } })
 
-function LiveMixin:GetLastDamage()
-
-    return self.timeOfLastDamage, self.lastDamageAttackerId
-
+function LiveMixin:GetTimeOfLastDamage()
+    return self.timeOfLastDamage
 end
-AddFunctionContract(LiveMixin.GetLastDamage, { Arguments = { "Entity" }, Returns = { { "number", "nil" }, "number" } })
+AddFunctionContract(LiveMixin.GetTimeOfLastDamage, { Arguments = { "Entity" }, Returns = { { "number", "nil" } } })
 
-function LiveMixin:SetLastDamage(time, attacker)
+function LiveMixin:GetAttackerIdOfLastDamage()
+    return self.lastDamageAttackerId
+end
+AddFunctionContract(LiveMixin.GetAttackerIdOfLastDamage, { Arguments = { "Entity" }, Returns = { "number" } })
+
+function LiveMixin:_SetLastDamage(time, attacker)
 
     if attacker and attacker.GetId then
         self.timeOfLastDamage = time
@@ -353,7 +360,27 @@ function LiveMixin:SetLastDamage(time, attacker)
     end
     
 end
-AddFunctionContract(LiveMixin.SetLastDamage, { Arguments = { "Entity", "number", { "Entity", "nil" } }, Returns = { } })
+AddFunctionContract(LiveMixin._SetLastDamage, { Arguments = { "Entity", "number", { "Entity", "nil" } }, Returns = { } })
+
+function LiveMixin:GetCanTakeDamage()
+
+    if self.GetCanTakeDamageOverride then
+        return self:GetCanTakeDamageOverride()
+    end
+    return true
+    
+end
+AddFunctionContract(LiveMixin.GetCanTakeDamage, { Arguments = { "Entity" }, Returns = { "boolean" } })
+
+function LiveMixin:GetCanGiveDamage()
+
+    if self.GetCanGiveDamageOverride then
+        return self:GetCanGiveDamageOverride()
+    end
+    return false
+    
+end
+AddFunctionContract(LiveMixin.GetCanGiveDamage, { Arguments = { "Entity" }, Returns = { "boolean" } })
 
 /**
  * Returns true if the damage has killed the entity.
@@ -384,7 +411,7 @@ AddFunctionContract(LiveMixin.TakeDamage, { Arguments = { "Entity", "number", "E
  */
 function LiveMixin:TakeDamageClient(damage, attacker, doer, point, direction)
     
-    if self:GetIsAlive() then
+    if self:GetIsAlive() and self.OnTakeDamage then
     
         self:OnTakeDamage(damage, attacker, doer, point)
         
@@ -398,7 +425,8 @@ AddFunctionContract(LiveMixin.TakeDamageClient, { Arguments = { "Entity", "numbe
 
 function LiveMixin:TakeDamageServer(damage, attacker, doer, point, direction)
 
-    if (self:GetIsAlive() and GetGamerules():CanEntityDoDamageTo(attacker, self)) then
+    local killedFromDamage = false
+    if self:GetIsAlive() and GetGamerules():CanEntityDoDamageTo(attacker, self) then
 
         // Get damage type from source    
         local damageType = kDamageType.Normal
@@ -427,10 +455,12 @@ function LiveMixin:TakeDamageServer(damage, attacker, doer, point, direction)
         
         if damage > 0 then
         
-            self:OnTakeDamage(damage, attacker, doer, point)
+            if self.OnTakeDamage then
+                self:OnTakeDamage(damage, attacker, doer, point)
+            end
 
             // Remember time we were last hurt for Swarm upgrade
-            self:SetLastDamage(Shared.GetTime(), attacker)
+            self:_SetLastDamage(Shared.GetTime(), attacker)
             
             // Notify the doer they are giving out damage.
             local doerPlayer = doer
@@ -442,17 +472,19 @@ function LiveMixin:TakeDamageServer(damage, attacker, doer, point, direction)
                 // GetDeathIconIndex used to identify the attack type.
                 Server.SendNetworkMessage(doerPlayer, "GiveDamageIndicator", BuildGiveDamageIndicatorMessage(damage, doer:GetDeathIconIndex(), self:isa("Player"), self:GetTeamNumber()), false)
             end
-                
+            
             if (oldHealth > 0 and self:GetHealth() == 0) then
             
                 // Do this first to make sure death message is sent
                 GetGamerules():OnKill(self, damage, attacker, doer, point, direction)
         
-                self:OnKill(damage, attacker, doer, point, direction)
+                if self.OnKill then
+                    self:OnKill(damage, attacker, doer, point, direction)
+                end
                 
-                self:ProcessFrenzy(attacker, self)
+                self:SetIsAlive(false)
 
-                self.justKilled = true
+                killedFromDamage = true
                 
             end
             
@@ -460,7 +492,7 @@ function LiveMixin:TakeDamageServer(damage, attacker, doer, point, direction)
         
     end
     
-    return (self.justKilled == true)
+    return killedFromDamage
     
 end
 AddFunctionContract(LiveMixin.TakeDamageServer, { Arguments = { "Entity", "number", "Entity", "Entity", { "Vector", "nil" }, { "Vector", "nil" } }, Returns = { "boolean" } })
@@ -512,18 +544,27 @@ function LiveMixin:AddHealth(health, playSound, noArmor)
 end
 AddFunctionContract(LiveMixin.AddHealth, { Arguments = { "Entity", "number", "boolean" }, Returns = { "number" } })
 
-function LiveMixin:ProcessFrenzy(attacker, targetEntity)
+// This function needs to be tested.
+function LiveMixin:Kill(attacker, doer, point, direction)
+    self:TakeDamage((self:GetMaxHealth() + self:GetMaxArmor() * 2), attacker, doer, nil, nil)
+end
+AddFunctionContract(LiveMixin.Kill, { Arguments = { "Entity", "Entity", "Entity", { "Vector", "nil" }, { "Vector", "nil" } }, Returns = { } })
 
-    // Process Frenzy - give health back according to the amount of extra damage we did
-    if attacker and attacker.GetHasUpgrade and attacker:GetHasUpgrade(kTechId.Frenzy) and targetEntity and targetEntity.GetOverkillHealth then
-    
-        attacker:TriggerEffects("frenzy")
-        
-        local overkillHealth = targetEntity:GetOverkillHealth()        
-        local healthToGiveBack = math.max(overkillHealth, kFrenzyMinHealth)
-        attacker:AddHealth(healthToGiveBack, false)
-        
+// This function needs to be tested.
+function LiveMixin:GetSendDeathMessage()
+
+    if self.GetSendDeathMessageOverride then
+        return self:GetSendDeathMessageOverride()
     end
+    return self:GetIsAlive()
     
 end
-AddFunctionContract(LiveMixin.ProcessFrenzy, { Arguments = { "Entity", "Entity", "Entity" }, Returns = { } })
+AddFunctionContract(LiveMixin.GetSendDeathMessage, { Arguments = { "Entity" }, Returns = { "boolean" } })
+
+/**
+ * Entities using LiveMixin are only selectable when they are alive.
+ */
+function LiveMixin:OnGetIsSelectable(selectableTable)
+    selectableTable.Selectable = selectableTable.Selectable and self:GetIsAlive()
+end
+AddFunctionContract(LiveMixin.OnGetIsSelectable, { Arguments = { "Entity", "table" }, Returns = { } })

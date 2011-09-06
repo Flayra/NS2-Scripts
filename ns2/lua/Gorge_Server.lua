@@ -20,9 +20,6 @@ function Gorge:InitWeapons()
 end
 
 function Gorge:OnGiveUpgrade(techId)
-
-    Alien.OnGiveUpgrade(self, techId)
-    
     if techId == kTechId.BileBomb then
         self:GiveItem(BileBomb.kMapName)
     end

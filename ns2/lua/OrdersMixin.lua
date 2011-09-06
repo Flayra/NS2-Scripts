@@ -11,6 +11,12 @@ Script.Load("lua/FunctionContracts.lua")
 OrdersMixin = { }
 OrdersMixin.type = "Orders"
 
+OrdersMixin.expectedCallbacks =
+{
+    // GetExtents() is required by GetGroundAt().
+    GetExtents = "Returns a Vector describing the extents of this Entity."
+}
+
 local kTimeSinceDamageDefendComplete = 10
 local kDefendCompleteDistance = 5
 
@@ -130,6 +136,16 @@ function OrdersMixin:ClearOrders()
 end
 AddFunctionContract(OrdersMixin.ClearOrders, { Arguments = { "Entity" }, Returns = { } })
 
+function OrdersMixin:Reset()
+    self:ClearOrders()
+end
+AddFunctionContract(OrdersMixin.Reset, { Arguments = { "Entity" }, Returns = { } })
+
+function OrdersMixin:OnKill()
+    self:ClearOrders()
+end
+AddFunctionContract(OrdersMixin.OnKill, { Arguments = { "Entity" }, Returns = { } })
+
 function OrdersMixin:_DestroyOrders()
     
     // Allow ents to hook destruction of current order.
@@ -186,12 +202,12 @@ function OrdersMixin:_SetOrder(order, clearExisting, insertFirst)
 
     // Always snap the location of the order to the ground.
     local location = order:GetLocation()
-    if self.GetGroundAt then
-        location = self:GetGroundAt(location, PhysicsMask.AIMovement)
+    if location then
+        location = GetGroundAt(self, location, PhysicsMask.AIMovement)
+        order:SetLocation(location)
     end
-    order:SetLocation(location)
     
-    if(insertFirst) then
+    if insertFirst then
         table.insert(self.orders, 1, order:GetId())
     else    
         table.insert(self.orders, order:GetId())
@@ -294,80 +310,9 @@ function OrdersMixin:ProcessRallyOrder(originatingEntity)
 end
 AddFunctionContract(OrdersMixin.ProcessRallyOrder, { Arguments = { "Entity", "Entity" }, Returns = { } })
 
-// This is an "attack-move" from RTS. Attack the entity specified in our current attack order, if any. 
-//  Otherwise, move to the location specified in the attack order and attack anything along the way.
-function OrdersMixin:ProcessAttackOrder(targetSearchDistance, moveSpeed, time)
-
-    // If we have a target, attack it
-    local currentOrder = self:GetCurrentOrder()
-    if(currentOrder ~= nil) then
-    
-        local target = Shared.GetEntity(currentOrder:GetParam())
-        
-        if target then
-        
-            // How do you kill that which has no life?
-            if not HasMixin(target, "Live") or not target:GetIsAlive() then
-            
-                self:CompletedCurrentOrder()
-                
-            else
-            
-                local targetLocation = target:GetEngagementPoint()
-                if self:GetIsFlying() then
-                    targetLocation = self:GetHoverAt(targetLocation)
-                end
-                
-                self:MoveToTarget(PhysicsMask.AIMovement, targetLocation, moveSpeed, time)
-                
-            end
-                
-        else
-        
-            // Check for a nearby target. If not found, move towards destination.
-            target = self:FindTarget(targetSearchDistance)
- 
-        end
-        
-        if target then
-        
-            // If we are close enough to target, attack it    
-            local targetPosition = Vector(target:GetOrigin())
-            targetPosition.y = targetPosition.y + self:GetHoverHeight()
-            
-            // Different targets can be attacked from different ranges, depending on size
-            local attackDistance = GetEngagementDistance(currentOrder:GetParam())
-            
-            local distanceToTarget = (targetPosition - self:GetOrigin()):GetLength()
-            if (distanceToTarget <= attackDistance) and target:GetIsAlive() then
-            
-                self:MeleeAttack(target, time)
-                
-                
-            end
-           
-        else
-        
-            // otherwise move towards attack location and end order when we get there
-            local targetLocation = currentOrder:GetLocation()
-            if self:GetIsFlying() then
-                targetLocation = self:GetHoverAt(targetLocation)
-            end
-            self:MoveToTarget(PhysicsMask.AIMovement, targetLocation, moveSpeed, time)
-            
-            local distanceToTarget = (currentOrder:GetLocation() - self:GetOrigin()):GetLength()
-            if(distanceToTarget < self:GetMixinConstants().kMoveToDistance) then
-                self:CompletedCurrentOrder()
-            end
- 
-        end
-        
-    end
-    
-end
-AddFunctionContract(OrdersMixin.ProcessAttackOrder, { Arguments = { "Entity", "number", "number", "number" }, Returns = { } })
-
 function OrdersMixin:UpdateOrder()
+
+    PROFILE("OrdersMixin:UpdateOrder")
 
     local currentOrder = self:GetCurrentOrder()
     
@@ -420,7 +365,7 @@ function OrdersMixin:UpdateOrder()
             
                 self:ClearOrders()
                 
-            elseif HasMixin(orderTarget, "Live") and (Shared.GetTime() - orderTarget:GetLastDamage()) > kTimeSinceDamageDefendComplete then
+            elseif HasMixin(orderTarget, "Live") and (Shared.GetTime() - orderTarget:GetTimeOfLastDamage()) > kTimeSinceDamageDefendComplete then
 
                 // Only complete if self is close enough to the target.
                 if (self:GetOrigin() - orderTarget:GetOrigin()):GetLengthSquared() < (kDefendCompleteDistance * kDefendCompleteDistance) then
@@ -438,3 +383,52 @@ function OrdersMixin:UpdateOrder()
     
 end
 AddFunctionContract(OrdersMixin.UpdateOrder, { Arguments = { "Entity" }, Returns = { } })
+
+// Note: This needs to be tested.
+// Get target of attack order, if any.
+function OrdersMixin:GetTarget()
+
+    local target = nil
+
+    local order = self:GetCurrentOrder()
+    if order ~= nil and (order:GetType() == kTechId.Attack or order:GetType() == kTechId.SetTarget) then
+        target = Shared.GetEntity(order:GetParam())
+    end
+    
+    return target
+    
+end
+
+// Note: This needs to be tested.
+function OrdersMixin:PerformAction(techNode, position)
+
+    local results = { self:OnPerformAction(techNode, position) }
+    
+    // Return true if any of the callbacks returned true.
+    for i, result in pairs(results) do
+    
+        if result then
+            return true
+        end
+        
+    end
+    
+    return false
+    
+end
+
+/**
+ * Other mixins can implement this function to handle more specific actions.
+ * Called when tech tree action is performed on the entity.
+ * Return true if legal and action handled. Position passed if applicable.
+ */
+function OrdersMixin:OnPerformAction(techNode, position)
+
+    if techNode:GetTechId() == kTechId.Stop then
+        self:ClearOrders()
+        return true
+    end
+    
+    return false
+    
+end

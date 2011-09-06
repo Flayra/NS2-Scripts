@@ -14,7 +14,7 @@ class 'Spores' (Ability)
 
 Spores.kMapName = "spores"
 Spores.kSwitchTime = .5
-Spores.kSporeDustCloudLifetime = 12.0      
+Spores.kSporeDustCloudLifetime = 8.0      
 Spores.kSporeCloudLifetime = 6.0      // From NS1
 Spores.kSporeDustCloudDPS = kSporesDustDamagePerSecond
 Spores.kSporeCloudDPS = kSporesDamagePerSecond
@@ -73,6 +73,7 @@ local function CreateSporeCloud(origin, player, lifetime, damage, radius)
     spores:SetLifetime(lifetime) 
     spores:SetDamage(damage) 
     spores:SetRadius(radius)  
+    spores:SetCoords(player:GetCoords())
     
     return spores
     
@@ -81,7 +82,7 @@ end
 function Spores:PerformPrimaryAttack(player)
 
     // Create long-lasting spore cloud near player that can be used to prevent marines from passing through an area
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
     
     if Server then
     
@@ -106,33 +107,6 @@ function Spores:OnPrimaryAttackEnd(player)
     self:StopLoopingSound(player)
     
 end
-
-// Removed for now to keep spore dust trails distinct
-/*
-function Spores:PerformSecondaryAttack(player)
-    
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetSecondaryAttackDelay()))
-
-    // Trace instant line to where it should hit
-    local viewAngles = player:GetViewAngles()
-    local viewCoords = viewAngles:GetCoords()    
-    local startPoint = player:GetEyePos()
-
-    local trace = Shared.TraceRay(startPoint, startPoint + viewCoords.zAxis * kLerkSporeShootRange, PhysicsMask.Bullets, EntityFilterOne(player))
-    
-    // Create spore cloud that will damage players
-    if Server then
-   
-        local spawnPoint = trace.endPoint + (trace.normal * 0.5)
-        local sporecloud = CreateSporeCloud(spawnPoint, player, Spores.kSporeCloudLifetime, Spores.kSporeCloudDPS, Spores.kSporeCloudRadius)
-        sporecloud:SetAltMode(true)
-
-    end
-    
-    return true
-        
-end
-*/
 
 function Spores:GetHUDSlot()
     return 2

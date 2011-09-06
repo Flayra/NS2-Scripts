@@ -177,8 +177,7 @@ function Commander:MarqueeSelectEntities(pickStartVec, pickEndVec)
 
     local newSelection = {}
 
-    // Add more class names here to allow selection of other entity types
-    local potentials = EntityListToTable(Shared.GetEntitiesWithClassname("LiveScriptActor"))
+    local potentials = GetEntitiesWithMixin("Selectable")
     
     self:GetEntitiesBetweenVecs(potentials, pickStartVec, pickEndVec, newSelection)
 
@@ -250,6 +249,19 @@ function Commander:GetUnitIdUnderCursor(pickVec)
 
 end
 
+function Commander:SelectEntityId(entitId)
+
+	return self:InternalSetSelection({ {entitId, Shared.GetTime()} } )
+
+end
+
+// TODO: call when selection should be added to current selection
+function Commander:AddSelectEntityId(entitId)
+
+	return self:InternalSetSelection({ {entitId, Shared.GetTime()} } )
+
+end
+
 function Commander:ClickSelectEntities(pickVec)
 
     local newSelection = {}
@@ -261,6 +273,10 @@ function Commander:ClickSelectEntities(pickVec)
         for index, entity in ipairs(clickEntities) do  
         
             table.insertunique(newSelection, {entity:GetId(), Shared.GetTime()} )
+            
+            if Client then
+                self:SendSelectIdCommand(entity:GetId())
+            end
             
         end
         
@@ -430,7 +446,13 @@ end
 // selection to empty unless allowEmpty is passed. Returns true if selection is different after calling.
 function Commander:InternalSetSelection(newSelection, allowEmpty)
 
-    if (table.maxn(newSelection) > 0 or allowEmpty) then
+    // If the selection is empty and allowEmpty was not true,
+    // select the home command station.
+    if table.maxn(newSelection) == 0 and not allowEmpty then
+        newSelection = { { self.commandStationId, Shared.GetTime() } }
+    end
+    
+    if table.maxn(newSelection) > 0 or allowEmpty then
     
         // Reset sub group
         self.focusGroupIndex = 1
@@ -523,7 +545,7 @@ function Commander:GetIsEntityValidForSelection(entity)
     
             // Select living things on our team that aren't us
             // For now, don't allow even click selection of enemy units or structures
-    if      ( entity ~= nil and entity:isa("LiveScriptActor") and (entity:GetTeamNumber() == self:GetTeamNumber()) and (entity:GetIsSelectable()) and (entity ~= self) and entity:GetIsAlive() ) or
+    if      ( entity ~= nil and HasMixin(entity, "Live") and (entity:GetTeamNumber() == self:GetTeamNumber()) and (HasMixin(entity, "Selectable") and entity:GetIsSelectable()) and (entity ~= self) and entity:GetIsAlive() ) or
             // ...and doors
             (entity ~= nil and entity:isa("Door")) then
             

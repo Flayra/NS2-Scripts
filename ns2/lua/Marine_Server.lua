@@ -68,7 +68,7 @@ function Marine:OnOverrideOrder(order)
         order:SetType(kTechId.SquadDefend)
 
     // If target is enemy, attack it
-    elseif (order:GetType() == kTechId.Default) and orderTarget ~= nil and orderTarget:isa("LiveScriptActor") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
+    elseif (order:GetType() == kTechId.Default) and orderTarget ~= nil and HasMixin(orderTarget, "Live") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
     
         order:SetType(kTechId.Attack)
 

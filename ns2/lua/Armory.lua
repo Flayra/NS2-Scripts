@@ -6,6 +6,8 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
+
 class 'Armory' (Structure)
 Armory.kMapName = "armory"
 
@@ -35,7 +37,7 @@ else
     Script.Load("lua/Armory_Client.lua")
 end
     
-local networkVars =
+Armory.networkVars =
     {
         // How far out the arms are for animation (0-1)
         loggedInEast     = "boolean",
@@ -56,6 +58,14 @@ function GetArmory(entity)
     end
     
     return nil
+
+end
+
+function Armory:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
 
 end
 
@@ -83,8 +93,6 @@ function Armory:OnInit()
     self.loginEastAmount = 0
     self.loginSouthAmount = 0
     self.loginWestAmount = 0
-    
-    self.timeLastUpdate = Shared.GetTime()
 
     if Server then    
     
@@ -201,16 +209,10 @@ function Armory:OnUpdate(deltaTime)
         self:UpdatePoseParams({ Armory.kAdvancedArmoryChildModel })
         
         // Set pose parameters according to if we're logged in or not
-        if self.timeLastUpdate ~= nil then
-        
-            local timePassed = Shared.GetTime() - self.timeLastUpdate
-        
-            self:UpdateArmoryAnim("e", self.loggedInEast, self.timeScannedEast, timePassed)
-            self:UpdateArmoryAnim("n", self.loggedInNorth, self.timeScannedNorth, timePassed)
-            self:UpdateArmoryAnim("w", self.loggedInWest, self.timeScannedWest, timePassed)
-            self:UpdateArmoryAnim("s", self.loggedInSouth, self.timeScannedSouth, timePassed)
-            
-        end
+        self:UpdateArmoryAnim("e", self.loggedInEast, self.timeScannedEast, deltaTime)
+        self:UpdateArmoryAnim("n", self.loggedInNorth, self.timeScannedNorth, deltaTime)
+        self:UpdateArmoryAnim("w", self.loggedInWest, self.timeScannedWest, deltaTime)
+        self:UpdateArmoryAnim("s", self.loggedInSouth, self.timeScannedSouth, deltaTime)
         
     end
     
@@ -218,10 +220,32 @@ function Armory:OnUpdate(deltaTime)
     
 end
 
-Shared.LinkClassToMap("Armory", Armory.kMapName, networkVars)
+Shared.LinkClassToMap("Armory", Armory.kMapName, Armory.networkVars)
 
 class 'AdvancedArmory' (Armory)
 
 AdvancedArmory.kMapName = "advancedarmory"
 
 Shared.LinkClassToMap("AdvancedArmory", AdvancedArmory.kMapName, {})
+
+class 'ArmoryAddon' (ScriptActor)
+
+ArmoryAddon.kMapName = "ArmoryAddon"
+
+if Server then
+
+    PrepareClassForMixin(ArmoryAddon, LOSMixin)
+
+    function ArmoryAddon:OnCreate()
+        ScriptActor.OnCreate(self)
+        InitMixin(self, LOSMixin)
+    end
+    
+    function ArmoryAddon:OverrideVisionRadius()
+        return LOSMixin.kStructureMinLOSDistance
+    end
+    
+end
+
+Shared.LinkClassToMap("ArmoryAddon", ArmoryAddon.kMapName)
+

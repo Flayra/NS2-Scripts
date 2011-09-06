@@ -9,6 +9,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Hydra' (Structure)
 
@@ -27,6 +28,14 @@ Hydra.kFov = 360
 if Server then
     Script.Load("lua/Hydra_Server.lua")
     Script.Load("lua/HydraSpike.lua")
+end
+
+function Hydra:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
 end
 
 function Hydra:GetFov()
@@ -52,7 +61,8 @@ end
 function Hydra:GetDeployAnimation()
     return ""
 end
-function Hydra:GetCanDoDamage()
+
+function Hydra:GetCanGiveDamageOverride()
     return true
 end
 

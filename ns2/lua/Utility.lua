@@ -259,6 +259,10 @@ function _DebugTraceNeighbours(lineArgs, points, pi, ...)
     end
 end
 
+function DebugLineSuccess(startPoint, endPoint, lifetime, success)
+    DebugLine(startPoint, endPoint, lifetime, ConditionalValue(success, 0, 1), ConditionalValue(success, 1, 0), 0, 1)
+end
+
 // rgba are normalized values (0-1)
 function DebugLine(startPoint, endPoint, lifetime, r, g, b, a)
     if (Client and not Shared.GetIsRunningPrediction()) then

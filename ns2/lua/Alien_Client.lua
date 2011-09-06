@@ -20,46 +20,52 @@ function PlayerUI_FetchBlips(blips, player)
         
         // Lookup more recent position of blip
         local blipEntity = Shared.GetEntity(blipEntId)
-        if blipEntity then
         
-            if blipEntity:isa("Player") then
-                blipName = Scoreboard_GetPlayerData(blipEntity:GetClientIndex(), kScoreboardDataIndexName)
-            elseif blipEntity.GetTechId then
-                blipName = GetDisplayNameForTechId(blipEntity:GetTechId())
+        // Do not display a blip for the local player.
+        if blipEntity ~= player then
+
+            if blipEntity then
+            
+                if blipEntity:isa("Player") then
+                    blipName = Scoreboard_GetPlayerData(blipEntity:GetClientIndex(), kScoreboardDataIndexName)
+                elseif blipEntity.GetTechId then
+                    blipName = GetDisplayNameForTechId(blipEntity:GetTechId())
+                end
+                
             end
             
-        end
-        
-        if not blipName then
-            blipName = ""
-        end
-        
-        // Get direction to blip. If off-screen, don't render. Bad values are generated if 
-        // Client.WorldToScreen is called on a point behind the camera.
-        local normToEntityVec = GetNormalizedVector(blipOrigin - eyePos)
-        local normViewVec = player:GetViewAngles():GetCoords().zAxis
-       
-        local dotProduct = normToEntityVec:DotProduct(normViewVec)
-        if(dotProduct > 0) then
-        
-            // Get distance to blip and determine radius
-            local distance = (eyePos - blipOrigin):GetLength()
-            local drawRadius = 35/distance
+            if not blipName then
+                blipName = ""
+            end
             
-            // Compute screen xy to draw blip
-            local screenPos = Client.WorldToScreen(blipOrigin)
-
-            local trace = Shared.TraceRay(eyePos, blipOrigin, PhysicsMask.Bullets, EntityFilterTwo(player, entity))                               
-            local obstructed = ((trace.fraction ~= 1) and ((trace.entity == nil) or trace.entity:isa("Door"))) 
+            // Get direction to blip. If off-screen, don't render. Bad values are generated if 
+            // Client.WorldToScreen is called on a point behind the camera.
+            local normToEntityVec = GetNormalizedVector(blipOrigin - eyePos)
+            local normViewVec = player:GetViewAngles():GetCoords().zAxis
+           
+            local dotProduct = normToEntityVec:DotProduct(normViewVec)
+            if dotProduct > 0 then
             
-            // Add to array (update numElementsPerBlip in GUIHiveBlips:UpdateBlipList)
-            table.insert(blips, screenPos.x)
-            table.insert(blips, screenPos.y)
-            table.insert(blips, drawRadius)
-            table.insert(blips, blipType)
-            table.insert(blips, obstructed)
-            table.insert(blips, blipName)
+                // Get distance to blip and determine radius
+                local distance = (eyePos - blipOrigin):GetLength()
+                local drawRadius = 35/distance
+                
+                // Compute screen xy to draw blip
+                local screenPos = Client.WorldToScreen(blipOrigin)
 
+                local trace = Shared.TraceRay(eyePos, blipOrigin, PhysicsMask.Bullets, EntityFilterTwo(player, entity))                               
+                local obstructed = ((trace.fraction ~= 1) and ((trace.entity == nil) or trace.entity:isa("Door"))) 
+                
+                // Add to array (update numElementsPerBlip in GUIHiveBlips:UpdateBlipList)
+                table.insert(blips, screenPos.x)
+                table.insert(blips, screenPos.y)
+                table.insert(blips, drawRadius)
+                table.insert(blips, blipType)
+                table.insert(blips, obstructed)
+                table.insert(blips, blipName)
+
+            end
+            
         end
         
     end
@@ -108,7 +114,7 @@ end
 // Returns single-dimensional array of fields in the format screenX, screenY, drawRadius, blipType
 function PlayerUI_GetBlipInfo()
 
-    local blips = {}
+    local blips = { }
 
     local player = Client.GetLocalPlayer()
     
@@ -420,8 +426,8 @@ end
 // Bring up evolve menu
 function Alien:Buy()
     
-    // Don't allow display in the ready room
-    if self:GetTeamNumber() ~= 0 and (Client.GetLocalPlayer() == self) then
+    // Don't allow display in the ready room, or as phantom
+    if self:GetTeamNumber() ~= 0 and (Client.GetLocalPlayer() == self) and (not HasMixin(self, "Phantom") or not self:GetIsPhantom()) then
     
         if not self.buyMenu then
             self.buyMenu = GetGUIManager():CreateGUIScript("GUIAlienBuyMenu")

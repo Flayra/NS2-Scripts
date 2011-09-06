@@ -23,6 +23,7 @@ if Server then
 else
     Script.Load("lua/PowerPoint_Client.lua")
 end
+Script.Load("lua/WeldableMixin.lua")
 
 PowerPoint.kMapName = "power_point"
 
@@ -58,7 +59,8 @@ local networkVars =
 {
     lightMode               = "enum kLightMode",
     timeOfLightModeChange   = "float",
-    triggerName             = string.format("string (%d)", kMaxEntityStringLength)
+    triggerName             = string.format("string (%d)", kMaxEntityStringLength),
+    attackTime              = "float"
 }
 
 // No spawn animation
@@ -78,6 +80,8 @@ function PowerPoint:OnInit()
     
     if Server then
     
+        InitMixin(self, WeldableMixin)
+    
         self.startsBuilt = true
         
         self:SetTeamNumber(kTeamReadyRoom)
@@ -85,6 +89,8 @@ function PowerPoint:OnInit()
         self:SetConstructionComplete()
         
         self:SetNextThink(.1)
+        
+        self.attackTime = 0.0
 
     else 
     
@@ -104,8 +110,8 @@ function PowerPoint:Reset()
     
 end
 
-function PowerPoint:GetCanTakeDamage()
-    return self.powered
+function PowerPoint:GetCanTakeDamageOverride()
+    return (self:GetHealth() > 0) == true
 end
 
 function PowerPoint:GetIsBuilt()
@@ -179,6 +185,31 @@ end
  */
 function PowerPoint:GetIsAliveOverride()
     return true
+end
+
+function PowerPoint:OverrideVisionRadius()
+  return 2
+end
+
+function PowerPoint:GetAttackTime()
+  return self.attackTime
+end
+
+function PowerPoint:OverrideCheckvision()
+  return (self:GetAttackTime() ~= 0)
+end
+
+function PowerPoint:OnUpdate(deltaTime)
+
+    Structure.OnUpdate(self, deltaTime)
+if Client then   
+    self:CreateEffects()
+    
+    self:DeleteEffects()
+else
+    self:AddAttackTime(-0.1)
+end    
+
 end
 
 Shared.LinkClassToMap("PowerPoint", PowerPoint.kMapName, networkVars)

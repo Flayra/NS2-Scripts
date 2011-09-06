@@ -15,12 +15,13 @@
 // team to get a stealth hive built. Allow players to stay cloaked for awhile, until they attack
 // (even if they move out of range - great for getting by sentries).
 //
-// Phantasm (Targeted) - Allow Commander to create fake Fade, Onos, Hive (and possibly 
+// Phantom (Targeted) - Allow Commander to create fake Fade, Onos, Hive (and possibly 
 // ammo/medpacks). They can be pathed around and used to create tactical distractions or divert 
 // forces elsewhere.
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Shade' (Structure)
 
@@ -34,6 +35,13 @@ Shade.kCloakRadius = 15
 // when cloak is triggered, we cloak everything around us at this interval
 Shade.kActiveThinkInterval = 3
 
+function Shade:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function Shade:GetIsAlienStructure()
     return true
@@ -45,7 +53,7 @@ function Shade:GetTechButtons(techId)
     
     if techId == kTechId.RootMenu then 
     
-        techButtons = { kTechId.UpgradesMenu, kTechId.ShadeDisorient, kTechId.ShadeCloak, kTechId.ShadePhantasmMenu }
+        techButtons = { kTechId.UpgradesMenu, kTechId.ShadeDisorient, kTechId.ShadeCloak, kTechId.ShadePhantomMenu }
         
         // Allow structure to be upgraded to mature version
         local upgradeIndex = table.maxn(techButtons) + 1
@@ -59,9 +67,9 @@ function Shade:GetTechButtons(techId)
         techButtons = {kTechId.CamouflageTech, kTechId.FeintTech, kTechId.None}
         techButtons[kAlienBackButtonIndex] = kTechId.RootMenu
         
-    elseif techId == kTechId.ShadePhantasmMenu then        
+    elseif techId == kTechId.ShadePhantomMenu then        
     
-        techButtons = {kTechId.ShadePhantasmFade, kTechId.ShadePhantasmOnos, kTechId.ShadePhantasmHive}
+        techButtons = {kTechId.ShadePhantomFade, kTechId.ShadePhantomOnos}
         techButtons[kAlienBackButtonIndex] = kTechId.RootMenu
 
     end
@@ -79,7 +87,7 @@ function Shade:OnResearchComplete(structure, researchId)
         // Transform into mature shade
         if structure and (structure:GetId() == self:GetId()) and (researchId == kTechId.UpgradeShade) then
         
-            success = self:Upgrade(kTechId.MatureShade)
+            success = self:UpgradeToTechId(kTechId.MatureShade)
             
         end
     
@@ -97,24 +105,28 @@ function Shade:OnThink()
 
     Structure.OnThink(self)
     
-    local timeLeft = self:GetTimeLeft()
-
-    if timeLeft > 0 then
+    if self:GetIsBuilt() and self:GetIsActive() then
     
-        self:TriggerEffects("shade_cloak_start")
-    
-        for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
-        
-            if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+        local timeLeft = self:GetTimeLeft()
 
-                entity:SetIsCloaked(true, timeLeft, true)
-                    
-            end
+        if timeLeft > 0 then
+    
+            self:TriggerEffects("shade_cloak_start")
+    
+            for index, entity in ipairs(GetEntitiesWithMixinForTeamWithinRange("Cloakable", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
             
-        end
+                if entity:GetIsCloakable() then
 
-        // when we have no time left, we stop thinking
-        self:SetNextThink(Shade.kActiveThinkInterval)
+                    entity:SetIsCloaked(true, timeLeft, false)
+                    
+                end
+            
+            end
+
+            // when we have no time left, we stop thinking
+            self:SetNextThink(Shade.kActiveThinkInterval)
+        
+        end
         
     end
     
@@ -147,6 +159,23 @@ function Shade:GetActivationTechAllowed(techId)
     return true
 end
 
+function CreatePhantom(techId, position, normal, commander)
+
+    // Create phantom effigy nearby
+    local phantomEffigy = CreateEntityForCommander(kTechId.PhantomEffigy, position, commander)
+    phantomEffigy:SetTechId(techId)
+    
+    // Set model 
+    local modelName = LookupTechData(techId, kTechDataModel)
+    phantomEffigy:SetModel(modelName)
+    
+    // Don't let enemy team see this, but allow ready room and friendly commander/team-mates
+    phantomEffigy:SetExcludeRelevancyMask( ConditionalValue(commander:GetTeamNumber() == 1, kRelevantToTeam2Unit, kRelevantToTeam1Unit) )
+    
+    return true
+    
+end
+
 function Shade:PerformActivation(techId, position, normal, commander)
 
     local success = false
@@ -155,6 +184,10 @@ function Shade:PerformActivation(techId, position, normal, commander)
     
         success = self:TriggerCloak()    
     
+    elseif (techId == kTechId.ShadePhantomFade) or (techId == kTechId.ShadePhantomOnos) then
+    
+        success = CreatePhantom(techId, position, normal, commander)
+        
     end
     
     return success

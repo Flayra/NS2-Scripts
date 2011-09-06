@@ -290,11 +290,10 @@ function InitTechTreeMaterialOffsets()
     kAlienTechIdToMaterialOffset[kTechId.MatureShade] = 66
     kAlienTechIdToMaterialOffset[kTechId.ShadeCloak] = 67
     kAlienTechIdToMaterialOffset[kTechId.ShadeDisorient] = 68
-    kAlienTechIdToMaterialOffset[kTechId.ShadePhantasmMenu] = 69
-    kAlienTechIdToMaterialOffset[kTechId.ShadePhantasmFade] = 69
-    kAlienTechIdToMaterialOffset[kTechId.ShadePhantasmOnos] = 69
-    kAlienTechIdToMaterialOffset[kTechId.ShadePhantasmHive] = 69
-    kAlienTechIdToMaterialOffset[kTechId.PhantasmTech] = 70
+    kAlienTechIdToMaterialOffset[kTechId.ShadePhantomMenu] = 69
+    kAlienTechIdToMaterialOffset[kTechId.ShadePhantomFade] = 69
+    kAlienTechIdToMaterialOffset[kTechId.ShadePhantomOnos] = 69
+    kAlienTechIdToMaterialOffset[kTechId.PhantomTech] = 70
     kAlienTechIdToMaterialOffset[kTechId.CamouflageTech] = 71
     kAlienTechIdToMaterialOffset[kTechId.Camouflage] = 71
 

@@ -37,7 +37,7 @@ function BileBomb:PerformPrimaryAttack(player)
 
     self:FireBombProjectile(player)        
         
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
     
     return true
 end
@@ -53,7 +53,7 @@ function BileBomb:FireBombProjectile(player)
         local bomb = CreateEntity(Bomb.kMapName, startPoint, player:GetTeamNumber())
         SetAnglesFromVector(bomb, viewCoords.zAxis)
         
-        bomb:SetPhysicsType(Actor.PhysicsType.Kinematic)
+        bomb:SetPhysicsType(PhysicsType.Kinematic)
         
         local startVelocity = viewCoords.zAxis * BileBomb.kBombSpeed
         bomb:SetVelocity(startVelocity)

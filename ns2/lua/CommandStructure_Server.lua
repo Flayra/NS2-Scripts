@@ -82,7 +82,7 @@ function CommandStructure:OnResearchComplete(structure, researchId)
         if(structure and (structure:GetId() == self:GetId()) and (researchId == self.level1TechId or researchId == self.level2TechId or researchId == self.level3TechId)) then
 
             // Also changes current health and maxHealth    
-            success = self:Upgrade(researchId)
+            success = self:UpgradeToTechId(researchId)
             
         end
         
@@ -130,7 +130,7 @@ function CommandStructure:LoginPlayer(player)
     local commanderStartOrigin = Vector(player:GetOrigin())
             
     // Create Commander player
-    local commanderPlayer = player:Replace( self:GetCommanderClassName(), player:GetTeamNumber(), true)
+    local commanderPlayer = player:Replace( self:GetCommanderClassName(), player:GetTeamNumber(), true, commanderStartOrigin)
     
     // Set all child entities and view model invisible
     function SetInvisible(weapon) 
@@ -276,7 +276,7 @@ function CommandStructure:Logout()
         local previousAlienEnergy = self.commander.previousAlienEnergy
         local timeStartedCommanderMode = self.commander.timeStartedCommanderMode
         
-        local player = self.commander:Replace(self.commander.previousMapName, self.commander:GetTeamNumber(), true)    
+        local player = self.commander:Replace(self.commander.previousMapName, self.commander:GetTeamNumber(), true, previousOrigin)    
 
         // Switch to weapon player was using before becoming Commander
         player:InitViewModel()

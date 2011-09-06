@@ -6,7 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-function TechPoint:GetCanTakeDamage()
+function TechPoint:GetCanTakeDamageOverride()
     return false
 end
 
@@ -27,18 +27,6 @@ function TechPoint:SpawnCommandStructure(teamNumber)
     local techId = ConditionalValue(alienTeam, kTechId.Hive, kTechId.CommandStation)
     
     return CreateEntityForTeam(techId, Vector(self:GetOrigin()), teamNumber)
-    
-end
-
-function TechPoint:OnMapPostLoad()
-
-    ScriptActor.OnMapPostLoad(self)
-
-    local locationName = GetLocationForPoint(self:GetOrigin())
-    local success, spawn = GetRandomFreeEggSpawn(locationName)
-    if not success then
-        Print("TechPoint:OnMapPostLoad(): Couldn't find any egg spawn entities near \"%s\" tech point, hives built here won't create eggs.", locationName)
-    end
     
 end
 

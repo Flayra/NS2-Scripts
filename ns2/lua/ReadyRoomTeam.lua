@@ -55,7 +55,7 @@ function ReadyRoomTeam:ReplaceRespawnPlayer(player, origin, angles)
 
     local mapName = self:GetRespawnMapName(player)
     local isEmbryo = player:isa("Embryo") or (player:isa("Spectator") and player:GetPreviousMapName() == Embryo.kMapName)
-    local newPlayer = player:Replace(mapName, self:GetTeamNumber(), false)
+    local newPlayer = player:Replace(mapName, self:GetTeamNumber(), false, origin)
     
     // still allow embryos to show.
     if isEmbryo then

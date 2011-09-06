@@ -34,8 +34,6 @@ function Gamerules:OnCreate()
         
         self:SetPropagate(Entity.Propagate_Always)
         
-        self.darwinMode = false
-        
         self.damageMultiplier = 1
         
         // Set global gamerules whenever gamerules are built
@@ -92,6 +90,7 @@ end
  */
 function Gamerules:ResetGame()
 
+
     // Convert to a table as entities are destroyed here and the EntityList will automatically
     // update when they are destroyed which is bad for iteration.
     local entityTable = EntityListToTable(Shared.GetEntitiesWithClassname("Entity"))
@@ -112,12 +111,9 @@ function Gamerules:ResetGame()
         end       
  
     end
-    
-    // Send scoreboard update, ignoring other scoreboard updates (clearscores resets everything)  
-    for index, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-        Server.SendCommand(player, "onresetgame")
-        //player:SetScoreboardChanged(false)
-    end  
+
+    Server.SendNetworkMessage(nil, "ResetGame", {}, true)
+   
 end
 
 function Gamerules:OnUpdate(deltaTime)
@@ -219,14 +215,6 @@ end
 /**
  * Cheats and modes.
  */
-function Gamerules:GetDarwinMode()
-    return self.darwinMode
-end
-
-function Gamerules:SetDarwinMode(darwinMode)
-    self.darwinMode = darwinMode
-end
-
 function Gamerules:GetDamageMultiplier()
     return ConditionalValue(Shared.GetCheatsEnabled(), self.damageMultiplier, 1)
 end

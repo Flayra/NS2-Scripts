@@ -8,6 +8,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'PowerPack' (Structure)
 
@@ -19,6 +20,14 @@ PowerPack.kRange = 12
 
 if Server then
     Script.Load("lua/PowerPack_Server.lua")
+end
+
+function PowerPack:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
 end
 
 function PowerPack:OnInit()
@@ -35,7 +44,7 @@ end
 
 // Temporarily don't use "target" attach point
 function PowerPack:GetEngagementPoint()
-    return LiveScriptActor.GetEngagementPoint(self)
+    return ScriptActor.GetEngagementPoint(self)
 end
 
 function PowerPack:GetTechButtons(techId)

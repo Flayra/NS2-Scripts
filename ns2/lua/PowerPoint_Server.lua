@@ -42,15 +42,6 @@ function PowerPoint:OnKill(damage, attacker, doer, point, direction)
     
 end
 
-// Power should never be destroyed or ragdoll or they'll be destroyed for good
-function PowerPoint:SafeDestroy()
-    self:SetIsAlive(false)
-    self:SetNextThink(-1)    
-end
-
-function PowerPoint:SetRagdoll(deathTime)
-end
-
 function PowerPoint:OnLoad()
 
     Structure.OnLoad(self)
@@ -67,7 +58,6 @@ function PowerPoint:OnThink()
     else
         self:PlaySound(PowerPoint.kAuxPowerBackupSound)
     end    
-    
 end
 
 function PowerPoint:Reset()
@@ -167,6 +157,10 @@ function PowerPoint:OnWeld(entity, elapsedTime)
         
     end
     
+    if (welded) then
+      self:AddAttackTime(-0.1)
+    end
+    
     return welded
     
 end
@@ -210,6 +204,8 @@ function PowerPoint:OnTakeDamage(damage, attacker, doer, point)
         end
         
     end
+    
+    self:AddAttackTime(0.9)
     
 end
 
@@ -269,6 +265,10 @@ function PowerPoint:UpdatePoweredStructures()
     
 end
 
-function PowerPoint:GetSendDeathMessage()
+function PowerPoint:GetSendDeathMessageOverride()
     return self.powered
+end
+
+function PowerPoint:AddAttackTime(value)
+  self.attackTime =  math.max(self.attackTime + value, 0)
 end

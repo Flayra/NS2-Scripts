@@ -37,6 +37,8 @@ function GUIDamageIndicators:Uninitialize()
 end
 
 function GUIDamageIndicators:Update(deltaTime)
+
+    PROFILE("GUIDamageIndicators:Update")
     
     local damageIndicators = PlayerUI_GetDamageIndicators()
     

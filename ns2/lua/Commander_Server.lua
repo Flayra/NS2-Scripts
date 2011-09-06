@@ -79,32 +79,42 @@ function GetUnattachedEntityWithinRadius(attachclass, position, radius)
     
 end
 
-// Can't take damage.
-function Commander:GetCanTakeDamage()
+/**
+ * Commanders cannot take damage.
+ */
+function Commander:GetCanTakeDamageOverride()
     return false
 end
 
-function Commander:AttemptToResearchOrUpgrade(techNode, force)
+function Commander:AttemptToResearchOrUpgrade(techNode)
 
     // Make sure we have a valid and available structure selected
-    if (table.maxn(self.selectedSubGroupEntityIds) == 1 or force) then
+    if (table.maxn(self.selectedSubGroupEntityIds) == 1) then
     
         local entity = Shared.GetEntity( self.selectedSubGroupEntityIds[1] )
         
         // Don't allow it to be researched while researching
-        if( (entity ~= nil and entity:isa("Structure") and entity:GetCanResearch() and techNode:GetCanResearch()) or force) then
+        if( entity ~= nil and entity:isa("Structure") ) then
         
-            entity:SetResearching(techNode, self)
-            entity:OnResearch(techNode:GetTechId())
+            // $AS FIXME: We need a better way to do recycling 
+            if (techNode:GetCanResearch() and (techNode:GetTechId() == kTechId.Recycle or entity:GetCanResearch())) or 
             
-            if not techNode:GetIsUpgrade() and not techNode:GetIsEnergyManufacture() and not techNode:GetIsPlasmaManufacture() then
-                techNode:SetResearching()
-            end
-            
-            self:GetTechTree():SetTechNodeChanged(techNode)
-            
-            return true
+                // Allow manufacture nodes happen at multiple facilities at the same time
+                (techNode:GetIsManufacture() and not entity:GetIsResearching())  then
         
+                entity:SetResearching(techNode, self)
+                entity:OnResearch(techNode:GetTechId())
+                
+                if not techNode:GetIsUpgrade() and not techNode:GetIsEnergyManufacture() and not techNode:GetIsPlasmaManufacture() then
+                    techNode:SetResearching()
+                end
+                
+                self:GetTechTree():SetTechNodeChanged(techNode)
+                
+                return true
+                
+            end 
+       
         end
         
     end    
@@ -179,11 +189,7 @@ function Commander:ProcessTechTreeActionForEntity(techNode, position, normal, pi
         
             if(techNode:GetIsResearch() or techNode:GetIsUpgrade() or techNode:GetIsEnergyManufacture() or techNode:GetIsManufacture()) then
             
-                if techNode:GetIsManufacture() then
-                    force = true
-                end
-                
-                success = self:AttemptToResearchOrUpgrade(techNode, force)
+                success = self:AttemptToResearchOrUpgrade(techNode)
                 if success then 
                     keepProcessing = false
                 end
@@ -226,7 +232,7 @@ function Commander:ProcessTechTreeActionForEntity(techNode, position, normal, pi
             elseif(techNode:GetIsBuy()) then
                 success = self:AttemptToBuild(techId, position, normal, orientation, pickVec, false)
             elseif(techNode:GetIsPlasmaManufacture()) then
-                success = self:AttemptToResearchOrUpgrade(techNode, force)
+                success = self:AttemptToResearchOrUpgrade(techNode)
             end
             
             if(success and cost ~= nil) then

@@ -17,7 +17,7 @@ function Ragdoll:OnInit()
 
     ScriptActor.OnInit(self)
     
-    self:SetPhysicsType(Actor.PhysicsType.Dynamic)
+    self:SetPhysicsType(PhysicsType.Dynamic)
     self:SetPhysicsGroup(PhysicsGroup.RagdollGroup)
     
     if(Server) then

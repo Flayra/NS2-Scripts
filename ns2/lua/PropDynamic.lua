@@ -29,11 +29,11 @@ if (Server) then
             self:SetAnimation(self.animationName)
         end
         
-        if self.dynamic then
-            self:SetPhysicsType(Actor.PhysicsType.Dynamic)
+        if self.dynamic and self.animationName ~= "" and self.animationName ~= nil then
+            self:SetPhysicsType(PhysicsType.DynamicServer)
             self:SetPhysicsGroup(PhysicsGroup.RagdollGroup)
         else
-            self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+            self:SetPhysicsType(PhysicsType.Kinematic)
         end
         
         // Don't collide when commanding if not full alpha

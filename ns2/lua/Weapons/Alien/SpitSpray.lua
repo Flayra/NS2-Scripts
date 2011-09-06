@@ -80,7 +80,7 @@ function SpitSpray:CreateSpitProjectile(player)
         local spit = CreateEntity(Spit.kMapName, startPoint, player:GetTeamNumber())
         SetAnglesFromVector(spit, viewCoords.zAxis)
         
-        spit:SetPhysicsType(Actor.PhysicsType.Kinematic)
+        spit:SetPhysicsType(PhysicsType.Kinematic)
         
         local startVelocity = viewCoords.zAxis * SpitSpray.kSpitSpeed
         spit:SetVelocity(startVelocity)
@@ -107,7 +107,7 @@ function SpitSpray:PerformPrimaryAttack(player)
     
     self.spitMode = true
     
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
 
     self:CreateSpitProjectile(player)
     
@@ -120,7 +120,7 @@ function SpitSpray:HealEntities(player)
     
     local success = false
     
-    local ents = GetEntitiesWithinRangeAreVisible("LiveScriptActor", self:GetHealOrigin(player), SpitSpray.kHealRadius, true)
+    local ents = GetEntitiesWithMixinWithinRangeAreVisible("Live", self:GetHealOrigin(player), SpitSpray.kHealRadius, true)
     
     for index, targetEntity in ipairs(ents) do
 
@@ -137,6 +137,11 @@ function SpitSpray:HealEntities(player)
             // Heal structures by multiple of damage(so it doesn't take forever to heal hives, ala NS1)
             if targetEntity:isa("Structure") then
                 health = SpitSpray.kHealingSprayDamage * SpitSpray.kHealStructuresMultiplier
+            end
+            
+            // Don't heal self at full rate - don't want Gorges to be too powerful. Same as NS1.
+            if targetEntity == player then
+                health = health * .5
             end
             
             targetEntity:AddHealth( health )
@@ -157,7 +162,7 @@ function SpitSpray:HealEntities(player)
             success = true
             
         end 
-        
+            
     end
     
     return success
@@ -182,61 +187,6 @@ function SpitSpray:GetHealOrigin(player)
     
 end
 
-// Given a gorge player's position and view angles, return a position and orientation
-// for infestation patch. Used to preview placement via a ghost structure and then to create it.
-// Also returns bool if it's a valid position or not.
-function SpitSpray:GetPositionForInfestation(player)
-
-    local validPosition = false
-    
-    local origin = player:GetEyePos() + player:GetViewAngles():GetCoords().zAxis * SpitSpray.kInfestationRange
-
-    // Trace short distance in front
-    local trace = Shared.TraceRay(player:GetEyePos(), origin, PhysicsMask.AllButPCsAndRagdolls, EntityFilterTwo(player, self))
-    
-    local displayOrigin = Vector()
-    VectorCopy(trace.endPoint, displayOrigin)
-    
-    // If it hits something, position on this surface (must be the world or another structure)
-    if trace.fraction < 1 then
-    
-        if trace.entity == nil then
-            validPosition = true
-        elseif not trace.entity:isa("LiveScriptActor") then
-            validPosition = true
-        end
-        
-        VectorCopy(trace.endPoint, displayOrigin)
-        
-    end
-    
-    local coords = nil
-    
-    if validPosition then
-    
-        // Don't allow placing infestation above or below us and don't draw either
-        local infestationFacing = Vector()
-        VectorCopy(player:GetViewAngles():GetCoords().zAxis, infestationFacing)
-        
-        coords = BuildCoords(trace.normal, infestationFacing, displayOrigin, SpitSpray.kInfestationMaxSize * 2)    
-
-        
-        ASSERT(ValidateValue(coords.xAxis))
-        ASSERT(ValidateValue(coords.yAxis))
-        ASSERT(ValidateValue(coords.zAxis))
-
-        local infestations = GetEntitiesForTeamWithinRange("Infestation", player:GetTeamNumber(), coords.origin, 1)
-        
-        if table.count(infestations) >= 3 then
-            validPosition = false
-        end
-        
-    end
-    
-    return coords, validPosition
-
-end
-
 function SpitSpray:SprayInfestation(player, coords)
 
     player:TriggerEffects("start_create_infestation")
@@ -259,23 +209,11 @@ function SpitSpray:PerformSecondaryAttack(player)
 
     self.spitMode = false
 
-    if Server then           
-    
-        // Trace to see if we hit a wall - if so, spray infestation. Otherwise, heal/attack.
-        /*local coords, valid = self:GetPositionForInfestation(player)        
-        if valid then
-        
-            success = self:SprayInfestation(player, coords)
-            
-        else
-        */
-            self:HealEntities( player )
-            
-        //end
-        
+    if Server then
+        self:HealEntities( player )
     end        
     
-    player:SetActivityEnd( player:AdjustFuryFireDelay(self:GetSecondaryAttackDelay() ))
+    player:SetActivityEnd( player:AdjustAttackDelay(self:GetSecondaryAttackDelay() ))
     
     return true
 

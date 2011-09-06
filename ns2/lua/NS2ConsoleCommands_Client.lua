@@ -33,34 +33,45 @@ end
 function OnCommandTakeDamageIndicator(damageIndicatorMessage)
     
     local player = Client.GetLocalPlayer()
-    local worldX, worldZ, damage = ParseTakeDamageIndicatorMessage(damageIndicatorMessage)
-    player:AddTakeDamageIndicator(worldX, worldZ)
+    if player then
     
-    // Shake the camera if this player supports it.
-    if player.SetCameraShake ~= nil then
-        // Direction not used right now.
-        //local shakeDir = Vector(worldX, player:GetOrigin().y, worldZ) - player:GetOrigin()
-        //shakeDir:Normalize()
-        local amountScalar = damage / player:GetMaxHealth()
-        player:SetCameraShake(amountScalar * Player.kDamageCameraShakeAmount, Player.kDamageCameraShakeSpeed, Player.kDamageCameraShakeTime)
+        local worldX, worldZ, damage = ParseTakeDamageIndicatorMessage(damageIndicatorMessage)
+        player:AddTakeDamageIndicator(worldX, worldZ)
+        
+        // Shake the camera if this player supports it.
+        if player.SetCameraShake ~= nil then
+            // Direction not used right now.
+            //local shakeDir = Vector(worldX, player:GetOrigin().y, worldZ) - player:GetOrigin()
+            //shakeDir:Normalize()
+            local amountScalar = damage / player:GetMaxHealth()
+            player:SetCameraShake(amountScalar * Player.kDamageCameraShakeAmount, Player.kDamageCameraShakeSpeed, Player.kDamageCameraShakeTime)
+        end
+        
     end
     
 end
 
 local cameraShakeDoerTypes = { kDeathMessageIcon.RifleButt, kDeathMessageIcon.Axe, kDeathMessageIcon.Bite, kDeathMessageIcon.SwipeBlink, kDeathMessageIcon.StabBlink }
+local disabledSoundEffectDoerTypes = { kDeathMessageIcon.Flamethrower }
 function OnCommandGiveDamageIndicator(damageIndicatorMessage)
 
-    local damageAmount, doerType, targetIsPlayer, targetTeam = ParseGiveDamageIndicatorMessage(damageIndicatorMessage)
     local player = Client.GetLocalPlayer()
-    player:AddGiveDamageIndicator(damageAmount)
+    if player then
     
-    if targetTeam == GetEnemyTeamNumber(player:GetTeamNumber()) then
-        player:TriggerEffects("give_damage")
-    end
-    
-    // Shake the camera for melee attacks if the target is a player and this local player supports it.
-    if targetIsPlayer and player.SetCameraShake ~= nil and table.contains(cameraShakeDoerTypes, doerType) then
-        player:SetCameraShake(Player.kMeleeHitCameraShakeAmount, Player.kMeleeHitCameraShakeSpeed, Player.kMeleeHitCameraShakeTime)
+        local damageAmount, doerType, targetIsPlayer, targetTeam = ParseGiveDamageIndicatorMessage(damageIndicatorMessage)
+        
+        player:AddGiveDamageIndicator(damageAmount)
+        
+        // Only play sound if the target is on the other team and the doer isn't marked as not playing this effect.
+        if targetTeam == GetEnemyTeamNumber(player:GetTeamNumber()) and not table.contains(disabledSoundEffectDoerTypes, doerType) then
+            player:TriggerEffects("give_damage")
+        end
+        
+        // Shake the camera for melee attacks if the target is a player and this local player supports it.
+        if targetIsPlayer and player.SetCameraShake ~= nil and table.contains(cameraShakeDoerTypes, doerType) then
+            player:SetCameraShake(Player.kMeleeHitCameraShakeAmount, Player.kMeleeHitCameraShakeSpeed, Player.kMeleeHitCameraShakeTime)
+        end
+        
     end
 
 end
@@ -69,21 +80,25 @@ function OnCommandHotgroup(number, hotgroupString)
 
     local player = Client.GetLocalPlayer()
 
-    // Read hotgroup number and list of entities (separated by _)
-    local hotgroupNumber = tonumber(number)
-    local entityList = {}    
+    if player then
     
-    if(hotgroupString ~= nil) then 
-   
-        for currentInt in string.gmatch(hotgroupString, "[0-9]+") do 
+        // Read hotgroup number and list of entities (separated by _)
+        local hotgroupNumber = tonumber(number)
+        local entityList = {}    
         
-            table.insert(entityList, tonumber(currentInt))
+        if(hotgroupString ~= nil) then 
+       
+            for currentInt in string.gmatch(hotgroupString, "[0-9]+") do 
+            
+                table.insert(entityList, tonumber(currentInt))
+                
+            end
             
         end
         
+        player:SetHotgroup(hotgroupNumber, entityList)
+        
     end
-    
-    player:SetHotgroup(hotgroupNumber, entityList)
         
 end
 
@@ -104,13 +119,12 @@ function OnCommandTestSentry()
         local sentries = GetEntitiesForTeamWithinRange("Sentry", player:GetTeamNumber(), player:GetOrigin(), 20)    
         for index, sentry in ipairs(sentries) do
             
-            local targets = GetEntitiesWithinRange("LiveScriptActor", sentry:GetOrigin(), Sentry.kRange)
+            local targets = GetEntitiesWithMixinWithinRange("Live", sentry:GetOrigin(), Sentry.kRange)
             for index, target in pairs(targets) do
             
                 if sentry ~= target then
                     sentry:GetCanSeeEntity(target)
                 end
-                //local validTarget, distanceToTarget = sentry:GetTargetValid(target)
 
             end
         end

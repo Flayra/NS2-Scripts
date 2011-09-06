@@ -89,7 +89,7 @@ function CommanderUI_GetPortraitStatus(entityId)
     local healthScalar = 1
     
     local entity = Shared.GetEntity(entityId)
-    if entity ~= nil and entity:isa("LiveScriptActor") then
+    if entity ~= nil and HasMixin(entity, "Live") then
         healthScalar = entity:GetHealthScalar()
     end
     
@@ -231,15 +231,18 @@ function CommanderUI_GetSelectedBargraphs(entityId)
         table.insert(t, healthText)
         table.insert(t, healthScalar)
         
-        // Build, upgrade or research bar
-        local statusText, statusScalar = ent:GetStatusDescription()
+        // Returns text and 0-1 scalar for status bar on commander HUD when selected. Returns nil to display nothing.
+        if ent.GetStatusDescription then
         
-        if statusText ~= nil then
-            table.insert(t, statusText)
-            table.insert(t, statusScalar)
+            // Build, upgrade or research bar
+            local statusText, statusScalar = ent:GetStatusDescription()
+            
+            if statusText ~= nil then
+                table.insert(t, statusText)
+                table.insert(t, statusScalar)
+            end
+            
         end
-        
-        //Print("CommanderUI_GetSelectedBargraphs() returning %s", table.tostring(t))
     
     end
         
@@ -285,16 +288,18 @@ end
  * Get custom rightside selection text for a single selection
  */
 function CommanderUI_GetSingleSelectionCustomText(entId)
+
     local customText = ""
     
     if entId ~= nil then
     
         local ent = Shared.GetEntity(entId)    
-        if (ent ~= nil) then
+        if ent ~= nil and ent.GetCustomSelectionText then
             customText = ent:GetCustomSelectionText()
         end
         
     end
     
     return customText
+    
 end

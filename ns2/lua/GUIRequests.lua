@@ -52,6 +52,8 @@ function GUIRequests:Uninitialize()
 end
 
 function GUIRequests:Update(deltaTime)
+
+    PROFILE("GUIRequests:Update")
     
     local visible = PlayerUI_ShowSayings()
     if visible then

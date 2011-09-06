@@ -6,12 +6,21 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'PrototypeLab' (Structure)
 
 PrototypeLab.kMapName = "prototypelab"
 
 PrototypeLab.kModelName = PrecacheAsset("models/marine/prototype_module/prototype_module.model")
+
+function PrototypeLab:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function PrototypeLab:OnInit()
 

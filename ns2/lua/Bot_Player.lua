@@ -105,7 +105,7 @@ function BotPlayer:AttackVisibleTarget()
         local nearestTarget = nil
         local nearestTargetDistance = nil
         
-        local targets = GetEntitiesForTeamWithinRange("LiveScriptActor", GetEnemyTeamNumber(player:GetTeamNumber()), player:GetOrigin(), 20)
+        local targets = GetEntitiesWithMixinForTeamWithinRange("Live", GetEnemyTeamNumber(player:GetTeamNumber()), player:GetOrigin(), 20)
         for index, target in pairs(targets) do
         
             if target:GetIsAlive() and target:GetIsVisible() and target:GetCanTakeDamage() and target ~= player then
@@ -323,15 +323,12 @@ function BotPlayer:GenerateMove()
             
             local moved = false            
             
-            if self.pathingEnabled then
             
-                Server.MoveToTarget(PhysicsMask.AIMovement, player, player:GetWaypointGroupName(), orderLocation, 1.5)
-                
-                if self:GetNumPoints() ~= 0 then
-                    self:MoveToPoint(player:GetCurrentPathPoint(), move)
-                    moved = true
-                end
-                
+            Server.MoveToTarget(PhysicsMask.AIMovement, player, GetWaypointGroupName(player), orderLocation, 1.5)
+            
+            if self:GetNumPoints() ~= 0 then
+                self:MoveToPoint(player:GetCurrentPathPoint(), move)
+                moved = true
             end
             
             if not moved then

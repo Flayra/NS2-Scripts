@@ -54,8 +54,14 @@ end
 
 function CloakTargetFilter()
     return  function(target, targetPoint)
-                return not HasMixin(target, "Cloakable") or not target:GetIsCloaked()
-            end
+      return not HasMixin(target, "Cloakable") or not target:GetIsCloaked()
+    end
+end 
+
+function CamouflageTargetFilter()
+    return  function(target, targetPoint)
+      return not HasMixin(target, "Camouflage") or not target:GetIsCamouflaged()
+    end
 end 
 
 //
@@ -90,7 +96,7 @@ end
 // Selects targets based on if they can hurt us
 //
 function HarmfulPrioritizer()
-    return function(target) return target:GetCanDoDamage() end
+    return function(target) return target:GetCanGiveDamage() end
 end
 
 //

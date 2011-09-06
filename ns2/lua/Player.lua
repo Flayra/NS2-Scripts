@@ -11,20 +11,33 @@
 Script.Load("lua/Globals.lua")
 Script.Load("lua/TechData.lua")
 Script.Load("lua/Utility.lua")
-Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/ScriptActor.lua")
 Script.Load("lua/PhysicsGroups.lua")
 Script.Load("lua/TooltipMixin.lua")
 Script.Load("lua/WeaponOwnerMixin.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/ScoringMixin.lua")
+Script.Load("lua/LiveMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FuryMixin.lua")
+Script.Load("lua/FrenzyMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/OrdersMixin.lua")
+Script.Load("lua/FireMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
-
+Script.Load("lua/LOSMixin.lua")
+Script.Load("lua/HiveSightBlipMixin.lua")
 
 /**
  * Player should not be instantiated directly. Only instantiate a Player through
  * one of the derived types.
  */
-class 'Player' (LiveScriptActor)
+class 'Player' (ScriptActor)
 
 Player.kTooltipSound    = PrecacheAsset("sound/ns2.fev/common/tooltip")
 Player.kToolTipInterval = 18
@@ -163,6 +176,7 @@ Player.networkVars =
     showScoreboard          = "boolean",
     sayingsMenu             = "integer (0 to 6)",
     timeLastMenu            = "float",
+    darwinMode              = "boolean",
     
     // True if target under reticle can be damaged
     reticleTarget           = "boolean",
@@ -223,14 +237,38 @@ Player.networkVars =
 }
 
 PrepareClassForMixin(Player, ControllerMixin)
+PrepareClassForMixin(Player, LiveMixin)
+PrepareClassForMixin(Player, UpgradableMixin)
+PrepareClassForMixin(Player, GameEffectsMixin)
+PrepareClassForMixin(Player, FuryMixin)
+PrepareClassForMixin(Player, FlinchMixin)
+PrepareClassForMixin(Player, OrdersMixin)
+PrepareClassForMixin(Player, FireMixin)
 
 function Player:OnCreate()
     
-    LiveScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, TooltipMixin, { kTooltipSound = Player.kTooltipSound, kToolTipInterval = Player.kToolTipInterval })
+    InitMixin(self, WeaponOwnerMixin)
+    InitMixin(self, DoorMixin)
+    InitMixin(self, ScoringMixin, { kMaxScore = kMaxScore })
+    InitMixin(self, LiveMixin)
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FuryMixin)
+    InitMixin(self, FrenzyMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, OrdersMixin)
+    InitMixin(self, FireMixin)
+    InitMixin(self, SelectableMixin)
     if Server then
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
+        InitMixin(self, HiveSightBlipMixin)
     end
     
     self:SetLagCompensated(true)
@@ -264,14 +302,13 @@ function Player:OnCreate()
     
     self.sayingsMenu = 0
     self.timeLastMenu = 0    
+    self.darwinMode = false
     self.timeLastSayingsAction = 0
     self.reticleTarget = false
     self.timeTargetHit = 0
-    self.score = 0
     self.kills = 0
     self.deaths = 0
     
-    self.sighted = false
     self.jumpHandled = false
     self.leftFoot = true
     self.mode = kPlayerMode.Default
@@ -330,13 +367,8 @@ function Player:OnCreate()
 end
 
 function Player:OnInit()
-    
-    // Add the functionality from various mixins to this instance of Player.
-    InitMixin(self, TooltipMixin, { kTooltipSound = Player.kTooltipSound, kToolTipInterval = Player.kToolTipInterval })
-    InitMixin(self, WeaponOwnerMixin)
-    InitMixin(self, DoorMixin)
-    
-    LiveScriptActor.OnInit(self)
+
+    ScriptActor.OnInit(self)
     
     // Only give weapons when playing
     if Server and self:GetTeamNumber() ~= kNeutralTeamType then
@@ -383,7 +415,7 @@ end
 
 function Player:OnEntityChange(oldEntityId, newEntityId)
 
-    LiveScriptActor.OnEntityChange(self, oldEntityId, newEntityId)
+    ScriptActor.OnEntityChange(self, oldEntityId, newEntityId)
     
     if Server and self.hotkeyGroups then
 
@@ -815,7 +847,7 @@ function Player:Reload()
 end
 
 /**
- * Check to see if there's a LiveScriptActor we can use. Checks any attachpoints returned from  
+ * Check to see if there's a ScriptActor we can use. Checks any attachpoints returned from  
  * GetAttachPointOrigin() and if that fails, does a regular traceray. Returns true if we processed the action.
  */
 function Player:Use(timePassed)
@@ -842,7 +874,7 @@ function Player:Use(timePassed)
     
     // Get entities in radius
     
-    local ents = GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), useRange)
+    local ents = GetEntitiesForTeamWithinRange("ScriptActor", self:GetTeamNumber(), self:GetOrigin(), useRange)
     for index, entity in ipairs(ents) do
     
         // Look for attach point
@@ -954,12 +986,14 @@ function Player:GetWeaponHolstered()
     return self.activeWeaponHolstered
 end
 
-function Player:GetExtents()
+function Player:GetExtentsOverride()
+
     local extents = self:GetMaxExtents()
     if self.crouching then
         extents.y = extents.y * (1 - self:GetCrouchShrinkAmount())
     end
     return extents
+    
 end
 
 function Player:GetMaxExtents()
@@ -973,7 +1007,7 @@ function Player:GetIsPlaying()
     return self.gameStarted and (self:GetTeamNumber() == kTeam1Index or self:GetTeamNumber() == kTeam2Index)
 end
 
-function Player:GetCanTakeDamage()
+function Player:GetCanTakeDamageOverride()
     local teamNumber = self:GetTeamNumber()
     return (teamNumber == kTeam1Index or teamNumber == kTeam2Index)
 end
@@ -1111,9 +1145,6 @@ function Player:GetMoveDirection(moveVelocity)
     
 end
 
-function Player:UpdateEnergy(input)
-end
-
 function Player:EndUse(deltaTime)
     if not self:GetIsUsing() then
         return
@@ -1204,11 +1235,21 @@ function Player:UpdateViewAngles(input)
 
     PROFILE("Player:UpdateViewAngles")
     
-    if (self.desiredRoll ~= 0) then
+    if self.desiredRoll ~= nil then
     
         local angles = Angles(self:GetAngles())        
         local kRate = input.time * 10
         angles.roll = SlerpRadians(angles.roll, self.desiredRoll, kRate)
+       
+        self:SetAngles(angles)
+
+    end
+    
+    if self.desiredPitch ~= nil then
+    
+        local angles = Angles(self:GetAngles())        
+        local kRate = input.time * 10
+        angles.pitch = SlerpRadians(angles.pitch, self.desiredPitch, kRate)
        
         self:SetAngles(angles)
 
@@ -1238,6 +1279,42 @@ function Player:SetDesiredPitch(pitch)
     self.desiredPitch = pitch
 end
 
+
+do
+
+    local function GetId(player)
+        if player.clientIndex and player.clientIndex ~= -1 then
+            return player.clientIndex
+        end 
+        return player:GetId()
+    end
+
+    function DumpPlayerData(mover, input)
+
+        local mode
+        
+        if Client then
+            if Shared.GetIsRunningPrediction() then
+                mode = "prediction"
+            else
+                mode = "client"
+            end
+        else
+            mode = "server"
+        end
+        
+        Shared.Message( string.format( ">>> OnProcessMove %s Player %d time = %f", mode, GetId(mover), Shared.GetTime() ) )
+
+        for index, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
+            local origin = player:GetOrigin()
+            local height, radius = player:GetControllerSize()
+            Shared.Message( string.format(">>>> Player %d: %f, %f, %f, %f", GetId(player), origin.x, origin.y, origin.z, radius) )
+        end
+        
+    end
+
+end
+
 // You can't modify a compensated field for another (relevant) entity during OnProcessMove(). The
 // "local" player doesn't undergo lag compensation it's only all of the other players and entities.
 // For example, if health was compensated, you can't modify it when a player was shot -
@@ -1250,7 +1327,7 @@ function Player:OnProcessMove(input)
 
     SetRunningProcessMove(self)
     
-    LiveScriptActor.OnProcessMove(self, input)
+    ScriptActor.OnProcessMove(self, input)
     
     // Only update player movement on server or for local player
     if (self:GetIsAlive() and (Server or (Client.GetLocalPlayer() == self))) then
@@ -1325,6 +1402,7 @@ function Player:OnProcessMove(input)
     end
     
     SetRunningProcessMove(nil)
+
     
 end
 
@@ -1402,6 +1480,31 @@ end
 
 function Player:Unstick()
 
+    // This code causes the player to move erratically when colliding with another
+    // player. It does not appear to actually be necessary, so I've commented it out
+    // but left it in case we discover a need for it.
+    /*
+    local start = Vector(self:GetOrigin())
+
+    local unstickOffset = Vector(0, 0.25, 0)
+    local trace = self.controller:Trace( unstickOffset, self:GetMovePhysicsMask())
+    
+    if trace.fraction == 1 then
+
+        self:SetOrigin(self:GetOrigin() + unstickOffset)
+        self:UpdateControllerFromEntity()
+    
+        if self:GetIsStuck() then
+            // Moving up didn't unstick us, so go back to where we were
+            self:SetOrigin(start)
+            self:UpdateControllerFromEntity()
+            return true
+        else
+            Print("Unstuck!")
+        end
+    
+    end
+    
     // Try moving player in a couple different directions until we're unstuck
     for index, direction in ipairs(Player.kUnstickOffsets) do
     
@@ -1415,6 +1518,7 @@ function Player:Unstick()
         end
 
     end
+    */
     
     return false
     
@@ -1451,11 +1555,25 @@ function Player:UpdatePosition(velocity, time)
     
         // First move the character upwards to allow them to go up stairs and over small obstacles. 
         self:PerformMovement( Vector(0, stepHeight, 0), 1 )
-        offset = self:GetOrigin() - start
+        local steppedStart = self:GetOrigin()
         
-        // Now try moving the controller the desired distance.
-        VectorCopy( startVelocity, velocity )
-        self:PerformMovement( startVelocity * time, maxSlideMoves, velocity )
+        if self:GetIsColliding() then
+
+            // Moving up didn't allow us to go over anything, so move back
+            // to the start position so we don't get stuck in an elevated position
+            // due to not being able to move back down.
+            self:SetOrigin(start)
+            offset = Vector(0, 0, 0)
+        
+        else
+
+            offset = steppedStart - start
+        
+            // Now try moving the controller the desired distance.
+            VectorCopy( startVelocity, velocity )
+            self:PerformMovement( startVelocity * time, maxSlideMoves, velocity )
+            
+        end
         
     else
         offset = Vector(0, 0, 0)
@@ -1723,12 +1841,12 @@ function Player:UpdateAnimationTransitions(timePassed)
         
     end
     
-    LiveScriptActor.UpdateAnimation(self, timePassed)
+    ScriptActor.UpdateAnimation(self, timePassed)
         
 end
 
 function Player:UpdateAnimation()
-    // Override the LiveScriptActor version since we explicitly call this during OnProcessMove
+    // Override the ScriptActor version since we explicitly call this during OnProcessMove
     // for players (so we have consistent results on the client and server).
 end
 
@@ -1916,7 +2034,7 @@ function Player:OnTag(tagName)
 
     //Print("%s:OnTag(%s)(play footsteps: %s)", self:GetClassName(), tagName, ToString(self:GetPlayFootsteps()))
 
-    LiveScriptActor.OnTag(self, tagName)
+    ScriptActor.OnTag(self, tagName)
 
     // Play footstep when foot hits the ground
     if(string.lower(tagName) == "step" and self:GetPlayFootsteps()) then
@@ -2283,7 +2401,7 @@ end
 
 function Player:OnAnimationComplete(animName)
 
-    LiveScriptActor.OnAnimationComplete(self, animName)
+    ScriptActor.OnAnimationComplete(self, animName)
 
     if animName == Player.kAnimTaunt then
         self:SetDesiredCameraDistance(0)
@@ -2327,10 +2445,6 @@ end
 
 function Player:GetCanBeUsed(player)
     return false
-end
-
-function Player:GetScore()
-    return self.score
 end
 
 function Player:GetScoreboardChanged()
@@ -2449,7 +2563,7 @@ function Player:GetPlayerStatusDesc()
     return ""
 end
 
-function Player:GetCanDoDamage()
+function Player:GetCanGiveDamageOverride()
     return true
 end
 
@@ -2464,6 +2578,19 @@ end
 
 function Player:GetIsUsing ()
   return self.isUsing
+end
+
+function Player:GetDarwinMode()
+    return self.darwinMode
+end
+
+function Player:OnSighted(sighted)
+    if (self.GetActiveWeapon) then
+        local weapon = self:GetActiveWeapon()
+        if (weapon ~= nil) then
+            weapon:SetRelevancy(sighted)
+        end
+    end
 end
 
 Shared.LinkClassToMap("Player", Player.kMapName, Player.networkVars )

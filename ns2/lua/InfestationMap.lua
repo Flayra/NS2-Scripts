@@ -9,11 +9,11 @@
 // The infestation map is a sparse map used to quickly find out what infestations can affect you
 
 
-function UpdateInfestationMasks(entityList)
+function UpdateInfestationMasks()
 
     PROFILE("InfestationManager:UpdateInfestationMasks")
 
-    for index, entity in ientitylist(entityList) do
+    for index, entity in ientitylist(Shared.GetEntitiesWithTag("GameEffects")) do
         // Don't do this for infestations.
         if not entity:isa("Infestation") then
             UpdateInfestationMask(entity)
@@ -25,12 +25,16 @@ end
 // Clear OnInfestation game effect mask on all entities, unless they are standing on infestation
 function UpdateInfestationMask(forEntity)
     
-    // See if entity is on infestation.
-    local onInfestation = Server.infestationMap:GetIsOnInfestation(forEntity:GetOrigin())
+    if HasMixin(forEntity, "GameEffects") then
+    
+        local infestationVerticalSize = GetInfestationVerticalSize(forEntity)
+        local onInfestation = Server.infestationMap:GetIsOnInfestation(forEntity:GetOrigin(), infestationVerticalSize)
+        
+        // Update the mask.
+        if forEntity:GetGameEffectMask(kGameEffect.OnInfestation) ~= onInfestation then
+            forEntity:SetGameEffectMask(kGameEffect.OnInfestation, onInfestation)
+        end
 
-    // Set the mask
-    if forEntity.GetGameEffectMask and (forEntity:GetGameEffectMask(kGameEffect.OnInfestation) ~= onInfestation) then
-        forEntity:SetGameEffectMask(kGameEffect.OnInfestation, onInfestation)
     end
         
 end
@@ -55,10 +59,10 @@ function InfestationMap:Init()
     
 end
 
-function InfestationMap:GetIsOnInfestation(point)   
+function InfestationMap:GetIsOnInfestation(point, verticalSize)   
     local key = PointToCellKey(point)
     local cell = self.cellPointMap[key] 
-    local result = cell and cell:GetIsOnInfestation(point) or false  
+    local result = cell and cell:GetIsOnInfestation(point, verticalSize) or false  
     self.logPoint("OnInfest %s -> key %s -> cell %s -> %s", point, key, cell, result)
     return result
 end
@@ -163,7 +167,7 @@ function InfestationMapCell:Init(point, logger)
     return self
 end
 
-function InfestationMapCell:GetIsOnInfestation(point)
+function InfestationMapCell:GetIsOnInfestation(point, verticalSize)
     local removes = {}
     local result = false
     for key,data in pairs(self.infestTable) do
@@ -182,8 +186,8 @@ function InfestationMapCell:GetIsOnInfestation(point)
                     // Check dot product
                     local toPoint = point - data.origin
                     local verticalProjection = math.abs( infestation:GetCoords().yAxis:DotProduct( toPoint ) )
-                    Server.infestationMap.logPoint("vertProj %s vs %s", verticalProjection,  Infestation.kVerticalSize)
-                    result = (verticalProjection < Infestation.kVerticalSize)
+                    Server.infestationMap.logPoint("vertProj %s vs %s", verticalProjection,  verticalSize)
+                    result = (verticalProjection < (verticalSize + kEpsilon))
                 end
                 Server.infestationMap.logPoint("%s -> %s", infestation, result)
                 if result then

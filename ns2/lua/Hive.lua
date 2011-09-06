@@ -43,10 +43,9 @@ Hive.kHealthPercentage = .08
 Hive.kHealthUpdateTime = 1
 
 // A little bigger than we might expect because the hive origin isn't on the ground
-Hive.kHiveNumEggs = 3
-Hive.kMassNumEggs = 5
-Hive.kColonyNumEggs = 7
-Hive.kMaxEggDropDistance = 15
+Hive.kHiveNumEggs = 12
+Hive.kEggMinRange = 4
+Hive.kEggMaxRange = 22
 
 if Server then
     Script.Load("lua/Hive_Server.lua")
@@ -80,12 +79,24 @@ function Hive:GetTechButtons(techId)
     
     if(techId == kTechId.RootMenu) then 
     
-        techButtons = { kTechId.Cyst, kTechId.Drifter, kTechId.MarkersMenu, kTechId.UpgradesMenu, kTechId.SetRally, kTechId.Metabolize }
+        techButtons = 
+        { 
+            kTechId.Cyst, kTechId.Drifter, kTechId.MarkersMenu, 
+            kTechId.UpgradesMenu, kTechId.SetRally, kTechId.Metabolize
+        }
         
     elseif(techId == kTechId.MarkersMenu) then 
-        techButtons = {kTechId.RootMenu, kTechId.ThreatMarker, kTechId.LargeThreatMarker, kTechId.NeedHealingMarker, kTechId.WeakMarker, kTechId.ExpandingMarker}
+        techButtons =
+        {
+            kTechId.RootMenu, kTechId.ThreatMarker, kTechId.LargeThreatMarker, 
+            kTechId.NeedHealingMarker, kTechId.WeakMarker, kTechId.ExpandingMarker
+        }
     elseif(techId == kTechId.UpgradesMenu) then 
-        techButtons = {kTechId.RootMenu, kTechId.DrifterFlareTech, kTechId.MetabolizeTech, kTechId.None, kTechId.None, kTechId.None, kTechId.None, kTechId.None}
+        techButtons = 
+        {
+            kTechId.RootMenu, kTechId.DrifterFlareTech, kTechId.MetabolizeTech, kTechId.None, 
+            kTechId.None, kTechId.None, kTechId.None, kTechId.None
+        }
     end
     
     return techButtons
@@ -129,6 +140,15 @@ function Hive:OnInit()
     
     CommandStructure.OnInit(self)
     
+    if Server then
+        // Set on init so first egg isn't created right away
+        self.timeOfLastEgg = Shared.GetTime()
+        
+        // Pre-compute list of egg spawn points
+        self:GenerateEggSpawns()
+        
+    end
+    
     if (Client) then
         // Create glowy "plankton" swimming around hive, along with mist and glow
         local coords = self:GetCoords()
@@ -156,14 +176,3 @@ end
 
 Shared.LinkClassToMap("Hive",    Hive.kLevel1MapName, Hive.networkVars)
 
-// Create new classes here so L2 and L3 hives can be created for test cases without
-// create a basic hive and then upgrading it
-class 'HiveL2' (Hive)
-
-HiveL2.kMapName = "hivel2"
-Shared.LinkClassToMap("HiveL2",    HiveL2.kMapName, {})
-
-class 'HiveL3' (HiveL2)
-
-HiveL3.kMapName = "hivel3"
-Shared.LinkClassToMap("HiveL3",    HiveL3.kMapName, {})

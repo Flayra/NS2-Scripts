@@ -38,7 +38,7 @@ function Weapon:SetWeaponWorldState(state)
     
         if state then
         
-            self:SetPhysicsType(Actor.PhysicsType.DynamicServer)
+            self:SetPhysicsType(PhysicsType.DynamicServer)
     
             // So it doesn't affect player movement and so collide callback is called
             self:SetPhysicsGroup(PhysicsGroup.DroppedWeaponGroup)
@@ -56,7 +56,7 @@ function Weapon:SetWeaponWorldState(state)
             
         else
         
-            self:SetPhysicsType(Actor.PhysicsType.None)
+            self:SetPhysicsType(PhysicsType.None)
             self:SetPhysicsGroup(PhysicsGroup.WeaponGroup)
             
             self:UpdatePhysicsModel()

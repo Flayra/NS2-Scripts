@@ -17,7 +17,7 @@ class 'AlienTeam' (PlayingTeam)
 
 // Innate alien regeneration
 AlienTeam.kAutoHealInterval = 2
-AlienTeam.kAutoHealPercent = .02
+AlienTeam.kOrganicStructureHealRate = 5     // Health per second
 AlienTeam.kInfestationUpdateRate = 2
 AlienTeam.kInfestationHurtInterval = 2
 
@@ -43,6 +43,8 @@ function AlienTeam:Initialize(teamName, teamNumber)
     
     self.upgradeStructureManager = UpgradeStructureManager()
     self.upgradeStructureManager:Initialize(AlienTeam.kSupportingStructureClassNames, AlienTeam.kUpgradeStructureClassNames, AlienTeam.kUpgradedStructureTechTable)
+    
+    self.eggList = {}
     
 end
 
@@ -96,8 +98,6 @@ function AlienTeam:Update(timePassed)
     
     self:UpdateTeamAutoHeal(timePassed)
     
-    self:UpdateHiveSight()
-    
     self:UpdateAlienResearchProgress()
     
 end
@@ -130,20 +130,24 @@ function AlienTeam:UpdateTeamAutoHeal(timePassed)
     
     if self.timeOfLastAutoHeal == nil or (time > (self.timeOfLastAutoHeal + AlienTeam.kAutoHealInterval)) then
     
-        // Heal all players by this amount
-        local teamEnts = GetEntitiesForTeam("LiveScriptActor", self:GetTeamNumber())
+        // Heal everything on infestation by this amount
+        local teamEnts = GetEntitiesWithMixinForTeam("Live", self:GetTeamNumber())
+        
+        local intervalLength = AlienTeam.kAutoHealInterval
+        if self.timeOfLastAutoHeal ~= nil then
+            intervalLength = time - self.timeOfLastAutoHeal
+        end
         
         for index, entity in ipairs(teamEnts) do
         
-            if entity:GetIsAlive() then
+            // This affects drifters and hives too, even though they aren't on infestation
+            if entity:GetIsAlive() and entity:GetGameEffectMask(kGameEffect.OnInfestation) then
             
-                if entity:isa("Drifter") or (entity:isa("Alien") and entity:GetGameEffectMask(kGameEffect.OnInfestation)) then
-            
-                    // Entities always get at least 1 point back
-                    local healthBack = math.max(entity:GetMaxHealth() * AlienTeam.kAutoHealPercent, 1)
-                    entity:AddHealth(healthBack, true)
-                    
-                end
+                // Cap health back at 2%/sec
+                local healthBack = AlienTeam.kOrganicStructureHealRate * intervalLength
+                healthBack = math.min(healthBack, 0.02*entity:GetMaxHealth())
+                //Print("%s OnInfestation, healed %.2f", entity:GetClassName(), healthBack)
+                entity:AddHealth(healthBack, true)
                 
             end
             
@@ -162,7 +166,7 @@ function AlienTeam:UpdateTeamAutoHeal(timePassed)
               if LookupTechData(structure:GetTechId(), kTechDataRequiresInfestation) and not structure:GetGameEffectMask(kGameEffect.OnInfestation) then            
                 // Take damage!
                 local damage = structure:GetMaxHealth() * kBalanceInfestationHurtPercentPerSecond/100 * AlienTeam.kInfestationHurtInterval               
-                structure:TakeDamage(damage, nil, nil, structure:GetOrigin(), nil)                
+                structure:TakeDamage(damage, nil, nil, structure:GetOrigin(), nil)
               end
             end         
         end
@@ -172,86 +176,6 @@ function AlienTeam:UpdateTeamAutoHeal(timePassed)
     end
     
 end
-
-// Returns blipType if we should add a hive sight blip for this entity. Returns kBlipType.Undefined if 
-// we shouldn't add one.
-function AlienTeam:GetBlipType(entity)
-
-    local blipType = kBlipType.Undefined
-    
-    if entity:isa("LiveScriptActor") and entity:GetIsVisible() and entity:GetIsAlive() and not entity:isa("Infestation") then
-    
-        if entity:GetTeamNumber() == self:GetTeamNumber() then
-        
-            blipType = kBlipType.Friendly
-            
-            local underAttack = false
-            
-            local damageTime = entity:GetTimeOfLastDamage()
-            if damageTime ~= nil and (Shared.GetTime() < (damageTime + kHiveSightDamageTime)) then
-            
-                // Draw blip as under attack
-                blipType = kBlipType.FriendlyUnderAttack
-                
-                underAttack = true
-                
-            end
-            
-            // If it's a hive or harvester, add special icon to show how important it is
-            if entity:isa("Hive") or entity:isa("Harvester") then
-
-                if not underAttack then            
-                    blipType = kBlipType.TechPointStructure
-                end
-                
-            end
-            
-        elseif(entity:GetTeamNumber() == GetEnemyTeamNumber(self:GetTeamNumber()) and (entity.sighted or entity:GetGameEffectMask(kGameEffect.Parasite) or entity:GetGameEffectMask(kGameEffect.OnInfestation))) then
-            blipType = kBlipType.Sighted
-        end
-        
-        // Only send other structures if they are under attack or parasited
-        if ((blipType == kBlipType.Sighted) or (blipType == kBlipType.Friendly)) and entity:isa("Structure") and (not underAttack) and not entity:GetGameEffectMask(kGameEffect.Parasite) then
-            blipType = kBlipType.Undefined
-        end
-        
-    end
-
-    return blipType
-    
-end
-
-function AlienTeam:UpdateHiveSight()
-
-    PROFILE("AlienTeam:UpdateHiveSight")
-    
-    if(GetGamerules():GetGameStarted() and self:GetIsAlienTeam()) then
-    
-        // Loop through enemy entities, creating blips for ones that are sighted. Each entry is a pair with the entity and it's blip type
-        local time = Shared.GetTime()
-        
-        local blips = EntityListToTable(Shared.GetEntitiesWithClassname("Blip"))
-        
-        local allScriptActors = Shared.GetEntitiesWithClassname("ScriptActor")
-        for entIndex, entity in ientitylist(allScriptActors) do
-        
-            local blipType = self:GetBlipType(entity)
-            
-            if(blipType ~= kBlipType.Undefined) then
-            
-                CreateUpdateBlip(blips, entity, blipType, time)
-                
-            end        
-            
-        end
-        
-        // Now sync the sighted entities with the blip entities, creating or deleting them
-        self:DeleteOldBlips(time)
-        
-    end
-    
-end
-
 
 /**
  * Compute the research precent based on the research percent of all prerequisites for all the alien types.
@@ -301,24 +225,6 @@ function AlienTeam:UpdateAlienResearchProgress()
 
 end
 
-function AlienTeam:DeleteOldBlips(time)
-
-    PROFILE("AlienTeam:DeleteOldBlips")
-
-    // We need to convert the EntityList to a table as we are destroying the entities
-    // inside the EntityList.
-    local entityTable = EntityListToTable(Shared.GetEntitiesWithClassname("Blip"))
-    for index, blip in ipairs(entityTable) do
-    
-        if blip.timeOfUpdate < time then
-        
-            DestroyEntity(blip)
-            
-        end
-        
-    end
-    
-end
 
 function AlienTeam:GetUmbraCrags()
 
@@ -345,20 +251,20 @@ function AlienTeam:GetFuryWhips()
 
     local whips = GetEntitiesForTeam("Whip", self:GetTeamNumber())
     
-    local FuryWhips = {}    
+    local furyWhips = {}    
     
     // Get furying whips
     for index, whip in ipairs(whips) do
     
         if whip:GetIsFuryActive() then
         
-            table.insert(FuryWhips, whip)
+            table.insert(furyWhips, whip)
             
         end
         
     end
     
-    return FuryWhips
+    return furyWhips
 
 end
 
@@ -395,17 +301,16 @@ end
 
 function AlienTeam:UpdateFuryGameEffects(entities)
 
-    local FuryWhips = self:GetFuryWhips()
+    local furyWhips = self:GetFuryWhips()
     
-    if table.count(FuryWhips) > 0 then
+    if table.count(furyWhips) > 0 then
     
         for index, entity in ipairs(entities) do
         
-            // Live script actors (players, structures)
-            if entity.SetFuryLevel then
+            if HasMixin(entity, "Fury") then
 
                 // Get distance to whip
-                for index, whip in ipairs(FuryWhips) do
+                for index, whip in ipairs(furyWhips) do
                 
                     if (entity:GetOrigin() - whip:GetOrigin()):GetLengthSquared() < Whip.kFuryRadius*Whip.kFuryRadius then
                     
@@ -443,15 +348,15 @@ function AlienTeam:UpdateShadeEffects(teamEntities, enemyPlayers)
                 if table.count(shades) > 0 then
             
                     for index, shade in ipairs(shades) do
-                    
-                        local distance = (entity:GetOrigin() - shade:GetOrigin()):GetLength()
+                        if (shade:GetIsActive() and shade:GetIsBuilt()) then
+                            local distance = (entity:GetOrigin() - shade:GetOrigin()):GetLength()
                         
-                        if (distance < Shade.kCloakRadius) and (distance < disorientedMinDistance) then
+                            if (distance < Shade.kCloakRadius) and (distance < disorientedMinDistance) then
                             
-                            disorientedMinDistance = distance
+                                disorientedMinDistance = distance
                         
-                        end
-                        
+                            end
+                        end                        
                     end
                         
                 end
@@ -478,7 +383,7 @@ function AlienTeam:InitTechTree()
     // Add special alien menus
     self.techTree:AddMenu(kTechId.MarkersMenu)
     self.techTree:AddMenu(kTechId.UpgradesMenu)
-    self.techTree:AddMenu(kTechId.ShadePhantasmMenu)
+    self.techTree:AddMenu(kTechId.ShadePhantomMenu)
     
     // Add markers (orders)
     self.techTree:AddSpecial(kTechId.ThreatMarker, true)
@@ -551,16 +456,14 @@ function AlienTeam:InitTechTree()
 
     // Shade
     self.techTree:AddUpgradeNode(kTechId.UpgradeShade,           kTechId.Shade,               kTechId.None)
-    self.techTree:AddBuildNode(kTechId.MatureShade,               kTechId.None,          kTechId.None)
+    self.techTree:AddBuildNode(kTechId.MatureShade,               kTechId.TwoHives,          kTechId.None)
     self.techTree:AddActivation(kTechId.ShadeDisorient,               kTechId.None,         kTechId.None)
     self.techTree:AddActivation(kTechId.ShadeCloak,                   kTechId.None,         kTechId.None)
     
-    // Shade targeted abilities - treat phantasms as build nodes so we show ghost and attach points for fake hive
-    self.techTree:AddResearchNode(kTechId.PhantasmTech,             kTechId.MatureShade,         kTechId.None)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmFade,           kTechId.PhantasmTech,        kTechId.MatureShade)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmOnos,           kTechId.None,        kTechId.None)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmHive,           kTechId.PhantasmTech,        kTechId.MatureShade)
-
+    // Shade targeted abilities - treat Phantoms as build nodes so we show ghost and attach points for fake hive
+    self.techTree:AddResearchNode(kTechId.PhantomTech,             kTechId.MatureShade,         kTechId.None)
+    self.techTree:AddBuildNode(kTechId.ShadePhantomFade,           kTechId.PhantomTech,         kTechId.MatureShade)
+    self.techTree:AddBuildNode(kTechId.ShadePhantomOnos,           kTechId.PhantomTech,         kTechId.None)
 
     // Crag upgrades
     self.techTree:AddResearchNode(kTechId.AlienArmor1Tech,        kTechId.Crag,                kTechId.None)
@@ -742,3 +645,85 @@ function AlienTeam:UpdateTeamSpecificGameEffects(teamEntities, enemyPlayers)
     self:UpdateShadeEffects(teamEntities, enemyPlayers)
 
 end
+
+function AlienTeam:AddEgg(eggId)    
+    table.insertunique(self.eggList, eggId)
+end
+
+function AlienTeam:RemoveEgg(eggId)
+    table.removevalue(self.eggList, eggId)
+end
+
+// tries to find another available egg for a player
+function AlienTeam:QueuePlayerForAnotherEgg(currentEggId, playerId, reverse)
+
+    if self.eggList == nil then
+        return false
+    end
+    
+    local success = false       
+    local eggCount = table.count(self.eggList)
+    
+    if eggCount > 0 then
+    
+        local takeNext = false
+        // start with index 1 if player has no egg assigned
+        local eggIndex = 1
+        local listedEggId = 0
+        
+        if currentEggId then
+            eggIndex = table.find(self.eggList, currentEggId)
+        end
+        
+        ASSERT(eggIndex ~= nil, "Player used an invalid eggId.")
+        
+        for index = 1, eggCount do
+            
+            if reverse then
+                eggIndex = eggIndex - 1         
+            else
+                eggIndex = eggIndex + 1
+            end
+            
+            if eggIndex < 1 then
+                eggIndex = table.count(self.eggList)
+            elseif eggIndex > table.count(self.eggList) then
+                eggIndex = 1
+            end             
+            
+            listedEggId = self.eggList[eggIndex]            
+            //Print("check egg (%s)", tostring(listedEggId))
+            
+            if self:QueuePlayerToEgg(listedEggId, playerId) then
+            
+                if currentEggId then // that should actually never be nil
+                    Shared.GetEntity(currentEggId):SetEggFree()
+                end
+                
+                successs = true
+                break           
+                
+            end         
+            
+        end
+            
+    end
+    
+    return success
+
+end
+
+function AlienTeam:QueuePlayerToEgg(eggId, playerId)
+
+    local success = false
+    
+    // made here another check, because I'm not sure if I will call the function from somewhere else where I don't check for that
+    if Shared.GetEntity(eggId):GetIsFree() then
+        Shared.GetEntity(eggId):SetQueuedPlayerId(playerId)
+        success = true
+    end
+    
+    return success
+
+end
+

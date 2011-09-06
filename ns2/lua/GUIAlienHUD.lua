@@ -74,6 +74,11 @@ GUIAlienHUD.kInactiveAbilityBarOffset = Vector(-GUIAlienHUD.kInactiveAbilityBarW
 GUIAlienHUD.kSelectedAbilityColor = Color(1, 1, 1, 1)
 GUIAlienHUD.kUnselectedAbilityColor = Color(0.5, 0.5, 0.5, 1)
 
+GUIAlienHUD.kPhantomTextFontSize = 24
+GUIAlienHUD.kPhantomProgressBarWidth = 200
+GUIAlienHUD.kPhantomProgressBarHeight = 10
+GUIAlienHUD.kPhantomProgressBarColor = Color(0.0, 0.24313725490196078431372549019608, 0.48235294117647058823529411764706, 0.5)
+
 function GUIAlienHUD:Initialize()
 
     // Stores all state related to fading balls.
@@ -163,6 +168,27 @@ function GUIAlienHUD:CreateHealthBall()
     self.armorText:SetInheritsParentAlpha(true)
     
     self.healthBall:GetBackground():AddChild(self.armorText)
+    
+    // Add bar that goes down over time
+    self.phantomProgressBar = GUIManager:CreateGraphicItem()
+    self.phantomProgressBar:SetSize(Vector(GUIAlienHUD.kPhantomProgressBarWidth, GUIAlienHUD.kPhantomProgressBarHeight, 0))
+    self.phantomProgressBar:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
+    self.phantomProgressBar:SetPosition(Vector(0, -20, 0))
+    self.phantomProgressBar:SetColor(GUIAlienHUD.kPhantomProgressBarColor)
+    
+    // Display "Phantom" help text
+    self.phantomText = GUIManager:CreateTextItem()
+    self.phantomText:SetIsVisible(false)
+    self.phantomText:SetFontSize(GUIAlienHUD.kPhantomTextFontSize)
+    self.phantomText:SetFontName(GUIAlienHUD.kTextFontName)
+    self.phantomText:SetPosition(Vector(0, GUIAlienHUD.kHealthTextYOffset, 0))
+    self.phantomText:SetColor(GUIAlienHUD.kFontColor)
+    self.phantomText:SetInheritsParentAlpha(true)    
+    self.phantomText:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
+    self.phantomText:SetTextAlignmentX(GUIItem.Align_Center)
+    self.phantomText:SetTextAlignmentY(GUIItem.Align_Center)    
+    self.phantomText:SetPosition(Vector(0, -50, 0))
+    self.phantomText:SetText(Locale.ResolveString("ALIEN_HUD_PHANTOM"))
     
 end
 
@@ -300,9 +326,12 @@ function GUIAlienHUD:Uninitialize()
 end
 
 function GUIAlienHUD:Update(deltaTime)
+
+    PROFILE("GUIAlienHUD:Update")
     
     self:UpdateHealthBall(deltaTime)
     self:UpdateEnergyBall(deltaTime)
+    self:UpdatePhantom(deltaTime)
     
 end
 
@@ -343,6 +372,26 @@ function GUIAlienHUD:UpdateEnergyBall(deltaTime)
     self:UpdateFading(self.energyBall:GetBackground(), self.energyBarPercentage, deltaTime)
     
     self:UpdateAbilities(deltaTime)
+    
+end
+
+function GUIAlienHUD:UpdatePhantom(deltaTime)
+
+    local visible = false
+    local player = Client.GetLocalPlayer()
+    local progressWidth = GUIAlienHUD.kPhantomProgressBarWidth
+    
+    if player and HasMixin(player, "Phantom") and player:GetIsPhantom() then
+    
+        visible = true
+        progressWidth = GUIAlienHUD.kPhantomProgressBarWidth * (player:GetPhantomLifetime() / kPhantomLifetime)
+        
+    end
+    
+    self.phantomText:SetIsVisible(visible)
+    
+    self.phantomProgressBar:SetSize(Vector(progressWidth, GUIAlienHUD.kPhantomProgressBarHeight, 0))    
+    self.phantomProgressBar:SetIsVisible(visible)
     
 end
 

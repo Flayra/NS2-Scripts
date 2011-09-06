@@ -25,7 +25,7 @@ StabBlink.kDamage = kStabDamage
 StabBlink.kPrimaryAttackDelay = kStabFireDelay
 StabBlink.kPrimaryEnergyCost = kStabEnergyCost
 StabBlink.kDamageType = kStabDamageType
-StabBlink.kRange = 3
+StabBlink.kRange = 1
 StabBlink.kStabDuration = 1
 
 function StabBlink:GetPrimaryEnergyCost(player)
@@ -57,7 +57,7 @@ function StabBlink:PerformPrimaryAttack(player)
     Blink.PerformPrimaryAttack(self, player)
     
     // Play random animation
-    player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
 
     player:SetAnimAndMode(chooseWeightedEntry(Fade.kAnimStabTable), kPlayerMode.FadeStab)
     return true

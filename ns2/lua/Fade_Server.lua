@@ -18,8 +18,8 @@ function Fade:InitWeapons()
     
 end
 
-function Fade:GetCanTakeDamage()
-    return Alien.GetCanTakeDamage(self) and not self:GetIsBlinking()
+function Fade:GetCanTakeDamageOverride()
+    return Alien.GetCanTakeDamageOverride(self) and not self:GetIsBlinking()
 end
 
 function Fade:OnUpdate(deltaTime)

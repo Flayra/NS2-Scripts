@@ -14,6 +14,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Shift' (Structure)
 
@@ -30,6 +31,14 @@ Shift.kEchoEffect = PrecacheAsset("cinematics/alien/shift/echo.cinematic")
 Shift.kEnergizeEffect = PrecacheAsset("cinematics/alien/shift/energize.cinematic")
 Shift.kEnergizeSmallTargetEffect = PrecacheAsset("cinematics/alien/shift/energize_small.cinematic")
 Shift.kEnergizeLargeTargetEffect = PrecacheAsset("cinematics/alien/shift/energize_large.cinematic")
+
+function Shift:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function Shift:GetIsAlienStructure()
     return true
@@ -70,7 +79,7 @@ function Shift:OnResearchComplete(structure, researchId)
         // Transform into mature shift
         if structure and (structure:GetId() == self:GetId()) and (researchId == kTechId.UpgradeShift) then
         
-            success = self:Upgrade(kTechId.MatureShift)
+            success = self:UpgradeToTechId(kTechId.MatureShift)
             
         end
         
@@ -89,7 +98,7 @@ function Shift:TriggerEnergize()
     Shared.CreateEffect(nil, Shift.kEnergizeEffect, self)
     self:PlaySound(Shift.kEnergizeSoundEffect)
 
-    local ents = GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), kEnergizeRange)
+    local ents = GetEntitiesWithMixinForTeamWithinRange("GameEffects", self:GetTeamNumber(), self:GetOrigin(), kEnergizeRange)
     table.removevalue(ents, self)
     
     for index, ent in ipairs(ents) do
@@ -104,6 +113,7 @@ function Shift:TriggerEnergize()
     end
     
     return true
+    
 end
 
 function Shift:PerformActivation(techId, position, normal, commander)

@@ -78,7 +78,7 @@ function CommanderUI_GetFocusSelectionIcons()
     
     local entity = player:GetRepresentativeSelectedEntity()
     
-    if entity ~= nil and entity:isa("LiveScriptActor") then
+    if entity ~= nil and HasMixin(entity, "Upgradable") then
     
         // Get upgrades 
         local upgrades = entity:GetUpgrades()
@@ -123,22 +123,22 @@ end
 
 function Commander:GetFocusSelectionRatios()
 
-    local t = {}
+    local t = { }
     
     local entity = Client.GetLocalPlayer():GetRepresentativeSelectedEntity()
     
-    if entity ~= nil and entity:isa("LiveScriptActor") then
+    if entity ~= nil and HasMixin(entity, "Live") then
     
-        // Return health (colors are RBA)
-        table.insert(t, ColorArrayToInt(GetHealthColor(entity:GetHealth()/entity:GetMaxHealth())))
+        // Return health (colors are RBA).
+        table.insert(t, ColorArrayToInt(GetHealthColor(entity:GetHealth() / entity:GetMaxHealth())))
         table.insert(t, math.ceil(entity:GetHealth()))
         table.insert(t, math.ceil(entity:GetMaxHealth()))
         table.insert(t, false)
         
-        // Return energy display, if any
-        if entity:isa("Structure") and entity:GetMaxEnergy() > 0 then
+        // Return energy display, if any.
+        if HasMixin(entity, "Energy") and entity:GetMaxEnergy() > 0 then
         
-            // White
+            // White.
             local component = 127 + (entity:GetEnergy() / entity:GetMaxEnergy()) * 128
             table.insert(t, ColorArrayToInt({component, component, component}))
             table.insert(t, math.ceil(entity:GetEnergy()))

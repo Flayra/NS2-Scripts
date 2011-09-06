@@ -33,7 +33,7 @@ function ResourcePoint:OnInit()
     self:SetPhysicsGroup(PhysicsGroup.AttachClassGroup)
     
     // Make the nozzle kinematic so that the player will collide with it.
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
     
     self:SetTechId(kTechId.ResourcePoint)
     

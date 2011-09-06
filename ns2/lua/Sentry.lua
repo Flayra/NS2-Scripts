@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Sentry' (Structure)
 
@@ -42,11 +43,11 @@ PrecacheMultipleAssets(Sentry.kRicochetEffect, kSurfaceList)
 Sentry.kPingInterval = 4
 Sentry.kFov = 160
 Sentry.kMaxPitch = 45
-Sentry.kMaxYaw = Sentry.kFov/2
+Sentry.kMaxYaw = Sentry.kFov / 2
 
 Sentry.kBaseROF = kSentryAttackBaseROF
 Sentry.kRandROF = kSentryAttackRandROF
-Sentry.kSpread = Vector( 0.02618, 0.02618, 0.02618 )
+Sentry.kSpread = Math.Radians(3)
 Sentry.kBulletsPerSalvo = kSentryAttackBulletsPerSalvo
 Sentry.kDamagePerBullet = kSentryAttackDamage
 Sentry.kBarrelScanRate = 60      // Degrees per second to scan back and forth with no target
@@ -95,6 +96,8 @@ local networkVars = {
 function Sentry:OnCreate()
 
     Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
     
     self.desiredYawDegrees = 0
     self.desiredPitchDegrees = 0    
@@ -148,7 +151,7 @@ function Sentry:OnInit()
             Sentry.kRange, 
             true,
             { kMarineStaticTargets, kMarineMobileTargets },
-            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter() })
+            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter(), CamouflageTargetFilter() })
     end
 end
 
@@ -340,7 +343,7 @@ function Sentry:UpdatePoseParameters(deltaTime)
     
 end
 
-function Sentry:GetCanDoDamage()
+function Sentry:GetCanGiveDamageOverride()
     return true
 end
 

@@ -84,6 +84,25 @@ function CamouflageMixin:OnUpdate(deltaTime)
     self:_UpdateCamouflage()
 end
 
+if Client then
+
+    function CamouflageMixin:OnUpdateRender()
+
+        PROFILE("CamouflageMixin:OnSynchronized")
+    
+        local newHiddenState = self:GetIsCamouflaged()
+        if self.clientCamoed ~= newHiddenState then
+        
+            local isEnemy = GetEnemyTeamNumber(self:GetTeamNumber()) == Client.GetLocalPlayer():GetTeamNumber()
+            self:TriggerEffects("client_cloak_changed", {cloaked = newHiddenState, enemy = isEnemy})
+            self.clientCamoed = newHiddenState
+            
+        end
+        
+    end
+    
+end
+
 //self.movementModiferState
 function CamouflageMixin:GetCamouflageMaxSpeed(walking)
 

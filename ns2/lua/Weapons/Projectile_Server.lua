@@ -46,9 +46,9 @@ function Projectile:SetPhysicsType(physicsType)
     
     if (self.physicsBody) then
     
-        if (self.physicsType == Actor.PhysicsType.Kinematic) then
+        if (self.physicsType == PhysicsType.Kinematic) then
             self.physicsBody:SetSimulationEnabled(false)
-        elseif (self.physicsType == Actor.PhysicsType.Dynamic) then
+        elseif (self.physicsType == PhysicsType.Dynamic) then
             self.physicsBody:SetSimulationEnabled(true)
         end
     

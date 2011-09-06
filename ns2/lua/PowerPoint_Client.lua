@@ -289,16 +289,6 @@ function PowerPoint:FlickerLight(scalar)
     return 1
 end
 
-function PowerPoint:OnUpdate(deltaTime)
-
-    Structure.OnUpdate(self, deltaTime)
-    
-    self:CreateEffects()
-    
-    self:DeleteEffects()    
-
-end
-
 function PowerPoint:CreateEffects()
 
     // Create looping cinematics if we're low power or no power
