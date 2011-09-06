@@ -8,6 +8,11 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/LOSMixin.lua")
 
 class 'Infestation' (LiveScriptActor)
 
@@ -29,7 +34,7 @@ if Server then
     Script.Load("lua/Infestation_Server.lua")
 end
 
-local networkVars = 
+Infestation.networkVars = 
 {
     // 0 to kMaxRadius
     radius                  = "interpolated float",
@@ -39,11 +44,19 @@ local networkVars =
     hostAlive               = "boolean",
 }
 
+PrepareClassForMixin(Infestation, UpgradableMixin)
+PrepareClassForMixin(Infestation, GameEffectsMixin)
+PrepareClassForMixin(Infestation, FlinchMixin)
+
 function Infestation:OnCreate()
 
-    InitMixin(self, PathingMixin)
-
     LiveScriptActor.OnCreate(self)
+    
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, PathingMixin)
     
     self.health = Infestation.kInitialHealth
     self.maxHealth = Infestation.kMaxHealth
@@ -74,6 +87,7 @@ function Infestation:OnCreate()
         self.decal:SetMaterial("materials/infestation/infestation_decal.material")
     else 
         self.lastUpdateThinkTime = 0
+		InitMixin(self, LOSMixin)
     end
     
     self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)    
@@ -128,10 +142,6 @@ end
 
 function Infestation:GetTechId()
     return kTechId.Infestation
-end
-
-function Infestation:GetIsSelectable()
-    return false
 end
 
 function Infestation:OnThink()
@@ -191,6 +201,13 @@ function Infestation:GetPathingFlagOverride(position, extents, flags)
     return position, Vector(self.radius, Infestation.kDecalVerticalSize, self.radius), flags
 end
 
+function Infestation:OnUpdate(deltatime)
+end
+
+function Infestation:OverrideCheckvision()
+  return false
+end
+
 if Client then
 
 function Infestation:UpdateRenderModel()
@@ -206,4 +223,4 @@ end
 
 end
 
-Shared.LinkClassToMap("Infestation", Infestation.kMapName, networkVars )
+Shared.LinkClassToMap("Infestation", Infestation.kMapName, Infestation.networkVars)

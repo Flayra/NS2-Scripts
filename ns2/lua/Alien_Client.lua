@@ -420,8 +420,8 @@ end
 // Bring up evolve menu
 function Alien:Buy()
     
-    // Don't allow display in the ready room
-    if self:GetTeamNumber() ~= 0 and (Client.GetLocalPlayer() == self) then
+    // Don't allow display in the ready room, or as phantom
+    if self:GetTeamNumber() ~= 0 and (Client.GetLocalPlayer() == self) and (not HasMixin(self, "Phantom") or not self:GetIsPhantom()) then
     
         if not self.buyMenu then
             self.buyMenu = GetGUIManager():CreateGUIScript("GUIAlienBuyMenu")

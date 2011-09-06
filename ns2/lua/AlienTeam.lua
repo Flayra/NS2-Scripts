@@ -131,7 +131,7 @@ function AlienTeam:UpdateTeamAutoHeal(timePassed)
     if self.timeOfLastAutoHeal == nil or (time > (self.timeOfLastAutoHeal + AlienTeam.kAutoHealInterval)) then
     
         // Heal all players by this amount
-        local teamEnts = GetEntitiesForTeam("LiveScriptActor", self:GetTeamNumber())
+        local teamEnts = GetEntitiesWithMixinForTeam("Live", self:GetTeamNumber())
         
         for index, entity in ipairs(teamEnts) do
         
@@ -179,7 +179,7 @@ function AlienTeam:GetBlipType(entity)
 
     local blipType = kBlipType.Undefined
     
-    if entity:isa("LiveScriptActor") and entity:GetIsVisible() and entity:GetIsAlive() and not entity:isa("Infestation") then
+    if entity:GetIsVisible() and HasMixin(entity, "Live") and entity:GetIsAlive() and not entity:isa("Infestation") then
     
         if entity:GetTeamNumber() == self:GetTeamNumber() then
         
@@ -478,7 +478,7 @@ function AlienTeam:InitTechTree()
     // Add special alien menus
     self.techTree:AddMenu(kTechId.MarkersMenu)
     self.techTree:AddMenu(kTechId.UpgradesMenu)
-    self.techTree:AddMenu(kTechId.ShadePhantasmMenu)
+    self.techTree:AddMenu(kTechId.ShadePhantomMenu)
     
     // Add markers (orders)
     self.techTree:AddSpecial(kTechId.ThreatMarker, true)
@@ -551,16 +551,14 @@ function AlienTeam:InitTechTree()
 
     // Shade
     self.techTree:AddUpgradeNode(kTechId.UpgradeShade,           kTechId.Shade,               kTechId.None)
-    self.techTree:AddBuildNode(kTechId.MatureShade,               kTechId.None,          kTechId.None)
+    self.techTree:AddBuildNode(kTechId.MatureShade,               kTechId.TwoHives,          kTechId.None)
     self.techTree:AddActivation(kTechId.ShadeDisorient,               kTechId.None,         kTechId.None)
     self.techTree:AddActivation(kTechId.ShadeCloak,                   kTechId.None,         kTechId.None)
     
-    // Shade targeted abilities - treat phantasms as build nodes so we show ghost and attach points for fake hive
-    self.techTree:AddResearchNode(kTechId.PhantasmTech,             kTechId.MatureShade,         kTechId.None)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmFade,           kTechId.PhantasmTech,        kTechId.MatureShade)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmOnos,           kTechId.None,        kTechId.None)
-    self.techTree:AddBuildNode(kTechId.ShadePhantasmHive,           kTechId.PhantasmTech,        kTechId.MatureShade)
-
+    // Shade targeted abilities - treat Phantoms as build nodes so we show ghost and attach points for fake hive
+    self.techTree:AddResearchNode(kTechId.PhantomTech,             kTechId.MatureShade,         kTechId.None)
+    self.techTree:AddBuildNode(kTechId.ShadePhantomFade,           kTechId.PhantomTech,         kTechId.MatureShade)
+    self.techTree:AddBuildNode(kTechId.ShadePhantomOnos,           kTechId.PhantomTech,         kTechId.None)
 
     // Crag upgrades
     self.techTree:AddResearchNode(kTechId.AlienArmor1Tech,        kTechId.Crag,                kTechId.None)

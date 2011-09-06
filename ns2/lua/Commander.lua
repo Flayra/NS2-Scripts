@@ -501,8 +501,8 @@ function Commander:GetHostCommandStructure()
     return Shared.GetEntity(self.commandStationId)
 end
 
-function Commander:GetCanDoDamage()
-    return false
+function Commander:OverrideCheckvision()
+  return false
 end
 
 Shared.LinkClassToMap( "Commander", Commander.kMapName, Commander.networkVars )

@@ -9,11 +9,11 @@
 // The infestation map is a sparse map used to quickly find out what infestations can affect you
 
 
-function UpdateInfestationMasks(entityList)
+function UpdateInfestationMasks()
 
     PROFILE("InfestationManager:UpdateInfestationMasks")
 
-    for index, entity in ientitylist(entityList) do
+    for index, entity in ientitylist(Shared.GetEntitiesWithTag("GameEffects")) do
         // Don't do this for infestations.
         if not entity:isa("Infestation") then
             UpdateInfestationMask(entity)
@@ -25,11 +25,13 @@ end
 // Clear OnInfestation game effect mask on all entities, unless they are standing on infestation
 function UpdateInfestationMask(forEntity)
     
+    ASSERT(HasMixin(forEntity, "GameEffects"))
+    
     // See if entity is on infestation.
     local onInfestation = Server.infestationMap:GetIsOnInfestation(forEntity:GetOrigin())
 
-    // Set the mask
-    if forEntity.GetGameEffectMask and (forEntity:GetGameEffectMask(kGameEffect.OnInfestation) ~= onInfestation) then
+    // Update the mask.
+    if forEntity:GetGameEffectMask(kGameEffect.OnInfestation) ~= onInfestation then
         forEntity:SetGameEffectMask(kGameEffect.OnInfestation, onInfestation)
     end
         

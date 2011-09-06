@@ -51,7 +51,6 @@ Script.Load("lua/ReadyRoomSpawn.lua")
 Script.Load("lua/PlayerSpawn.lua")
 Script.Load("lua/TeamLocation.lua")
 Script.Load("lua/Pheromone.lua")
-Script.Load("lua/Target.lua")
 Script.Load("lua/Weapons/ViewModel.lua")
 
 // Marine structures
@@ -94,8 +93,7 @@ Script.Load("lua/Drifter.lua")
 Script.Load("lua/Egg.lua")
 Script.Load("lua/Embryo.lua")
 Script.Load("lua/Cocoon.lua")
-Script.Load("lua/Phantasm.lua")
-Script.Load("lua/OnosPhantasm.lua")
+Script.Load("lua/PhantomEffigy.lua")
 
 // Base players
 Script.Load("lua/ReadyRoomPlayer.lua")

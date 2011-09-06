@@ -116,7 +116,7 @@ function ScenarioHandler:Load(data)
     end
     
     // update the infestations masks as otherwise whips will unroot and stuff will take damage
-    UpdateInfestationMasks( Shared.GetEntitiesWithClassname("LiveScriptActor") )
+    UpdateInfestationMasks()
     
     Shared.Message("END LOAD")
 end

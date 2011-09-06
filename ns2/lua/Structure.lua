@@ -9,8 +9,14 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Balance.lua")
 Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
+Script.Load("lua/LOSMixin.lua")
 
 class 'Structure' (LiveScriptActor)
 
@@ -65,17 +71,26 @@ Structure.networkVars =
 }
 
 PrepareClassForMixin(Structure, EnergyMixin)
+PrepareClassForMixin(Structure, UpgradableMixin)
+PrepareClassForMixin(Structure, GameEffectsMixin)
+PrepareClassForMixin(Structure, FlinchMixin)
 PrepareClassForMixin(Structure, CloakableMixin)
 
 function Structure:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
+    InitMixin(self, SelectableMixin)
     InitMixin(self, CloakableMixin)
     InitMixin(self, PathingMixin)
     
     if Server then
         InitMixin(self, TargetMixin)
+        InitMixin(self, LOSMixin)
     end
     
     self:SetLagCompensated(true)
@@ -83,7 +98,7 @@ function Structure:OnCreate()
     self:SetUpdates(true)
     
     // Make the structure kinematic so that the player will collide with it.
-    self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+    self:SetPhysicsType(PhysicsType.Kinematic)
     
     self.effectsActive = false
     
@@ -236,8 +251,9 @@ function Structure:GetTechAllowed(techId, techNode, player)
 end
    
 function Structure:GetStatusDescription()
-
-    if (not self:GetIsBuilt() ) then
+    if (self:GetRecycleActive()) then
+        return Locale.ResolveString("RECYCLING") .. "...", self:GetResearchProgress()
+    elseif (not self:GetIsBuilt() ) then
     
         return Locale.ResolveString("CONSTRUCTING") .. "...", self:GetBuiltFraction()
         
@@ -340,6 +356,14 @@ end
 
 function Structure:GetIsWarmedUp()
     return (self.timeWarmupComplete ~= 0) and (Shared.GetTime() >= self.timeWarmupComplete)
+end
+
+function Structure:OverrideVisionRadius()
+    return LOSMixin.kStructureMinLOSDistance
+end
+
+function Structure:GetRecycleActive()
+    return self.researchingId == kTechId.Recycle
 end
 
 Shared.LinkClassToMap("Structure", Structure.kMapName, Structure.networkVars)

@@ -325,7 +325,7 @@ function BotPlayer:GenerateMove()
             
             if self.pathingEnabled then
             
-                Server.MoveToTarget(PhysicsMask.AIMovement, player, player:GetWaypointGroupName(), orderLocation, 1.5)
+                Server.MoveToTarget(PhysicsMask.AIMovement, player, GetWaypointGroupName(player), orderLocation, 1.5)
                 
                 if self:GetNumPoints() ~= 0 then
                     self:MoveToPoint(player:GetCurrentPathPoint(), move)

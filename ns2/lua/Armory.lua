@@ -6,6 +6,8 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
+
 class 'Armory' (Structure)
 Armory.kMapName = "armory"
 
@@ -35,7 +37,7 @@ else
     Script.Load("lua/Armory_Client.lua")
 end
     
-local networkVars =
+Armory.networkVars =
     {
         // How far out the arms are for animation (0-1)
         loggedInEast     = "boolean",
@@ -56,6 +58,14 @@ function GetArmory(entity)
     end
     
     return nil
+
+end
+
+function Armory:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
 
 end
 
@@ -218,7 +228,7 @@ function Armory:OnUpdate(deltaTime)
     
 end
 
-Shared.LinkClassToMap("Armory", Armory.kMapName, networkVars)
+Shared.LinkClassToMap("Armory", Armory.kMapName, Armory.networkVars)
 
 class 'AdvancedArmory' (Armory)
 

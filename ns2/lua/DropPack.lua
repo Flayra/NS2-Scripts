@@ -19,7 +19,7 @@ function DropPack:OnCreate ()
 
     ScriptActor.OnCreate(self)
     
-    self:SetPhysicsType(Actor.PhysicsType.DynamicServer)
+    self:SetPhysicsType(PhysicsType.DynamicServer)
     self:SetPhysicsGroup(PhysicsGroup.ProjectileGroup)
 
       

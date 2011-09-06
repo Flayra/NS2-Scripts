@@ -104,7 +104,7 @@ function PowerPoint:Reset()
     
 end
 
-function PowerPoint:GetCanTakeDamage()
+function PowerPoint:GetCanTakeDamageOverride()
     return self.powered
 end
 
@@ -179,6 +179,10 @@ end
  */
 function PowerPoint:GetIsAliveOverride()
     return true
+end
+
+function PowerPoint:OverrideVisionRadius()
+  return 2
 end
 
 Shared.LinkClassToMap("PowerPoint", PowerPoint.kMapName, networkVars)

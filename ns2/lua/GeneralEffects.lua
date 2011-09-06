@@ -13,6 +13,8 @@ kGeneralEffectData =
         onCreateEffects =
         {
             {parented_sound = "sound/ns2.fev/marine/structures/mac/hover", classname = "MAC", done = true},
+            // TODO: 
+            //{sound = "sound/ns2.fev/", classname = "PhantomEffigy", done = true},
         },
     },
     
@@ -384,6 +386,25 @@ kGeneralEffectData =
             // Marine/Heavy
             {private_sound = "sound/ns2.fev/marine/common/res_received", done = true},
 
+        },
+    },
+
+    phantom_effigy_expire =
+    {
+        effigyExpireEffects =
+        {
+            {sound = "sound/ns2.fev/alien/structures/shade/cloak_end"},
+            {cinematic = "cinematics/marine/clone_structure.cinematic"},
+        },
+    },
+    
+    // "enter" into effigy when using it
+    phantom_effigy_start =
+    {        
+        effigyStartFX = 
+        {
+            {sound = "sound/ns2.fev/alien/structures/shade/cloak_start"},
+            {cinematic = "cinematics/marine/clone_structure.cinematic"},
         },
     },
             

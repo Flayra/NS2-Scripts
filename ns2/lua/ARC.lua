@@ -12,6 +12,12 @@
 Script.Load("lua/LiveScriptActor.lua")
 Script.Load("lua/DoorMixin.lua")
 Script.Load("lua/mixins/ControllerMixin.lua")
+Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/PointGiverMixin.lua")
+Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 
 class 'ARC' (LiveScriptActor)
@@ -52,7 +58,7 @@ end
 
 PrepareClassForMixin(ARC, ControllerMixin)
 
-local networkVars =
+ARC.networkVars =
 {
     // ARCs can only fire when deployed and can only move when not deployed
     mode            = "enum ARC.kMode",
@@ -65,13 +71,22 @@ local networkVars =
     targetDirection             = "vector",
 }
 
+PrepareClassForMixin(ARC, UpgradableMixin)
+PrepareClassForMixin(ARC, GameEffectsMixin)
+PrepareClassForMixin(ARC, FlinchMixin)
+
 function ARC:OnCreate()
 
     LiveScriptActor.OnCreate(self)
     
     InitMixin(self, ControllerMixin)
+    InitMixin(self, RagdollMixin)
+    InitMixin(self, UpgradableMixin)
+    InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FlinchMixin)
+    InitMixin(self, PointGiverMixin)
     InitMixin(self, PathingMixin)
-    
+    InitMixin(self, SelectableMixin)
     if Server then
         InitMixin(self, TargetMixin)
     end
@@ -96,7 +111,7 @@ function ARC:OnInit()
                 { kMarineStaticTargets, kMarineMobileTargets },
                 { self.FilterTarget(self) })
                 
-        self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+        self:SetPhysicsType(PhysicsType.Kinematic)
                 
         // Cannons start out mobile
         self:SetDesiredMode(ARC.kMode.UndeployedStationary)
@@ -204,7 +219,7 @@ function ARC:GetInAttackMode()
     return (self.mode == ARC.kMode.Deployed or self.mode == ARC.kMode.Firing or self.mode == ARC.kMode.Targeting or self.mode == ARC.kMode.FireCooldown) and self.desiredMode ~= ARC.kMode.UndeployedStationary
 end
 
-function ARC:GetCanDoDamage()
+function ARC:GetCanGiveDamageOverride()
     return true
 end
 
@@ -344,4 +359,4 @@ function ARC:GetVisualRadius()
     return LiveScriptActor.GetVisualRadius(self)
 end
 
-Shared.LinkClassToMap("ARC", ARC.kMapName, networkVars)
+Shared.LinkClassToMap("ARC", ARC.kMapName, ARC.networkVars)

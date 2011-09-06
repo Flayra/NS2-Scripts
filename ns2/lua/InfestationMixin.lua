@@ -95,3 +95,11 @@ function InfestationMixin:ClearInfestation()
     end
 end
 
+function InfestationMixin:OnSighted(sighted)
+  local infestation = Shared.GetEntity(self.infestationId)
+  if (infestation ~= nil) then    
+    infestation:SetSighted(sighted)
+  end
+  
+end
+

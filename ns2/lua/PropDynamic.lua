@@ -30,10 +30,10 @@ if (Server) then
         end
         
         if self.dynamic then
-            self:SetPhysicsType(Actor.PhysicsType.Dynamic)
+            self:SetPhysicsType(PhysicsType.Dynamic)
             self:SetPhysicsGroup(PhysicsGroup.RagdollGroup)
         else
-            self:SetPhysicsType(Actor.PhysicsType.Kinematic)
+            self:SetPhysicsType(PhysicsType.Kinematic)
         end
         
         // Don't collide when commanding if not full alpha

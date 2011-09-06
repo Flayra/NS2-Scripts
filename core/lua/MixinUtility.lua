@@ -35,13 +35,63 @@ local function MixinWatchEvent(self, eventName, eventHandler)
 end
 AddFunctionContract(MixinWatchEvent, { Arguments = { "Entity", "string", "function" }, Returns = { } })
 
+local function CheckExpectedMixins(classInstance, theMixin)
+
+    if theMixin.expectedMixins then
+    
+        assert(type(theMixin.expectedMixins) == "table", "Expected Mixins should be a table of Mixin type names and documentation on what the Mixin is needed for.")
+        for mixinType, mixinInfo in pairs(theMixin.expectedMixins) do
+        
+            if not HasMixin(classInstance, mixinType) then
+                error("Mixin type " .. mixinType .. " was expected on class instance while initializing mixin type " .. theMixin.type .. "\nInfo: " .. mixinInfo)
+            end
+            
+        end
+        
+    end
+
+end
+
+local function CheckExpectedCallbacks(classInstance, theMixin)
+
+    if theMixin.expectedCallbacks then
+    
+        assert(type(theMixin.expectedCallbacks) == "table", "Expected callbacks should be a table of callback function names and documentation on how the function is used")
+        for callbackName, callbackInfo in pairs(theMixin.expectedCallbacks) do
+        
+            if type(classInstance[callbackName]) ~= "function" then
+                error("Callback named " .. callbackName .. " was expected for mixin type " .. theMixin.type .. "\nInfo: " .. callbackInfo)
+            end
+            
+        end
+        
+    end
+
+end
+
+local function CheckExpectedConstants(classInstance, theMixin)
+
+    if theMixin.expectedConstants then
+    
+        for constantName, constantInfo in pairs(theMixin.expectedConstants) do
+        
+            if classInstance.__mixindata[constantName] == nil then
+                error("Constant named " .. constantName .. " expected\nInfo: " .. constantInfo)
+            end
+            
+        end
+        
+    end
+
+end
+
 // This should be called for all Mixins that will be added to a class instance
 // in case the mixin has to do anything special to the class (add network fields).
-function PrepareClassForMixin(toClass, theMixin)
+function PrepareClassForMixin(toClass, theMixin, ...)
 
     // Allow the mixin to initialize the class it is being added to.
     if theMixin.__prepareclass then
-        theMixin.__prepareclass(toClass)
+        theMixin.__prepareclass(toClass, ...)
     end
 
 end
@@ -53,15 +103,16 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
     // Don't add the mixin to the class instance again.
     if not HasMixin(classInstance, theMixin) then
     
-        // Ensure the class instance implements the expected callbacks.
-        if theMixin.expectedCallbacks then
-            ASSERT(type(theMixin.expectedCallbacks) == "table", "Expected callbacks should be a table of callback function names and documentation/info on how the function is used")
-            for callbackName, callbackInfo in pairs(theMixin.expectedCallbacks) do
-                if type(classInstance[callbackName]) ~= "function" then
-                    error("Callback named " .. callbackName .. " was expected for mixin type " .. theMixin.type .. "\nInfo: " .. callbackInfo)
-                end
-            end
+        // Add the Mixin type as a tag for the classInstance if it is an Entity.
+        if Shared and Shared.AddTagToEntity and classInstance:isa("Entity") then
+            Shared.AddTagToEntity(classInstance:GetId(), theMixin.type)
         end
+        
+        // Ensure the class has the expected Mixins.
+        CheckExpectedMixins(classInstance, theMixin)
+        
+        // Ensure the class instance implements the expected callbacks.
+        CheckExpectedCallbacks(classInstance, theMixin)
         
         for k, v in pairs(theMixin) do
             if type(v) == "function" and k ~= "__initmixin" and k ~= "__prepareclass" then
@@ -85,11 +136,14 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
                         table.insert(allFunctionsTable, v)
                         
                         local function _CallAllFunctions(ignoreSelf, ...)
-                            local lastReturn = { }
+                            local allReturns = { }
                             for i, callFunc in ipairs(allFunctionsTable) do
-                                lastReturn = { callFunc(classInstance, unpack(arg)) }
+                                local returnResults = { callFunc(classInstance, unpack(arg)) }
+                                for i = #returnResults, 1, -1 do
+                                    table.insert(allReturns, 1, returnResults[i])
+                                end
                             end
-                            return unpack(lastReturn)
+                            return unpack(allReturns)
                         end
                         classInstance[k .. "__functions"] = allFunctionsTable
                         classInstance[k] = _CallAllFunctions
@@ -126,13 +180,7 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
         end
         
         // Ensure the expected constants are present.
-        if theMixin.expectedConstants then
-            for constantName, constantInfo in pairs(theMixin.expectedConstants) do
-                if classInstance.__mixindata[constantName] == nil then
-                    error("Constant named " .. constantName .. " expected\nInfo: " .. constantInfo)
-                end
-            end
-        end
+        CheckExpectedConstants(classInstance, theMixin)
         
     end
     

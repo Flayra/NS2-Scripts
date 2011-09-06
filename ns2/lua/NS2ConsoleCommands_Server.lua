@@ -776,6 +776,25 @@ function OnCommandTarget(client, cmd)
     end
 end
 
+function OnCommandPhantom(client, cmd)
+
+    if client ~= nil and Shared.GetCheatsEnabled() then
+    
+        if type(cmd) == "string" then
+        
+            local player = client:GetControllingPlayer()
+            local origin = player:GetOrigin()
+            
+            StartPhantomMode(player, cmd, origin)
+            
+        else
+            Print("Must pass map name.")
+        end
+            
+    end
+    
+end
+
 // GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
 
@@ -847,3 +866,4 @@ Event.Hook("Console_setgameeffect",         OnCommandSetGameEffect)
 Event.Hook("Console_eject",                 OnCommandEject)
 Event.Hook("Console_cyst",                  OnCommandCyst)
 Event.Hook("Console_target",                OnCommandTarget)
+Event.Hook("Console_phantom",               OnCommandPhantom)

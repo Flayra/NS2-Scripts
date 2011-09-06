@@ -6,6 +6,7 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
+Script.Load("lua/RagdollMixin.lua")
 
 class 'Observatory' (Structure)
 
@@ -17,6 +18,14 @@ Observatory.kScanSound = PrecacheAsset("sound/ns2.fev/marine/structures/observat
 
 Observatory.kDistressBeaconTime = kDistressBeaconTime
 Observatory.kDistressBeaconRange = kDistressBeaconRange
+
+function Observatory:OnCreate()
+
+    Structure.OnCreate(self)
+    
+    InitMixin(self, RagdollMixin)
+
+end
 
 function Observatory:OnInit()
 

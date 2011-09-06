@@ -131,50 +131,7 @@ end
 
 // All damage is routed through here.
 function NS2Gamerules:CanEntityDoDamageTo(attacker, target)
-   
-    if not target:isa("LiveScriptActor") then
-        return false
-    end
-
-    if (not target:GetCanTakeDamage()) then
-        return false
-    end
-   
-    if (target == nil or target == {} or self:GetDarwinMode()) then
-        return false
-    elseif(Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
-        return true
-    elseif attacker == nil then
-        return true
-    end
-
-    // You can always do damage to yourself
-    if (attacker == target) then
-        return true
-    end
-    
-    // Command stations can kill even friendlies trapped inside
-    if attacker ~= nil and attacker:isa("CommandStation") then
-        return true
-    end
-    
-    // Your own grenades can hurt you
-    local owner = attacker:GetOwner()
-    if attacker:isa("Grenade") and owner and owner:GetId() == target:GetId() then
-        return true
-    end
-    
-    // Same teams not allowed to hurt each other unless friendly fire enabled
-    local teamsOK = true
-    if attacker ~= nil then
-
-        teamsOK = (attacker:GetTeamNumber() ~= target:GetTeamNumber()) or self:GetFriendlyFire()
-        
-    end
-    
-    // Allow damage of own stuff when testing
-    return teamsOK
-
+    return CanEntityDoDamageTo(attacker, target, Shared.GetCheatsEnabled(), Shared.GetDevMode(), self:GetFriendlyFire())
 end
 
 function NS2Gamerules:OnClientDisconnect(client)
@@ -714,7 +671,7 @@ function NS2Gamerules:UpdateInfestationEffects()
     
     if self.timeLastInfestationEffectsUpdate == nil or (time > self.timeLastInfestationEffectsUpdate + NS2Gamerules.kInfestationEffectsUpdateRate) then
     
-        UpdateInfestationMasks( Shared.GetEntitiesWithClassname("LiveScriptActor") )
+        UpdateInfestationMasks()
         
         self.timeLastInfestationEffectsUpdate = time
         

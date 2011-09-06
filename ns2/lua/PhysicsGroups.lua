@@ -102,4 +102,10 @@ PhysicsMask = enum
         OnlyInfestation = CreateGroupsAllowedMask(PhysicsGroup.InfestationGroup)
     }
 
-
+PhysicsType = enum
+    {
+        'None',             // No physics representation.
+        'Dynamic',          // Bones are driven by physics simulation (client-side only)
+        'DynamicServer',    // Bones are driven by physics simulation (synced with server)
+        'Kinematic'         // Physics model is updated by animation
+    }

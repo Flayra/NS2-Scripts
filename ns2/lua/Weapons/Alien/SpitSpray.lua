@@ -80,7 +80,7 @@ function SpitSpray:CreateSpitProjectile(player)
         local spit = CreateEntity(Spit.kMapName, startPoint, player:GetTeamNumber())
         SetAnglesFromVector(spit, viewCoords.zAxis)
         
-        spit:SetPhysicsType(Actor.PhysicsType.Kinematic)
+        spit:SetPhysicsType(PhysicsType.Kinematic)
         
         local startVelocity = viewCoords.zAxis * SpitSpray.kSpitSpeed
         spit:SetVelocity(startVelocity)

@@ -68,8 +68,9 @@ function Structure:OnUse(player, elapsedTime, useAttachPoint, usePoint)
 end
 
 function Structure:UpdateResearch(timePassed)
-
-    if (self:GetIsBuilt() and (self.researchingId ~= kTechId.None)) then
+    local shouldUpdate = (self:GetIsBuilt() or self:GetRecycleActive())
+    
+    if (shouldUpdate and (self.researchingId ~= kTechId.None)) then
     
         local timePassed = Shared.GetTime() - self.timeResearchStarted
         
@@ -100,33 +101,27 @@ function Structure:UpdateRecycle(timePassed)
     // TODO: 
 end
 
-function Structure:Upgrade(newTechId)
+function Structure:OnPreUpgradeToTechId(newTechId)
 
-    if self:GetTechId() ~= newTechId then
-
-        // Preserve health and armor scalars but potentially change maxHealth and maxArmor
-        local energyScalar = self.energy / self.maxEnergy
-        
-        self.maxEnergy = LookupTechData(newTechId, kTechDataMaxEnergy, self.maxEnergy)
-        
-        self.energy = energyScalar * self.maxEnergy
-        
-        return LiveScriptActor.Upgrade(self, newTechId)
-        
-    end
+    // Preserve health and armor scalars but potentially change maxHealth and maxArmor.
+    local energyScalar = self.energy / self.maxEnergy
     
-    return false
+    self.maxEnergy = LookupTechData(newTechId, kTechDataMaxEnergy, self.maxEnergy)
+    
+    self.energy = energyScalar * self.maxEnergy
     
 end
 
 function Structure:UpdateStructure(timePassed)
 
-    if self:GetIsBuilt() then
+    local shouldUpdate = (self:GetIsBuilt() or self:GetRecycleActive())
     
-        self:UpdateResearch(timePassed)
-
+    if shouldUpdate then    
+        self:UpdateResearch(timePassed)        
+    end
+    
+    if self:GetIsBuilt() then
         self:UpdateEnergy(timePassed)
-        
     end
     
     self:UpdateRecycle(timePassed)
@@ -182,8 +177,6 @@ end
 // Play hurt or wound effects
 function Structure:OnTakeDamage(damage, attacker, doer, point)
 
-    LiveScriptActor.OnTakeDamage(self, damage, attacker, doer, point)
-    
     local team = self:GetTeam()
     if team.TriggerAlert then
         team:TriggerAlert(self:GetDamagedAlertId(), self)

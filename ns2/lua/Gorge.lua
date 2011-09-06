@@ -55,10 +55,7 @@ Gorge.kStartSlideForce = 14
 Gorge.kViewOffsetHeight = .6
 Gorge.kMaxGroundSpeed = 5.1
 Gorge.kMaxSlidingSpeed = 10
-Gorge.kMaxArmorModeSpeed = 1
 Gorge.kSlidingMoveInputScalar = 0.00015
-Gorge.kArmorModeMoveInputScalar = .015
-Gorge.kArmorModeEnergyScalar = 1.25
 Gorge.kBuildingModeMovementScalar = 0.001
 Gorge.kSlidingTurnRate = .25        // For limiting yaw rage of change when sliding. Radians/second
 Gorge.kSlideFlinchRecoveryRate = .6
@@ -70,9 +67,6 @@ Gorge.kStartSlide = "belly_jump"
 Gorge.kEndSlide = "belly_out"
 Gorge.kSlideFlinch = "belly_impact"
 Gorge.kSlideFlinchIntensity = "intensity"
-Gorge.kArmorStart = "armor_start"
-Gorge.kArmorEnd = "armor_end"
-Gorge.kArmorLoop = "armor"
 Gorge.kFlinch = "flinch1"
 Gorge.kBigFlinch = "flinch2"
 Gorge.kCreateStructure = "chamber"
@@ -131,7 +125,7 @@ function Gorge:GetSpecialAbilityInterfaceData()
 end
 
 function Gorge:GetCanNewActivityStart()
-    return not self:GetIsSliding() and not self:GetInArmorMode() and Alien.GetCanNewActivityStart(self)
+    return not self:GetIsSliding() and Alien.GetCanNewActivityStart(self)
 end
 
 function Gorge:HandleJump(input, velocity)
@@ -220,14 +214,6 @@ function Gorge:SetAnimAndMode(animName, mode)
         self:SetViewAnimation("belly")
     elseif mode == kPlayerMode.GorgeEndSlide then
         self:SetViewAnimation("belly_out")
-        
-    // Armor mode
-    elseif mode == kPlayerMode.GorgeStartArmor then
-        self:SetViewAnimation("armor_start")
-    elseif mode == kPlayerMode.GorgeArmor then
-        self:SetViewAnimation("armor")
-    elseif mode == kPlayerMode.GorgeEndArmor then
-        self:SetViewAnimation("armor_end")
     
     // Taunting
     elseif mode == kPlayerMode.Taunt then
@@ -328,10 +314,6 @@ function Gorge:GetIsSliding()
     return (self.mode == kPlayerMode.GorgeStartSlide) or (self.mode == kPlayerMode.GorgeSliding)
 end
 
-function Gorge:GetInArmorMode()
-    return (self.mode == kPlayerMode.GorgeStartArmor or self.mode == kPlayerMode.GorgeArmor or self.mode == kPlayerMode.GorgeEndArmor)
-end
-
 function Gorge:AdjustMove(input)
 
     PROFILE("Gorge:AdjustMove")
@@ -346,10 +328,6 @@ function Gorge:AdjustMove(input)
     elseif (self:GetIsSliding()) then
 
         input.move:Scale(Gorge.kSlidingMoveInputScalar)
-        
-    elseif (self.mode == kPlayerMode.GorgeStartArmor or self.mode == kPlayerMode.GorgeArmor or self.mode == kPlayerMode.GorgeEndArmor) then
-    
-        input.move:Scale(Gorge.kArmorModeMoveInputScalar)
 
     elseif self.mode == kPlayerMode.GorgeStructure then
     
@@ -408,10 +386,6 @@ function Gorge:GetMaxSpeed()
     if self:GetIsSliding() then
     
         speed = Gorge.kMaxSlidingSpeed
-        
-    elseif self:GetInArmorMode() then
-    
-        speed = Gorge.kMaxArmorModeSpeed
 
     end
     
@@ -427,39 +401,6 @@ function Gorge:GetTauntSound()
     return Gorge.kTauntSound
 end
 
-// Don't get energy back when in armor mode
-function Gorge:GetRecuperationRate()
-
-    local rate = Alien.GetRecuperationRate(self)
-    
-    // Drain energy when movement key down
-    if(self.mode == kPlayerMode.GorgeArmor) then
-        rate = -Alien.kEnergyRecuperationRate*Gorge.kArmorModeEnergyScalar
-    end
-    
-    return rate
-    
-end
-
-function Gorge:SetArmorMode(armorMode)
-
-    if(self:GetIsOnGround() and not self:GetIsSliding() and Alien.GetCanNewActivityStart(self)) then
-    
-        if(armorMode and self.mode == kPlayerMode.Default) then
-    
-            self:SetAnimAndMode(Gorge.kArmorStart, kPlayerMode.GorgeStartArmor)
-            self:SetVelocity( self:GetVelocity()*.2 )            
-            
-        elseif(not armorMode and (self.mode == kPlayerMode.GorgeStartArmor or self.mode == kPlayerMode.GorgeArmor)) then
-
-            self:SetAnimAndMode(Gorge.kArmorEnd, kPlayerMode.GorgeEndArmor)
-        
-        end
-        
-    end
-
-end
-
 function Gorge:ProcessEndMode()
 
     if(self.mode == kPlayerMode.GorgeStartSlide) then
@@ -468,18 +409,7 @@ function Gorge:ProcessEndMode()
         return true
 
     end
-    
-    if(self.mode == kPlayerMode.GorgeStartArmor) then
-    
-        self:SetAnimationWithBlending(Gorge.kArmorLoop)
-        self.mode = kPlayerMode.GorgeArmor
-        self.modeTime = -1
-        return true
-        
-    end
-    
 
-    
     return false
     
 end

@@ -371,7 +371,7 @@ function Whip:OnResearchComplete(structure, researchId)
         // Transform into mature whip
         if structure and (structure:GetId() == self:GetId()) and (researchId == kTechId.UpgradeWhip) then
         
-            success = self:Upgrade(kTechId.MatureWhip)
+            success = self:UpgradeToTechId(kTechId.MatureWhip)
             
         end
         

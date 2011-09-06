@@ -78,7 +78,7 @@ function CommanderUI_GetFocusSelectionIcons()
     
     local entity = player:GetRepresentativeSelectedEntity()
     
-    if entity ~= nil and entity:isa("LiveScriptActor") then
+    if entity ~= nil and HasMixin(entity, "Upgradable") then
     
         // Get upgrades 
         local upgrades = entity:GetUpgrades()

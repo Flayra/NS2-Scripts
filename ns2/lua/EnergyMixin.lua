@@ -50,8 +50,10 @@ end
 AddFunctionContract(EnergyMixin.SetEnergy, { Arguments = { "Entity", "number" }, Returns = { } })
 
 function EnergyMixin:AddEnergy(amount)
+
     self.energy = self.energy + amount
     self.energy = math.max(math.min(self.energy, self.maxEnergy), 0)
+    
 end
 AddFunctionContract(EnergyMixin.AddEnergy, { Arguments = { "Entity", "number" }, Returns = { } })
 
@@ -62,6 +64,8 @@ AddFunctionContract(EnergyMixin.GetMaxEnergy, { Arguments = { "Entity" }, Return
 
 function EnergyMixin:UpdateEnergy(timePassed)
 
+    assert(Server)
+    
     local scalar = ConditionalValue(self:GetGameEffectMask(kGameEffect.OnFire), kOnFireEnergyRecuperationScalar, 1)
 
     // Increase energy for entities that are affected by energize (not PowerPoints)
