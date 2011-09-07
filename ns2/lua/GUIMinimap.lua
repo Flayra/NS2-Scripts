@@ -377,22 +377,26 @@ function GUIMinimap:Update(deltaTime)
         self.background:SetIsVisible(false)
     end
     
-    self:UpdateIcon()
+
+    if self.background:GetIsVisible() then
     
-    self:UpdateStaticBlips(deltaTime)
+        self:UpdateIcon()
+        
+        self:UpdateStaticBlips(deltaTime)
+        
+        self:UpdateDynamicBlips(deltaTime)
+        
+        self:UpdateInput()
+        
+        if self.minimap:GetIsVisible() then
+            // The color cannot be attained right away in some cases so
+            // we need to make sure it is the correct color.
+            self.minimap:SetColor(PlayerUI_GetTeamColor())
+        end
     
-    self:UpdateDynamicBlips(deltaTime)
-    
-    self:UpdateInput()
-    
-    if self.minimap:GetIsVisible() then
-        // The color cannot be attained right away in some cases so
-        // we need to make sure it is the correct color.
-        self.minimap:SetColor(PlayerUI_GetTeamColor())
-    end
-    
-    if self.scanlines then
-        self.scanlines:Update(deltaTime)
+        if self.scanlines then
+            self.scanlines:Update(deltaTime)
+        end
     end
     
 end
