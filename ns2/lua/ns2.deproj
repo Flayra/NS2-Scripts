@@ -1044,4 +1044,7 @@
   <file>
     <filename>HiveSightBlipMixin.lua</filename>
   </file>
+  <file>
+    <filename>InfestedMixin.lua</filename>
+  </file>
 </project>
