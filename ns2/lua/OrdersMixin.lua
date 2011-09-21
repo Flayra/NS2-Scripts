@@ -7,6 +7,8 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================    
 
 Script.Load("lua/FunctionContracts.lua")
+Script.Load("lua/TechTreeConstants.lua")
+Script.Load("lua/PhysicsGroups.lua")
 
 OrdersMixin = { }
 OrdersMixin.type = "Orders"
@@ -96,7 +98,7 @@ end
 AddFunctionContract(OrdersMixin._OverrideOrder, { Arguments = { "Entity", "Order" }, Returns = { } })
 
 // Create order, set it, override it
-function OrdersMixin:GiveOrder(orderType, targetId, targetOrigin, orientation, clearExisting, insertFirst)
+function OrdersMixin:GiveOrder(orderType, targetId, targetOrigin, orientation, clearExisting, insertFirst, giver)
 
     ASSERT(type(orderType) == "number")
     ASSERT(type(targetId) == "number")
@@ -117,12 +119,12 @@ function OrdersMixin:GiveOrder(orderType, targetId, targetOrigin, orientation, c
         insertFirst = true
     end
     
-    self:_SetOrder(order, clearExisting, insertFirst)
+    self:_SetOrder(order, clearExisting, insertFirst, giver)
     
     return order:GetType()
 
 end
-AddFunctionContract(OrdersMixin.GiveOrder, { Arguments = { "Entity", "number", "number", { "Vector", "nil" }, { "Vector", "nil" }, { "boolean", "nil" }, { "boolean", "nil" } }, Returns = { "number" } })
+AddFunctionContract(OrdersMixin.GiveOrder, { Arguments = { "Entity", "number", "number", { "Vector", "nil" }, { "Vector", "nil" }, { "boolean", "nil" }, { "boolean", "nil" }, { "Entity", "nil" } }, Returns = { "number" } })
 
 function OrdersMixin:ClearOrders()
 
@@ -190,7 +192,7 @@ function OrdersMixin:GetHasSpecifiedOrder(orderEnt)
 end
 AddFunctionContract(OrdersMixin.GetHasSpecifiedOrder, { Arguments = { "Entity", "Order" }, Returns = { "boolean" } })
 
-function OrdersMixin:_SetOrder(order, clearExisting, insertFirst)
+function OrdersMixin:_SetOrder(order, clearExisting, insertFirst, giver)
 
     if self.ignoreOrders then
         return
@@ -206,6 +208,15 @@ function OrdersMixin:_SetOrder(order, clearExisting, insertFirst)
         location = GetGroundAt(self, location, PhysicsMask.AIMovement)
         order:SetLocation(location)
     end
+
+    if (giver == nil or not giver:isa("Player")) then
+      giver = self:GetOwner()
+      if (giver == nil) then
+        giver = self
+      end
+    end
+    
+    order:SetOwner(giver)
     
     if insertFirst then
         table.insert(self.orders, 1, order:GetId())
@@ -216,7 +227,7 @@ function OrdersMixin:_SetOrder(order, clearExisting, insertFirst)
     self:_OrderChanged()
 
 end
-AddFunctionContract(OrdersMixin._SetOrder, { Arguments = { "Entity", "Order", "boolean", "boolean" }, Returns = { } })
+AddFunctionContract(OrdersMixin._SetOrder, { Arguments = { "Entity", "Order", "boolean", "boolean", "Entity" }, Returns = { } })
 
 function OrdersMixin:GetCurrentOrder()
 
@@ -311,6 +322,8 @@ end
 AddFunctionContract(OrdersMixin.ProcessRallyOrder, { Arguments = { "Entity", "Entity" }, Returns = { } })
 
 function OrdersMixin:UpdateOrder()
+
+    PROFILE("OrdersMixin:UpdateOrder")
 
     local currentOrder = self:GetCurrentOrder()
     

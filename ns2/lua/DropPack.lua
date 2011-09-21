@@ -12,19 +12,23 @@ DropPack.kMapName = "droppack"
 
 DropPack.kPackDropEffect = PrecacheAsset("cinematics/marine/spawn_item.cinematic")
 
-DropPack.kLifetime = 20
-DropPack.kThinkInterval = .3
-
-function DropPack:OnCreate ()
+function DropPack:OnCreate()
 
     ScriptActor.OnCreate(self)
     
     self:SetPhysicsType(PhysicsType.DynamicServer)
     self:SetPhysicsGroup(PhysicsGroup.ProjectileGroup)
-
-      
+    
     self:UpdatePhysicsModel()
     
+end
+
+function DropPack:OnInit()
+
+    ScriptActor.OnInit(self)
+
+    Shared.CreateEffect(nil, DropPack.kPackDropEffect, self)
+
 end
 
 Shared.LinkClassToMap("DropPack", DropPack.kMapName)

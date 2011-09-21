@@ -338,37 +338,32 @@ function NS2Gamerules:GetUpgradedDamage(attacker, doer, damage, damageType)
 
     if attacker ~= nil then
     
-        // Check damage type. We can only have one of these at a time.
-        if (damageType == kDamageType.Normal) then    
+        if(GetHasTech(attacker, kTechId.Weapons3, true)) then
         
-            if(GetTechSupported(attacker, kTechId.Weapons3, true)) then
+            damageScalar = kWeapons3DamageScalar
             
-                damageScalar = kWeapons3DamageScalar
-                
-            elseif(GetTechSupported(attacker, kTechId.Weapons2, true)) then
+        elseif(GetHasTech(attacker, kTechId.Weapons2, true)) then
+        
+            damageScalar = kWeapons2DamageScalar
             
-                damageScalar = kWeapons2DamageScalar
-                
-            elseif(GetTechSupported(attacker, kTechId.Weapons1, true)) then
-            
-                damageScalar = kWeapons1DamageScalar
-                
-            end
+        elseif(GetHasTech(attacker, kTechId.Weapons1, true)) then
+        
+            damageScalar = kWeapons1DamageScalar
             
         end
         
         // Alien melee upgrades
         if doer:isa("BiteLeap") or doer:isa("SwipeBlink") or doer:isa("Gore") then
         
-            if(GetTechSupported(attacker, kTechId.Melee3Tech, true)) then
+            if(GetHasTech(attacker, kTechId.Melee3Tech, true)) then
             
                 damageScalar = kMelee3DamageScalar
                 
-            elseif(GetTechSupported(attacker, kTechId.Melee2Tech, true)) then
+            elseif(GetHasTech(attacker, kTechId.Melee2Tech, true)) then
             
                 damageScalar = kMelee2DamageScalar
                 
-            elseif(GetTechSupported(attacker, kTechId.Melee1Tech, true)) then
+            elseif(GetHasTech(attacker, kTechId.Melee1Tech, true)) then
             
                 damageScalar = kMelee1DamageScalar
                 
@@ -377,7 +372,7 @@ function NS2Gamerules:GetUpgradedDamage(attacker, doer, damage, damageType)
         end
         
         // Add more if under influence of whip. This looks like it should be revisited.
-        if attacker:isa("LiveScriptActor") then
+        if HasMixin(attacker, "GameEffects") then
         
             local numFuries = attacker:GetStackableGameEffectCount(kFuryGameEffect)
             if numFuries > 0 then
@@ -395,12 +390,11 @@ AddFunctionContract(NS2Gamerules.GetUpgradedDamage, { Arguments = { "Entity", "E
 
 // logs out any players currently as the commander
 function NS2Gamerules:LogoutCommanders()
-    local entityTable = EntityListToTable(Shared.GetEntitiesWithClassname("CommandStructure"))
-    for index, entity in ipairs(entityTable) do
-        if (entity:isa("CommandStructure")) then
-            entity:Logout()
-        end
+
+    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("CommandStructure")) do
+        entity:Logout()
     end
+    
 end
  
 /**
@@ -414,7 +408,7 @@ function NS2Gamerules:ResetGame()
     self:LogoutCommanders()
     
     // Destroy any map entities that are still around
-    DestroyLiveMapEntities()    
+    DestroyLiveMapEntities()
     
     // Track which clients have joined teams so we don't 
     // give them starting resources again if they switch teams
@@ -424,8 +418,7 @@ function NS2Gamerules:ResetGame()
     // the game (hives, command structures, initial resource towers, etc)
     // We need to convert the EntityList to a table since we are destroying entities
     // within the EntityList here.
-    local entityTable = EntityListToTable(Shared.GetEntitiesWithClassname("Entity"))
-    for index, entity in ipairs(entityTable) do
+    for index, entity in ientitylist(Shared.GetEntitiesWithClassname("Entity")) do
 
         // Don't reset/delete NS2Gamerules or TeamInfo.
         if entity ~= self and not entity:isa("TeamInfo") then
@@ -433,7 +426,7 @@ function NS2Gamerules:ResetGame()
             local isMapEntity = entity:GetIsMapEntity()
             local mapName = entity:GetMapName()
             
-            if ( (entity:GetIsMapEntity() and entity:isa("ScriptActor")) or entity:isa("Player") ) then
+            if (entity:GetIsMapEntity() and entity:isa("ScriptActor")) or entity:isa("Player") then
                 entity:Reset()
             else
                 DestroyEntity(entity)
@@ -877,6 +870,7 @@ function NS2Gamerules:JoinTeam(player, newTeamNumber, force)
     if(player and player:GetTeamNumber() ~= newTeamNumber or force) then
     
         local team = self:GetTeam(newTeamNumber)
+        local oldTeam = self:GetTeam(player:GetTeamNumber())
 
         // Spawn immediately if going to ready room, game hasn't started, cheats on, or game started recently
         if (newTeamNumber == kTeamReadyRoom) or not self:GetGameStarted() or Shared.GetCheatsEnabled() or (Shared.GetTime() < (self.gameStartTime + NS2Gamerules.kFreeSpawnTime) or force ) then
@@ -884,7 +878,11 @@ function NS2Gamerules:JoinTeam(player, newTeamNumber, force)
             success, newPlayer = team:ReplaceRespawnPlayer(player, nil, nil)
         
         else
-        
+            if (oldTeam ~= nil) then
+                // Remove the player from the old queue if they happen to be in one
+                oldTeam:RemovePlayerFromRespawnQueue(player)
+            end            
+            
             // Destroy the existing player and create a spectator in their place.
             local mapName = ConditionalValue(team:isa("AlienTeam"), AlienSpectator.kMapName, Spectator.kMapName)
             newPlayer = player:Replace(mapName, newTeamNumber)
@@ -1104,10 +1102,36 @@ function NS2Gamerules:GetOrderSelf()
     return self.orderSelf
 end
 
+function NS2Gamerules:GetIsPlayerFollowingTeamNumber(player, teamNumber)
+
+    local following = false
+    
+    if player:isa("Spectator") then
+    
+        local playerId = player:GetFollowingPlayerId()
+        
+        if playerId ~= Entity.invalidId then
+        
+            local followedPlayer = Shared.GetEntity(playerId)
+            
+            if followedPlayer and followedPlayer:GetTeamNumber() == teamNumber then
+            
+                following = true
+                
+            end
+            
+        end
+
+    end
+    
+    return following
+
+end
+
 // Function for allowing teams to hear each other's voice chat
 function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
 
-    local success = false
+    local canHear = false
     
     // Check if the listerner has the speaker muted.
     if listenerPlayer:GetClientMuted(speakerPlayer:GetClientIndex()) then
@@ -1116,20 +1140,20 @@ function NS2Gamerules:GetCanPlayerHearPlayer(listenerPlayer, speakerPlayer)
     
     // If both players have the same team number, they can hear each other
     if(listenerPlayer:GetTeamNumber() == speakerPlayer:GetTeamNumber()) then
-        success = true
+        canHear = true
     end
         
     // Or if cheats or dev mode is on, they can hear each other
     if(Shared.GetCheatsEnabled() or Shared.GetDevMode()) then
-        success = true
+        canHear = true
     end
     
-    // Or if game hasn't started
-    if(not self:GetGameStarted()) then
-        success = true
+    // If we're spectating a player, we can hear their team (but not in tournamentmode, once that's in)
+    if self:GetIsPlayerFollowingTeamNumber(listenerPlayer, speakerPlayer:GetTeamNumber()) then
+        canHear = true
     end
     
-    return success
+    return canHear
     
 end
 

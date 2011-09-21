@@ -26,12 +26,26 @@ function AlienSpectator:OnInit()
     self.eggId = 0
     self.movedToEgg = false
     
+    // maybe find a better place for that
+    self:AddTooltipOncePer("HOWTO_HATCH_TOOLTIP")
+    
     if (Server) then
     
         self.evolveTechIds = { kTechId.Skulk }
         
     end
 
+end
+
+// seems not to get called
+function AlienSpectator:UpdateHelp()
+
+    if self:AddTooltipOncePer("HOWTO_HATCH_TOOLTIP") then
+        return true
+    end
+
+    return false
+    
 end
 
 function AlienSpectator:GetTechId()
@@ -53,6 +67,11 @@ function AlienSpectator:SetEggId(id)
     self.eggId = id
 end
 
+function AlienSpectator:GetEggId()
+    return self.eggId
+end
+
+// more accurate name for that function would be now "SpawnPlayerOnJump()"
 function AlienSpectator:SpawnPlayerOnAttack()
 
     local egg = self:GetHostEgg()
@@ -61,9 +80,7 @@ function AlienSpectator:SpawnPlayerOnAttack()
     
         local startTime = egg:GetTimeQueuedPlayer()
         
-        if startTime ~= nil and (Shared.GetTime() > (startTime + kAlienSpawnTime)) then
-            return egg:SpawnPlayer()
-        end
+        return egg:SpawnPlayer()
         
     elseif Shared.GetCheatsEnabled() then
         return self:GetTeam():ReplaceRespawnPlayer(self)
@@ -112,6 +129,73 @@ function AlienSpectator:SetOriginAnglesVelocity(input)
         Spectator.SetOriginAnglesVelocity(self, input)
     end
     
+end
+
+// Allow players to rotate view, chat, scoreboard, etc. but not move
+function AlienSpectator:OverrideInput(input)
+    
+    self:_CheckInputInversion(input)
+    
+    // Completely override movement and commands
+    input.move.x = 0
+    input.move.y = 0
+    input.move.z = 0
+
+    // Only allow some actions like going to menu, chatting and Scoreboard (not jump, use, etc.)
+    input.commands = bit.band(input.commands, Move.PrimaryAttack) + bit.band(input.commands, Move.SecondaryAttack) + bit.band(input.commands, Move.Jump) + bit.band(input.commands, Move.Exit) + bit.band(input.commands, Move.TeamChat) + bit.band(input.commands, Move.TextChat) + bit.band(input.commands, Move.Scoreboard) + bit.band(input.commands, Move.ShowMap)
+    
+    return input
+    
+end
+
+
+
+function AlienSpectator:_HandleSpectatorButtons(input)
+
+    //exlude attack and jump get not proccessed
+    local cycleLeft = bit.band(input.commands, Move.PrimaryAttack) ~= 0
+    local cycleRight = bit.band(input.commands, Move.SecondaryAttack) ~= 0
+    local hatch = bit.band(input.commands, Move.Jump) ~= 0
+
+    local time = Shared.GetTime()
+    
+    if (self:GetHostEgg() ~= nil) then
+    
+        // filter PrimaryAttack and Jump, so Spectator would not trigger spawning or change spectator mode when already having an egg assigned
+        input.commands = bit.band(input.commands, Move.Exit) + bit.band(input.commands, Move.TeamChat) + bit.band(input.commands, Move.TextChat) + bit.band(input.commands, Move.Scoreboard) + bit.band(input.commands, Move.ShowMap) 
+    
+        if time > (self.timeOfLastInput + .3) then
+        
+	        // find next or previous free egg
+	        if Server then
+	            
+	            if cycleLeft then
+	            
+	                local team = self:GetTeam()
+	                team:QueuePlayerForAnotherEgg(self:GetEggId(), self:GetId(), true)
+	                self.timeOfLastInput = Shared.GetTime()
+	                
+	            elseif cycleRight then
+	            
+	                local team = self:GetTeam()
+	                team:QueuePlayerForAnotherEgg(self:GetEggId(), self:GetId(), false)             
+	                self.timeOfLastInput = Shared.GetTime()
+	                
+	            elseif hatch then
+	            
+	                self:SpawnPlayerOnAttack()
+	                self.timeOfLastInput = Shared.GetTime()
+	            
+	            end
+	            
+	        end
+	        
+        end
+    
+    end
+    
+    Spectator._HandleSpectatorButtons(self, input)
+
 end
 
 Shared.LinkClassToMap( "AlienSpectator", AlienSpectator.kMapName, AlienSpectator.networkVars )

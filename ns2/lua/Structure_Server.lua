@@ -198,7 +198,7 @@ function Structure:SetResearchProgress(progress)
         
             researchNode:SetResearchProgress(self.researchProgress)
             
-            self:GetTeam():GetTechTree():SetTechNodeChanged(researchNode)
+            self:GetTeam():GetTechTree():SetTechNodeChanged(researchNode, string.format("researchProgress = %.2f", self.researchProgress))
             
             // Update research progress
             if(self.researchProgress == 1) then
@@ -230,7 +230,7 @@ end
 
 function Structure:OnEntityChange(oldId, newId)
 
-    LiveScriptActor.OnEntityChange(self, oldId, newId)
+    ScriptActor.OnEntityChange(self, oldId, newId)
     
     if (oldId == self.researchingPlayerId) and (self.researchingPlayerId ~= Entity.invalidId) then
     
@@ -311,9 +311,7 @@ end
 
 function Structure:OnInit()    
 
-    InitMixin(self, EnergyMixin)
-
-    LiveScriptActor.OnInit(self)
+    ScriptActor.OnInit(self)
     
     self.researchingId = kTechId.None
     self.researchProgress = 0
@@ -323,7 +321,6 @@ function Structure:OnInit()
     self.buildFraction = 0
     self.constructionComplete = (self.startsbuilt == 1)    
     
-    self.powered = false
     self.pathingId = 0
 
     // Structures start with a percentage of their full health and gain more as they're built.
@@ -351,11 +348,7 @@ function Structure:OnInit()
     // construction complete callback may require the attachment.
     self:FindAndMakeAttachment()
     
-    if GetGamerules():GetAutobuild() then
-        self:SetConstructionComplete()
-    end
-    
-    if self.startsBuilt and not self:GetIsBuilt() then
+    if (self.startsBuilt and not self:GetIsBuilt()) or GetGamerules():GetAutobuild() then
         self:SetConstructionComplete()
     end
     
@@ -375,7 +368,7 @@ end
 
 function Structure:OnLoad()
 
-    LiveScriptActor.OnLoad(self)
+    ScriptActor.OnLoad(self)
     
     self.startsBuilt = GetAndCheckBoolean(self.startsBuilt, "startsBuilt", false)
     
@@ -389,8 +382,7 @@ function Structure:OnReplace(newStructure)
 
     // Copy attachments
     newStructure:SetAttached(self.attached)
-    
-    // TODO: Do we need to call down into LiveScriptActor?
+
     newStructure.buildTime = self.buildTime
     newStructure.buildFraction = self.buildFraction
 
@@ -445,7 +437,7 @@ function Structure:OnDestroy()
     
     self:RemoveFromMesh()
     
-    LiveScriptActor.OnDestroy(self)
+    ScriptActor.OnDestroy(self)
     
 end
 
@@ -462,7 +454,7 @@ function Structure:Reset()
     
     self:OnInit()
     
-    LiveScriptActor.Reset(self)
+    ScriptActor.Reset(self)
     
     if self.startsBuilt then
         self:SetConstructionComplete()
@@ -487,125 +479,64 @@ function Structure:OnConstructionComplete()
     
     self:TriggerEffects("construction_complete")   
     
-    if self:GetRequiresPower() then
-        self:UpdatePoweredState()
+    if (self:GetRequiresPower()) then
+        self:UpdatePowerState()
     end
     
-    if not self:GetRequiresPower() or self.powered then
+    if (not self:GetRequiresPower() or self:GetIsPowered()) then
+        local team = self:GetTeam()
+        if team then
+            team:TechAdded(self)
+        end    
+    end
+end
+
+function Structure:SetLocationName(name)
+    ScriptActor.SetLocationName(self, name)
+    self:UpdatePowerState()
+end
+
+function Structure:SetPowerOn()
     
+    if not self.deployed then        
         local deployAnim = self:GetDeployAnimation()
         if deployAnim ~= "" then
             self:SetAnimation(deployAnim)
         end
         
         self:TriggerEffects("deploy")
-        
-        local team = self:GetTeam()
-        if team then
-            team:TechAdded(self)
+    else        
+        // Power up
+        local powerUpAnim = self:GetPowerUpAnimation()
+        if powerUpAnim ~= "" then
+            self:SetAnimation(powerUpAnim)
         end
-        
+        self:TriggerEffects("power_up")
     end
     
+    self:OnPoweredTech()
 end
 
-// Return alive power pack that's powering us, or power point in our location. 
-function Structure:FindPowerSource()
+function Structure:SetPowerOff()
 
-    for index, powerPoint in ientitylist(Shared.GetEntitiesWithClassname("PowerPoint")) do
-    
-        if powerPoint:GetLocationName() == self:GetLocationName() and powerPoint:GetIsPowered() then
-
-            return powerPoint        
-            
-        end
-            
-    end
-    
-    // Look for power packs
-    local powerPacks = GetEntitiesForTeamWithinXZRange("PowerPack", self:GetTeamNumber(), self:GetOrigin(), PowerPack.kRange)
-    
-    for index, powerPack in ipairs(powerPacks) do
-    
-        if powerPack:GetIsAlive() then
-        
-            return powerPack
-            
-        end
-            
+    local powerDownAnim = self:GetPowerDownAnimation()
+    if powerDownAnim ~= "" then
+        self:SetAnimation(powerDownAnim)
     end
         
-    return nil
+    self:TriggerEffects("power_down")
     
+    self:OnPoweredTech()
 end
 
-function Structure:SetLocationName(name)
-
-    LiveScriptActor.SetLocationName(self, name)
-    self:UpdatePoweredState()
-
+function Structure:OnPoweredTech() 
+    local techTree = self:GetTeam():GetTechTree()
+    local techNode = techTree:GetTechNode(self:GetTechId())
+    techTree:SetTechNodeChanged(techNode, string.format("power changed = %s", ToString(self:GetIsPowered())))
 end
 
-function Structure:UpdatePoweredState()
-
-    if self:GetIsBuilt() and self:GetRequiresPower() then
-    
-        local powered = false
-        local powerSource = self:FindPowerSource()
-        
-        if powerSource then
-        
-            local powerTeamNumber = powerSource:GetTeamNumber()            
-            powered = ((self:GetTeamNumber() == powerTeamNumber) or (powerTeamNumber == kTeamReadyRoom))
-                
-        end        
-        
-        if self.powered ~= powered then
-
-            self:OnPoweredChange(powered)
-            
-        end
-        
-    end
-    
-end
-
-function Structure:OnPoweredChange(newPoweredState)
-
-    self.powered = newPoweredState
-    
-    if self.powered then
-    
-        if not self.deployed then
-        
-            local deployAnim = self:GetDeployAnimation()
-            if deployAnim ~= "" then
-                self:SetAnimation(deployAnim)
-            end
-
-        else
-        
-            // Power up
-            local powerUpAnim = self:GetPowerUpAnimation()
-            if powerUpAnim ~= "" then
-                self:SetAnimation(powerUpAnim)
-            end
-            
-            self:TriggerEffects("power_up")
-            
-        end
-    
-    elseif not self.powered then
-    
-        local powerDownAnim = self:GetPowerDownAnimation()
-        if powerDownAnim ~= "" then
-            self:SetAnimation(powerDownAnim)
-        end
-        
-        self:TriggerEffects("power_down")
-        
-    end
-        
+function Structure:GetUpdatePower()
+    return (self:GetIsBuilt() and self:GetRequiresPower())
 end
 
 /**
@@ -732,9 +663,7 @@ function Structure:SetConstructionComplete()
     self:SetIsAlive(true)
     
     self:OnConstructionComplete()
-    
-    self:UpdatePoweredState()
-    
+      
     local team = self:GetTeam()
     if(team ~= nil) then
         team:TechAdded(self)
@@ -772,7 +701,7 @@ function Structure:PerformAction(techNode, position)
     
     else
     
-        return LiveScriptActor.PerformAction(self, techNode, position)
+        return ScriptActor.PerformAction(self, techNode, position)
         
     end
     

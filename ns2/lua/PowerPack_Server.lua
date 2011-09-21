@@ -10,33 +10,13 @@
 Script.Load("lua/Structure.lua")
 
 function PowerPack:OnConstructionComplete()
-
-    Structure.OnConstructionComplete(self)
-    
-    self:UpdateNearbyPowerState()
-
+    Structure.OnConstructionComplete(self)    
+    self:SetIsPowerSource(true)
 end
 
-// Needed for recycling 
-function PowerPack:OnDestroy()
+function PowerPack:OnKill()
+    Structure.OnKill(self)
 
-    Structure.OnDestroy(self)
-    
-    self:UpdateNearbyPowerState()
-    
+    self:SetIsPowerSource(false)    
 end
-
-function PowerPack:UpdateNearbyPowerState()
-
-    // Trigger event to update power for nearby structures
-    local structures = GetEntitiesForTeamWithinXZRange("Structure", self:GetTeamNumber(), self:GetOrigin(), PowerPack.kRange)
-
-    for index, structure in ipairs(structures) do
-    
-        structure:UpdatePoweredState()
-        
-    end
-
-end
-
 

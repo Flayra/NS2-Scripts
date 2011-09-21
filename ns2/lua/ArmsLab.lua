@@ -28,4 +28,8 @@ function ArmsLab:GetTechButtons(techId)
 
 end
 
+function ArmsLab:GetRequiresPower()
+    return true
+end
+
 Shared.LinkClassToMap("ArmsLab", ArmsLab.kMapName, {})

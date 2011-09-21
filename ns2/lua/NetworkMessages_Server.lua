@@ -12,21 +12,17 @@
 function OnCommandCommMarqueeSelect(client, message)
     
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
-    
+    if player:GetIsCommander() then
         player:MarqueeSelectEntities(ParseCommMarqueeSelectMessage(message))
-        
     end
     
 end
 
-function OnCommandCommClickSelect(client, message)
+function OnCommandCommSelectId(client, message)
 
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
-    
-        player:ClickSelectEntities(ParseCommClickSelectMessage(message))
-        
+    if player:GetIsCommander() then
+        player:SelectEntityId(ParseSelectIdMessage(message))
     end
 
 end
@@ -34,10 +30,8 @@ end
 function OnCommandCommControlClickSelect(client, message)
 
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
-    
+    if player:GetIsCommander() then
         player:ControlClickSelectEntities(ParseControlClickSelectMessage(message))
-        
     end
 
 end
@@ -45,21 +39,21 @@ end
 function OnCommandParseSelectHotkeyGroup(client, message)
 
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
-    
+    if player:GetIsCommander() then
         player:SelectHotkeyGroup(ParseSelectHotkeyGroupMessage(message))
-        
     end
     
 end
 
 function OnCommandCommAction(client, message)
 
-    local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
+    local techId = ParseCommActionMessage(message)
     
-        player:ProcessTechTreeAction(ParseCommActionMessage(message), nil, nil)
-        
+    local player = client:GetControllingPlayer()
+    if player and player:GetIsCommander() then
+        player:ProcessTechTreeAction(techId, nil, nil)
+    else
+        Shared.Message("CommAction message received with invalid player. TechID: " .. EnumToString(kTechId, techId))
     end
     
 end
@@ -67,7 +61,7 @@ end
 function OnCommandCommTargetedAction(client, message)
 
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
+    if player:GetIsCommander() then
     
         local techId, pickVec, orientation = ParseCommTargetedActionMessage(message)
         player:ProcessTechTreeAction(techId, pickVec, orientation)
@@ -79,7 +73,7 @@ end
 function OnCommandCommTargetedActionWorld(client, message)
 
     local player = client:GetControllingPlayer()
-    if(player:GetIsCommander()) then
+    if player:GetIsCommander() then
     
         local techId, pickVec, orientation = ParseCommTargetedActionMessage(message)
         player:ProcessTechTreeAction(techId, pickVec, orientation, true)
@@ -104,6 +98,17 @@ function OnCommandMutePlayer(client, message)
 
 end
 
+function OnCommandCommClickSelect(client, message)
+
+    local player = client:GetControllingPlayer()
+    if(player:GetIsCommander()) then
+
+        player:ClickSelectEntities(ParseCommClickSelectMessage(message))
+
+    end
+
+end
+
 Server.HookNetworkMessage("MarqueeSelect",              OnCommandCommMarqueeSelect)
 Server.HookNetworkMessage("ClickSelect",                OnCommandCommClickSelect)
 Server.HookNetworkMessage("ControlClickSelect",         OnCommandCommControlClickSelect)
@@ -113,3 +118,4 @@ Server.HookNetworkMessage("CommTargetedAction",         OnCommandCommTargetedAct
 Server.HookNetworkMessage("CommTargetedActionWorld",    OnCommandCommTargetedActionWorld)
 Server.HookNetworkMessage("ExecuteSaying",              OnCommandExecuteSaying)
 Server.HookNetworkMessage("MutePlayer",                 OnCommandMutePlayer)
+Server.HookNetworkMessage("SelectId",                   OnCommandCommSelectId)

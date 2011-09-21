@@ -298,7 +298,7 @@ function TechTree:GiveUpgrade(techId)
             local newResearchState = not node.researched
             node:SetResearched(newResearchState)
             
-            self:SetTechNodeChanged(node)
+            self:SetTechNodeChanged(node, string.format("researched: %s", ToString(newResearchState)))
             
             if(newResearchState) then
                 local team = GetGamerules():GetTeam(self:GetTeamNumber())
@@ -321,19 +321,26 @@ function TechTree:GiveUpgrade(techId)
     
 end
 
+function TechTree:AddSupportingTechId(techId, idList)
+
+    if self.upgradedTechIdsSupporting == nil then
+        self.upgradedTechIdsSupporting = {}
+    end
+    
+    if table.maxn(idList) > 0 then    
+        table.insert(self.upgradedTechIdsSupporting, {techId, idList})        
+    end
+    
+end
+
 function TechTree:ComputeUpgradedTechIdsSupporting()
 
     self.upgradedTechIdsSupporting = {}
     
     for index, techId in pairs(kTechId) do
     
-        local t = self:ComputeUpgradedTechIdsSupportingId(techId)
-        
-        if table.maxn(t) > 0 then
-        
-            table.insert(self.upgradedTechIdsSupporting, {techId, t})
-            
-        end
+        local idList = self:ComputeUpgradedTechIdsSupportingId(techId)
+        self:AddSupportingTechId(techId, idList)
         
     end
     
@@ -355,69 +362,67 @@ function TechTree:GetUpgradedTechIdsSupporting(techId)
     
 end
 
-// Compute if active structures on our team that support this technology. Do this in batches for efficiency.
-function TechTree:UpdateTeamStructureData()
+// Compute if active structures on our team that support this technology.
+function TechTree:ComputeHasTech(structureTechIdList)
 
-    local structures = GetEntitiesForTeam("Structure", self:GetTeamNumber())
-    
-    for index, node in pairs(self.nodeList) do
+    // Iterate in order
+    for index = 1, table.count(self.nodeList) do
 
-        local techId = node:GetTechId()
+        local node = self.nodeList[index]
+        if node ~= nil then
         
-        local hasTech = false
-    
-        if(self:GetTechSpecial(techId)) then
+            local techId = node:GetTechId()
+            
+            local hasTech = false
         
-            hasTech = self:GetSpecialTechSupported(techId, structures)
+            if(self:GetTechSpecial(techId)) then
+            
+                hasTech = self:GetSpecialTechSupported(techId, structureTechIdList)
 
-        // If it's research, see if it's researched
-        
-        // else            
-        else
-    
-            // Also look for tech that replaces this tech but counts towards it (upgraded Armories, Infantry Portals, etc.)        
-            local supportingTechIds = self:GetUpgradedTechIdsSupporting(techId)
+            // If it's research, see if it's researched
+            elseif node:GetIsResearch() then
             
-            table.insert(supportingTechIds, techId)
-            
-            for index, entity in pairs(structures) do
-            
-                if(table.find(supportingTechIds, entity:GetTechId())) then
+                // Pre-reqs must be defined already
+                local prereq1 = node:GetPrereq1()
+                local prereq2 = node:GetPrereq2()
+                ASSERT(prereq1 == kTechId.None or (prereq1 < techId), string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq1), EnumToString(kTechId, techId)))
+                ASSERT(prereq2 == kTechId.None or (prereq2 < techId), string.format("Prereq %s bigger then %s", EnumToString(kTechId, prereq1), EnumToString(kTechId, techId)))
                 
-                    if(not entity:isa("Structure") or entity:GetIsBuilt()) then
+                hasTech =   node:GetResearched() and 
+                            self:GetHasTech(node:GetPrereq1()) and 
+                            self:GetHasTech(node:GetPrereq2())
+
+            else
+        
+                // Also look for tech that replaces this tech but counts towards it (upgraded Armories, Infantry Portals, etc.)        
+                local supportingTechIds = self:GetUpgradedTechIdsSupporting(techId)
+                
+                table.insert(supportingTechIds, techId)
+                
+                for index, entityTechId in pairs(structureTechIdList) do
+                
+                    if(table.find(supportingTechIds, entityTechId)) then
                     
                         hasTech = true
-                        
+                            
                         break
-                        
+                            
                     end
-                
+                   
                 end
-               
-            end
+                
+            end 
             
-        end 
-        
-        // Update node
-        node.hasTech = hasTech
+            // Update node
+            if node:GetHasTech() ~= hasTech then
+                node:SetHasTech(hasTech)
+                self:SetTechNodeChanged(node, string.format("hasTech = %s", ToString(hasTech)))
+           end
+           
+        end
        
     end
         
-end
-
-// Check if active structures on our team that support this technology. These are
-// are computed during ComputeAvailability().
-function TechTree:GetHasTech(techId)
-    
-    local node = GetTechNode(techId)    
-    if node ~= nil then
-    
-        return node.hasTech
-        
-    end
-
-    return false
-
 end
 
 // TwoCommandStations and ThreeCommandStations not currently used
@@ -425,22 +430,22 @@ function TechTree:GetTechSpecial(techId)
     return (techId == kTechId.TwoCommandStations) or (techId == kTechId.ThreeCommandStations) or (techId == kTechId.TwoHives) or (techId == kTechId.ThreeHives)
 end
 
-function TechTree:GetSpecialTechSupported(techId, structures)
+function TechTree:GetSpecialTechSupported(techId, structureTechIdList)
 
-    local className = nil
+    local supportingId = nil
     
     if( (techId == kTechId.TwoCommandStations) or (techId == kTechId.ThreeCommandStations) ) then
-        className = "CommandStation"
+        supportingId = kTechId.CommandStation
     elseif( (techId == kTechId.TwoHives) or (techId == kTechId.ThreeHives) ) then
-        className = "Hive"
+        supportingId = kTechId.Hive
     end
     
     local numBuiltSpecials = 0
     
-    if(className ~= nil) then
+    if(supportingId ~= nil) then
     
-        for index, structure in ipairs(structures) do
-            if(structure:isa(className) and structure:GetIsBuilt()) then
+        for index, id in ipairs(structureTechIdList) do
+            if id == supportingId then
                 numBuiltSpecials = numBuiltSpecials + 1
             end
         end
@@ -457,53 +462,14 @@ function TechTree:GetSpecialTechSupported(techId, structures)
     
 end
 
-// Compute "available" field for all nodes in tech tree. Should be called whenever a structure
-// is added or removed, and whenever global research starts or is canceled.
-function TechTree:ComputeAvailability()
+function TechTree:Update(structureTechIdList, forceUpdate)
 
     // Only compute if needed
-    if(self.techChanged) then
+    if self.techChanged or forceUpdate then
     
-        // Compute structure availability so we don't have to keep computing it below 
-        self:UpdateTeamStructureData()
+        self:ComputeHasTech(structureTechIdList)
         
-        // Now enable or disable aney nodes with this as a prereq
-        for index, node in pairs(self.nodeList) do
-        
-            local newAvailableState = false
-            
-            // Don't allow researching items that are currently being researched (unless multiples allowed)
-            if ( (node:GetIsResearch() or node:GetIsPlasmaManufacture()) and (self:GetTechSupported(node.prereq1) and self:GetTechSupported(node.prereq2)) ) then
-            
-                newAvailableState = node:GetCanResearch()
-            
-            // Disable anything with this as a prereq if no longer available                
-            elseif( self:GetTechSupported(node.prereq1) and self:GetTechSupported(node.prereq2) ) then
-            
-                newAvailableState = true
-
-            end
-            
-            // Check for "alltech" cheat
-            if(GetGamerules():GetAllTech()) then
-                newAvailableState = true
-            end
-            
-            // Don't allow use of stuff that's unavailable
-            if (LookupTechData(node.techId, kTechDataImplemented) == false and not Shared.GetDevMode()) then
-                newAvailableState = false
-            end
-            
-            if(node.available ~= newAvailableState) then
-            
-                node.available = newAvailableState
-                
-                // Queue tech node update to clients
-                self:SetTechNodeChanged(node)
-                
-            end
-            
-        end
+        self:ComputeAvailability()
         
         self.techChanged = false
         
@@ -511,11 +477,54 @@ function TechTree:ComputeAvailability()
     
 end
 
-// TODO: Call this when structure is powered down or up
-function TechTree:SetTechNodeChanged(node)
+// Compute "available" field for all nodes in tech tree. Should be called whenever a structure
+// is added or removed, and whenever global research starts or is canceled.
+function TechTree:ComputeAvailability()
+
+    for index, node in pairs(self.nodeList) do
+    
+        local newAvailableState = false
+        
+        // Don't allow researching items that are currently being researched (unless multiples allowed)
+        if ( (node:GetIsResearch() or node:GetIsPlasmaManufacture()) and (self:GetHasTech(node:GetPrereq1()) and self:GetHasTech(node:GetPrereq2())) ) then
+        
+            newAvailableState = node:GetCanResearch()
+        
+        // Disable anything with this as a prereq if no longer available                
+        elseif( self:GetHasTech(node:GetPrereq1()) and self:GetHasTech(node:GetPrereq2()) ) then
+        
+            newAvailableState = true
+
+        end
+        
+        // Check for "alltech" cheat
+        if(GetGamerules():GetAllTech()) then
+            newAvailableState = true
+        end
+        
+        // Don't allow use of stuff that's unavailable
+        if (LookupTechData(node.techId, kTechDataImplemented) == false and not Shared.GetDevMode()) then
+            newAvailableState = false
+        end
+        
+        if(node.available ~= newAvailableState) then
+        
+            node.available = newAvailableState
+            
+            // Queue tech node update to clients
+            self:SetTechNodeChanged(node, string.format("available = %s", ToString(newAvailableState)))
+            
+        end
+        
+    end
+        
+end
+
+function TechTree:SetTechNodeChanged(node, logMsg)
 
     if table.insertunique(self.techNodesChanged, node) then
     
+        //Print("TechNode %s changed %s", EnumToString(kTechId, node.techId), ToString(logMsg))
         self.techChanged = true
         
     end
@@ -523,7 +532,7 @@ function TechTree:SetTechNodeChanged(node)
 end
 
 // Utility functions
-function GetTechSupported(callingEntity, techId, silenceError)
+function GetHasTech(callingEntity, techId, silenceError)
 
     if callingEntity ~= nil then
     
@@ -534,7 +543,7 @@ function GetTechSupported(callingEntity, techId, silenceError)
             local techTree = team:GetTechTree()
             
             if techTree ~= nil then
-                return techTree:GetTechSupported(techId, silenceError)
+                return techTree:GetHasTech(techId, silenceError)
             end
             
         end

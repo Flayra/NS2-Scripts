@@ -92,4 +92,8 @@ function Scan:OverrideVisionRadius()
   return Scan.kScanDistance
 end
 
+function Scan:GetCanTakeDamageOverride()
+    return false
+end
+
 Shared.LinkClassToMap("Scan", Scan.kMapName, {})

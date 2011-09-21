@@ -25,11 +25,11 @@ Script.Load("lua/TechData.lua")
 Script.Load("lua/TechNode.lua")
 Script.Load("lua/TechTree.lua")
 Script.Load("lua/ScriptActor.lua")
-Script.Load("lua/LiveScriptActor.lua")
 Script.Load("lua/Order.lua")
 Script.Load("lua/PropDynamic.lua")
 Script.Load("lua/Blip.lua")
 Script.Load("lua/MapBlip.lua")
+Script.Load("lua/SoundEffect.lua")
 Script.Load("lua/TrackYZ.lua")
 
 // Neutral structures
@@ -99,6 +99,7 @@ Script.Load("lua/PhantomEffigy.lua")
 Script.Load("lua/ReadyRoomPlayer.lua")
 Script.Load("lua/Spectator.lua")
 Script.Load("lua/AlienSpectator.lua")
+Script.Load("lua/MarineSpectator.lua")
 Script.Load("lua/Ragdoll.lua")
 Script.Load("lua/MarineCommander.lua")
 Script.Load("lua/AlienCommander.lua")
@@ -126,37 +127,10 @@ Script.Load("lua/Jetpack.lua")
 Script.Load("lua/PowerPoint.lua")
 Script.Load("lua/Sayings.lua")
 Script.Load("lua/NS2Utility.lua")
+Script.Load("lua/WeaponUtility.lua")
 Script.Load("lua/TeamInfo.lua")
 Script.Load("lua/PathingUtility.lua")
-
-// Call from shared code
-function TriggerTracer(clientPlayer, startPoint, endPoint, velocity)
-
-    if Client then
-    
-        CreateTracer(startPoint, endPoint, velocity)
-        
-    else
-    
-        // Send tracer network message to nearby players, not including this one
-        for index, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
-        
-            if player ~= clientPlayer and player:GetTeamNumber() ~= kTeamReadyRoom then
-        
-                local dist = (player:GetOrigin() - clientPlayer:GetOrigin()):GetLength()
-                if dist < 30 then
-                
-                    Server.SendNetworkMessage(player, "Tracer", BuildTracerMessage(startPoint, endPoint, velocity), false)
-                    
-                end
-                
-            end
-            
-        end
-        
-    end
-    
-end
+Script.Load("lua/PowerManager.lua")
 
 /**
  * Called when two physics bodies collide.

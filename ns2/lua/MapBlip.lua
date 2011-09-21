@@ -24,7 +24,7 @@ function MapBlip:OnCreate()
 
     Entity.OnCreate(self)
     
-    self:SetUpdates(true)
+    self:SetUpdates(false)
     
     self.mapBlipType = kMinimapBlipType.TechPoint
     self.mapBlipTeam = kTeamReadyRoom
@@ -38,18 +38,18 @@ end
 
 function MapBlip:UpdateRelevancy()
 
-	self:SetRelevancyDistance(Math.infinity)
-	
-	local mask = 0
-	
-	if self.mapBlipTeam == kTeam1Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
-		mask = bit.bor(mask, kRelevantToTeam1)
-	end
-	if self.mapBlipTeam == kTeam2Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
-		mask = bit.bor(mask, kRelevantToTeam2)
-	end
-		
-	self:SetExcludeRelevancyMask( mask )
+    self:SetRelevancyDistance(Math.infinity)
+    
+    local mask = 0
+    
+    if self.mapBlipTeam == kTeam1Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
+        mask = bit.bor(mask, kRelevantToTeam1)
+    end
+    if self.mapBlipTeam == kTeam2Index or self.mapBlipTeam == kTeamInvalid or self:GetIsSighted() then
+        mask = bit.bor(mask, kRelevantToTeam2)
+    end
+    
+    self:SetExcludeRelevancyMask( mask )
 
 end
 
@@ -100,7 +100,10 @@ function MapBlip:GetIsSighted()
     
 end
 
-function MapBlip:OnUpdate(deltaTime)
+// Called (server side) when a mapblips owner has changed its map-blip dependent state
+function MapBlip:Update(deltaTime)
+
+    PROFILE("MapBlip:Update")
 
     if self.ownerEntityId and Shared.GetEntity(self.ownerEntityId) then
     

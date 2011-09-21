@@ -38,13 +38,9 @@ function PowerPack:OnInit()
     
 end
 
-function PowerPack:GetIsPowered()
-    return self:GetIsAlive()
-end
-
 // Temporarily don't use "target" attach point
 function PowerPack:GetEngagementPoint()
-    return LiveScriptActor.GetEngagementPoint(self)
+    return ScriptActor.GetEngagementPoint(self)
 end
 
 function PowerPack:GetTechButtons(techId)

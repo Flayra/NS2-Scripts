@@ -62,13 +62,13 @@ kTechId = enum({
     'WeaponsModule', 'PrototypeLab', 'AdvancedArmory', 'SentryRefill',
     
     // Weapon tech
-    'RifleUpgradeTech', 'ShotgunTech', 'GrenadeLauncherTech', 'FlamethrowerTech', 'NerveGasTech', 'FlamethrowerAltTech', 'DualMinigunTech',
+    'RifleUpgradeTech', 'ShotgunTech', 'GrenadeLauncherTech', 'FlamethrowerTech', 'NerveGasTech', 'FlamethrowerAltTech', 
     
     // Marine buys
     'RifleUpgrade', 'NerveGas', 'FlamethrowerAlt',
     
     // Research 
-    'PhaseTech', 'MACWeldingTech', 'MACSpeedTech', 'MACMinesTech', 'MACEMPTech', 'ARCArmorTech', 'ARCSplashTech', 'JetpackTech', 'ExoskeletonTech',
+    'PhaseTech', 'MACWeldingTech', 'MACSpeedTech', 'MACMinesTech', 'MACEMPTech', 'ARCArmorTech', 'ARCSplashTech', 'JetpackTech', 'ExoskeletonTech', 'DualMinigunTech',
     
     // MAC (build bot) abilities
     'MACMine', 'MACEMP',
@@ -101,6 +101,9 @@ kTechId = enum({
     // Alien abilities (not all are needed, only ones with damage types)
     'Bite', 'Parasite', 'Spit', 'Spray', 'BileBomb', 'Spikes', 'SpikesAlt', 'Spores', 'HydraSpike', 'SwipeBlink', 'StabBlink', 'Gore', 
     
+    // Special tech
+    'TwoHives', 'ThreeHives',
+
     // Alien structures 
     'Hive', 'Harvester', 'HarvesterUpgrade', 'Drifter', 'Egg', 'Cocoon', 'Embryo', 'Hydra', 'Cyst', 'MiniCyst',
 
@@ -136,9 +139,6 @@ kTechId = enum({
     // Pheromones
     'ThreatMarker', 'LargeThreatMarker', 'NeedHealingMarker', 'WeakMarker', 'ExpandingMarker',
     
-    // Special tech
-    'TwoHives', 'ThreeHives',
-    
     // Infestation
     'Infestation',
     
@@ -146,7 +146,9 @@ kTechId = enum({
     'MetabolizeTech', 'Metabolize',
     
     // Voting commands
-    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3', 
+    'VoteDownCommander1', 'VoteDownCommander2', 'VoteDownCommander3',
+    
+    'DeathTrigger',
 
     // Maximum index
     'Max'

@@ -75,7 +75,7 @@ function SwipeBlink:PerformPrimaryAttack(player)
     Blink.PerformPrimaryAttack(self, player)
 
     // Play random animation
-    player:SetActivityEnd( player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay() ))
+    player:SetActivityEnd( player:AdjustAttackDelay(self:GetPrimaryAttackDelay() ))
     
     // Check if the swipe may hit an entity. Don't actually do any damage yet.
     local didHit, trace = self:CheckMeleeCapsule(player, SwipeBlink.kDamage, SwipeBlink.kRange)

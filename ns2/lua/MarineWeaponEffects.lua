@@ -104,7 +104,7 @@ kMarineWeaponEffects =
         // Adjust animation speed to change animation speed and reload time ("speed")
         gunReloadEffects =
         {
-            {viewmodel_animation = "reload", classname = "Rifle"},
+            {viewmodel_animation = "reload", classname = "Rifle", speed = 1.25},
             {sound = "sound/ns2.fev/marine/rifle/reload", classname = "Rifle"},
             {overlay_animation = "rifle_reload", classname = "Rifle", done = true},
             
@@ -345,6 +345,16 @@ kMarineWeaponEffects =
             {stop_sound = "sound/ns2.fev/marine/flamethrower/attack_start"},
             {sound = "sound/ns2.fev/marine/flamethrower/attack_end"},
             {viewmodel_animation = "attack_end"}
+        },
+    },
+    
+    flamethrower_holster =
+    {
+        flamethrowerHolsterEffects =
+        {
+            {stop_viewmodel_cinematic = "cinematics/marine/flamethrower/flame_1p.cinematic"},
+            {stop_cinematic = "cinematics/marine/flamethrower/flame.cinematic"},
+            {stop_viewmodel_cinematic = "cinematics/marine/flamethrower/flameout.cinematic"},
         },
     },
 

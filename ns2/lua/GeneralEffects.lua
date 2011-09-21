@@ -39,11 +39,10 @@ kGeneralEffectData =
             {sound = "sound/ns2.fev/alien/onos/spawn", classname = "Onos", done = true},
             {sound = "sound/ns2.fev/common/connect", classname = "Player", done = true},            
 
-            // Causing problems right now - playing too much
-            //{sound = "sound/ns2.fev/alien/commander/DI_drop_3D", classname = "Infestation"},
-            {parented_sound = "sound/ns2.fev/alien/infestation/build", classname = "Infestation", done = true},
+            {parented_sound = "sound/ns2.fev/alien/infestation/build", classname = "Cyst", done = true},
 
-            {parented_sound = "sound/ns2.fev/marine/structures/mac/hover", classname = "MAC", done = true},            
+            {parented_sound = "sound/ns2.fev/marine/structures/mac/hover", classname = "MAC", done = true},
+            {parented_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", done = true},            
             {sound = "sound/ns2.fev/alien/drifter/spawn", classname = "Drifter", done = true},
             
             {sound = "sound/ns2.fev/alien/structures/spawn_small", isalien = true, done = true},
@@ -125,6 +124,7 @@ kGeneralEffectData =
             {parented_sound = "sound/ns2.fev/alien/structures/shade/idle", classname = "Shade", done = true},
             {parented_sound = "sound/ns2.fev/alien/structures/shift/idle", classname = "Shift", done = true},
             {parented_sound = "sound/ns2.fev/alien/structures/whip/idle", classname = "Whip", done = true},
+            {parented_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", deployed = false, done = true},   
             {sound = "sound/ns2.fev/marine/flamethrower/idle", classname = "Flamethrower", done = true},
         },
     },
@@ -163,24 +163,24 @@ kGeneralEffectData =
         generalFlinchSoundEffects =
         {        
             // Specific flinch sounds
-            {sound = "sound/ns2.fev/alien/skulk/wound_serious", classname = "Skulk", flinch_severe = true, done = true},           
-            {sound = "sound/ns2.fev/alien/skulk/wound", classname = "Skulk", done = true},           
-            {sound = "sound/ns2.fev/alien/gorge/wound_serious", classname = "Gorge", flinch_severe = true, done = true},           
-            {sound = "sound/ns2.fev/alien/gorge/wound", classname = "Gorge", done = true},     
-            {sound = "sound/ns2.fev/alien/lerk/wound_serious", classname = "Lerk", flinch_severe = true, done = true},     
-            {sound = "sound/ns2.fev/alien/lerk/wound", classname = "Lerk", done = true},      
-            {sound = "sound/ns2.fev/alien/fade/wound_serious", classname = "Fade", flinch_severe = true, done = true},
-            {sound = "sound/ns2.fev/alien/fade/wound", classname = "Fade", done = true},           
-            {sound = "sound/ns2.fev/alien/onos/wound_serious", classname = "Onos", flinch_severe = true, done = true},
-            {sound = "sound/ns2.fev/alien/onos/wound", classname = "Onos", done = true},
+            {sound = "sound/ns2.fev/alien/skulk/wound_serious", classname = "Skulk", world_space = true, flinch_severe = true, done = true},           
+            {sound = "sound/ns2.fev/alien/skulk/wound", classname = "Skulk", world_space = true, done = true},           
+            {sound = "sound/ns2.fev/alien/gorge/wound_serious", classname = "Gorge", world_space = true, flinch_severe = true, done = true},           
+            {sound = "sound/ns2.fev/alien/gorge/wound", classname = "Gorge", world_space = true, done = true},     
+            {sound = "sound/ns2.fev/alien/lerk/wound_serious", classname = "Lerk", world_space = true, flinch_severe = true, done = true},     
+            {sound = "sound/ns2.fev/alien/lerk/wound", classname = "Lerk", world_space = true, done = true},      
+            {sound = "sound/ns2.fev/alien/fade/wound_serious", classname = "Fade", world_space = true, flinch_severe = true, done = true},
+            {sound = "sound/ns2.fev/alien/fade/wound", classname = "Fade", world_space = true, done = true},           
+            {sound = "sound/ns2.fev/alien/onos/wound_serious", classname = "Onos", world_space = true, flinch_severe = true, done = true},
+            {sound = "sound/ns2.fev/alien/onos/wound", classname = "Onos", world_space = true, done = true},
             
             {sound = "sound/ns2.fev/alien/structures/hive_wound", classname = "Hive", done = true},
             {sound = "sound/ns2.fev/alien/structures/harvester_wound", classname = "Harvester", done = true},  
             {sound = "sound/ns2.fev/alien/structures/hurt", classname = "Structure", isalien = true, done = true}, 
          
-            {sound = "sound/ns2.fev/marine/common/spore_wound", classname = "Marine", doer = "Spores", done = true},
-            {sound = "sound/ns2.fev/marine/common/wound_serious", classname = "Marine", flinch_severe = true, done = true},
-            {sound = "sound/ns2.fev/marine/common/wound", classname = "Marine", done = true}, 
+            {sound = "sound/ns2.fev/marine/common/spore_wound", classname = "Marine", world_space = true, doer = "SporeCloud", done = true},
+            {sound = "sound/ns2.fev/marine/common/wound_serious", classname = "Marine", world_space = true, flinch_severe = true, done = true},
+            {sound = "sound/ns2.fev/marine/common/wound", classname = "Marine", world_space = true, done = true}, 
                      
             {sound = "sound/ns2.fev/marine/structures/hurt", classname = "Structure", isalien = false, done = true},
 
@@ -211,9 +211,10 @@ kGeneralEffectData =
             {ragdoll = "", from_animation = "death_flames", classname = "Drifter", death_time = 3, done = true},
             {ragdoll = "", from_animation = "death_spawn", classname = "Extractor", death_time = 3, done = true},
             {ragdoll = "", from_animation = "death_deployed", classname = "Extractor", death_time = 3, done = true},
-            {ragdoll = "", from_animation = "death", classname = "Structure", death_time = 3, done = true},            
-            {ragdoll = "", from_animation = "death_deployed", classname = "ARC", deployed = true, death_time = 3, done = true},          
-            {ragdoll = "", from_animation = "death_undeployed", classname = "ARC", deployed = false, death_time = 3, done = true},          
+            {ragdoll = "", from_animation = "death", classname = "Structure", death_time = 3, done = true},
+            {ragdoll = "", from_animation = "death_deployed", classname = "ARC", deployed = true, death_time = 3, done = true},
+            {ragdoll = "", from_animation = "death_undeployed", classname = "ARC", deployed = false, death_time = 3, done = true},
+            {ragdoll = "", from_animation = "death", classname = "Player", death_time = 3, done = true},
         },
     },
     
@@ -270,7 +271,7 @@ kGeneralEffectData =
             
             {stop_sound = "sound/ns2.fev/marine/structures/arc/fire", classname = "ARC"},
             
-            {stop_sound = "sound/ns2.fev/alien/infestation/build", classname = "Infestation", done = true},
+            {stop_sound = "sound/ns2.fev/alien/infestation/build", classname = "Cyst", done = true},
             
             {sound = "sound/ns2.fev/marine/structures/mac/death", classname = "MAC", done = true},
             {sound = "sound/ns2.fev/alien/drifter/death", classname = "Drifter", done = true},
@@ -304,6 +305,7 @@ kGeneralEffectData =
             {animation = "death_deployed", classname = "Extractor", built = false, force = true, done = true},
             {ragdoll = "", classname = "Hive", death_time = 6, force = true, done = true},
             {animation = "death", classname = "Structure", force = true, done = true},
+            {animation = "death", classname = "Player", force = true, done = true},
         },
     },
     
@@ -365,15 +367,12 @@ kGeneralEffectData =
         regenerateEffects =
         {
             {sound = "sound/ns2.fev/alien/common/regeneration"},
+            {private_sound = "sound/ns2.fev/alien/common/regeneration"},
         },
     },
     
     infestation_grown =
     {
-        infestationEffects = 
-        {
-            {stop_sound = "sound/ns2.fev/alien/infestation/build", classname = "Infestation", done = true},
-        },
     },
     
     res_received =

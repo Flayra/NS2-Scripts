@@ -14,19 +14,18 @@ Script.Load("lua/Structure.lua")
 function PowerPoint:OnKill(damage, attacker, doer, point, direction)
 
     // Don't destroy it, just require it to be built again
-    if self.powered then
+    if self:GetIsPowered() then
     
         self:SetAnimation(PowerPoint.kAnimOff)
         
         self:SetModel(PowerPoint.kOffModelName)
         
-        self:StopDamagedSound()
+        self:StopDamagedSound()        
+                       
+        self:SetIsPowerSource(false)
+        self:DetermineTeamNumber()
         
-        self.powered = false
-        
-        self:SetLightMode(kLightMode.NoPower)
-        
-        self:UpdatePoweredStructures()
+        self:SetLightMode(kLightMode.NoPower)                
         
         // Remove effects such as parasite when destroyed.
         self:ClearGameEffects()
@@ -46,19 +45,17 @@ function PowerPoint:OnLoad()
 
     Structure.OnLoad(self)
     
+    self:DetermineTeamNumber()
+    
     self:SetNextThink(.1)
     
 end
 
 function PowerPoint:OnThink()
 
-    if self.powered then
-        // Update after load finishes to make sure pre-placed structures are present
-        self:UpdatePoweredStructures()
-    else
+    if not self:GetIsPowered() then
         self:PlaySound(PowerPoint.kAuxPowerBackupSound)
     end    
-    
 end
 
 function PowerPoint:Reset()
@@ -88,11 +85,9 @@ function PowerPoint:OnConstructionComplete()
     self.maxArmor = PowerPoint.kArmor
     
     self:SetLightMode(kLightMode.Normal)
-    
-    self.powered = true
-    
-    self:UpdatePoweredStructures()
-    
+            
+    self:SetIsPowerSource(true)
+    self:DetermineTeamNumber()
 end
 
 // Can be repaired by friendly players
@@ -113,8 +108,13 @@ function PowerPoint:OnWeld(entity, elapsedTime)
     
     // Marines can repair power points
     if entity:isa("Marine") then
-    
-        welded = (self:AddHealth(kMarineRepairHealthPerSecond * elapsedTime) > 0)        
+
+        local amount = kMarineRepairHealthPerSecond * elapsedTime
+        
+        // highdamage cheat speeds things up for testing    
+        amount = amount * GetGamerules():GetDamageMultiplier()
+        
+        welded = (self:AddHealth(amount) > 0)        
         
         // Play puff of sparks every so often
         local time = Shared.GetTime()
@@ -134,7 +134,7 @@ function PowerPoint:OnWeld(entity, elapsedTime)
 
         self:StopDamagedSound()
         
-        if self:GetLightMode() == kLightMode.LowPower and self.powered then
+        if self:GetLightMode() == kLightMode.LowPower and self:GetIsPowered() then
         
             self:SetLightMode(kLightMode.Normal)
             
@@ -142,20 +142,23 @@ function PowerPoint:OnWeld(entity, elapsedTime)
         
     end
     
-    if not self.powered and self:GetHealthScalar() == 1 then
+    if not self:GetIsPowered() and self:GetHealthScalar() == 1 then
     
-        self.powered = true
+        self:SetIsPowerSource(true)
+        self:DetermineTeamNumber()
         
         self:SetLightMode(kLightMode.Normal)
         
         self:SetModel(PowerPoint.kOnModelName)
         
-        self:StopSound(PowerPoint.kAuxPowerBackupSound)
-        
-        self:UpdatePoweredStructures()
+        self:StopSound(PowerPoint.kAuxPowerBackupSound)               
         
         self:TriggerEffects("fixed_power_up")
         
+    end
+    
+    if (welded) then
+      self:AddAttackTime(-0.1)
     end
     
     return welded
@@ -178,7 +181,7 @@ function PowerPoint:OnTakeDamage(damage, attacker, doer, point)
 
     Structure.OnTakeDamage(self, damage, attacker, doer, point)
     
-    if self.powered then
+    if self:GetIsPowered() then
     
         self:PlaySound(PowerPoint.kTakeDamageSound)
         
@@ -202,17 +205,27 @@ function PowerPoint:OnTakeDamage(damage, attacker, doer, point)
         
     end
     
+    self:AddAttackTime(0.9)
+    
 end
 
 // Use nearby structures to determine which one we should be powering. Counts number of
 // structures for each team and returns the max. If tied, returns world team (power point
 // will work for both teams). This will support the future possibility of marine vs. marine.
-function PowerPoint:DetermineTeamNumber(nearbyStructures)
+function PowerPoint:DetermineTeamNumber()
 
+    local structures = EntityListToTable(Shared.GetEntitiesWithClassname("Structure"))
+    
+    table.removevalue(structures, self)
+    
+    
+    
+    local teamNumber = kTeamReadyRoom
+    
     local team1Number = 0
     local team2Number = 0
     
-    for index, structure in ipairs(nearbyStructures) do
+    for index, structure in ipairs(structures) do
     
         local team = structure:GetTeam()
         if team.GetTeamType then
@@ -235,31 +248,19 @@ function PowerPoint:DetermineTeamNumber(nearbyStructures)
     end
     
     if team1Number > team2Number then
-        return kTeam1Index
+        teamNumber = kTeam1Index
     elseif team2Number > team1Number then
-        return kTeam2Index
+        teamNumber = kTeam2Index
     end
     
-    return kTeamReadyRoom
+    self:SetTeamNumber(teamNumber)
 
-end
-
-function PowerPoint:UpdatePoweredStructures()
-
-    local structures = EntityListToTable(Shared.GetEntitiesWithClassname("Structure"))
-    
-    table.removevalue(structures, self)
-    
-    self:SetTeamNumber(self:DetermineTeamNumber(structures))
-    
-    for index, structure in ipairs(structures) do
-    
-        structure:UpdatePoweredState()
-        
-    end
-    
 end
 
 function PowerPoint:GetSendDeathMessageOverride()
-    return self.powered
+    return self:GetIsPowered()
+end
+
+function PowerPoint:AddAttackTime(value)
+  self.attackTime =  math.max(self.attackTime + value, 0)
 end

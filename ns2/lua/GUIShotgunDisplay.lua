@@ -66,6 +66,8 @@ function GUIShotgunDisplay:CreateItem(x, y)
 end
 
 function GUIShotgunDisplay:Update(deltaTime)
+
+    PROFILE("GUIShotgunDisplay:Update")
     
     // Update the ammo counter.
     

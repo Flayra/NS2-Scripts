@@ -96,12 +96,11 @@ function Team:RemovePlayer(player)
 
     ASSERT(player)
     
-    if(not table.removevalue( self.playerIds, player:GetId() )) then
-        Print("Team:RemovePlayer(%s): Player id %d not in playerId list.", player:GetClassName(), player:GetId())
+    if not table.removevalue(self.playerIds, player:GetId()) then
+        Print("Team:RemovePlayer(%s): Player %s with Id %d not in playerId list.", player:GetClassName(), player:GetName(), player:GetId())
     end
     
-    self:RemovePlayerFromRespawnQueue(player)    
-
+    self:RemovePlayerFromRespawnQueue(player)
     
 end
 

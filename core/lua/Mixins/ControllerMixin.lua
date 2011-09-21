@@ -1,14 +1,14 @@
 ControllerMixin = { }
 ControllerMixin.type = "Controller"
 
-ControllerMixin.expectedCallbacks = {
+ControllerMixin.expectedCallbacks =
+{
     GetControllerSize = "Should return a height and radius",
-    GetMovePhysicsMask = "Should return a mask for the physics groups to collide with", }
-
-function ControllerMixin.__prepareclass(toClass)
-end
+    GetMovePhysicsMask = "Should return a mask for the physics groups to collide with"
+}
 
 function ControllerMixin:__initmixin()
+    self.controller = nil
 end
 
 function ControllerMixin:OnDestroy()
@@ -43,9 +43,9 @@ end
  * state of the entity.
  */
 function ControllerMixin:UpdateControllerFromEntity()
-    
+
     if self.controller ~= nil then
-        
+    
         local controllerHeight, controllerRadius = self:GetControllerSize()
         
         if controllerHeight ~= self.controllerHeight or controllerRadius ~= self.controllerRadius then
@@ -71,6 +71,15 @@ function ControllerMixin:UpdateControllerFromEntity()
     
 end
 
+function ControllerMixin:OnUpdate(deltaTime)
+
+    // Dead entities do not have a controller.
+    if HasMixin(self, "Live") and not self:GetIsAlive() then
+        self:DestroyController()
+    end
+
+end
+
 /**
  * Synchronizes the origin of the entity with the current state of the physics
  * controller.
@@ -84,6 +93,21 @@ function ControllerMixin:UpdateOriginFromController()
     
     self:SetOrigin(origin)
     
+end
+
+/** 
+ * Returns true if the entity is colliding with anything that passes its movement
+ * mask at its current position.
+ */
+function ControllerMixin:GetIsColliding()
+
+    if self.controller then
+        self:UpdateControllerFromEntity()
+        return self.controller:Test(self:GetMovePhysicsMask())
+    end
+    
+    return false
+
 end
 
 /**
@@ -160,5 +184,6 @@ function ControllerMixin:PerformMovement(offset, maxTraces, velocity)
 end
 
 function ControllerMixin:OnSynchronized()
+    PROFILE("ControllerMixin:OnSynchronized")
     self:UpdateControllerFromEntity()
 end

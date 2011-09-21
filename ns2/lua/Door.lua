@@ -6,12 +6,15 @@
 //                  Max McGuire (max@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/LiveScriptActor.lua")
-Script.Load("lua/UpgradableMixin.lua")
+Script.Load("lua/ScriptActor.lua")
+Script.Load("lua/LiveMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/OrdersMixin.lua")
 Script.Load("lua/SelectableMixin.lua")
+Script.Load("lua/WeldableMixin.lua")
+Script.Load("lua/PathingMixin.lua")
 
-class 'Door' (LiveScriptActor)
+class 'Door' (ScriptActor)
 
 Door.kMapName = "door"
 
@@ -59,17 +62,24 @@ Door.networkVars   = {
 
 }
 
-PrepareClassForMixin(Door, UpgradableMixin)
+PrepareClassForMixin(Door, LiveMixin)
 PrepareClassForMixin(Door, GameEffectsMixin)
+PrepareClassForMixin(Door, OrdersMixin)
+PrepareClassForMixin(Door, SelectableMixin)
 
 function Door:OnCreate()
 
-    LiveScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
     
-    InitMixin(self, UpgradableMixin)
+    InitMixin(self, LiveMixin)
     InitMixin(self, GameEffectsMixin)
+    InitMixin(self, OrdersMixin)
     InitMixin(self, PathingMixin)
     InitMixin(self, SelectableMixin)
+    
+    if Server then
+        InitMixin(self, WeldableMixin)
+    end
     
     self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
     
@@ -77,7 +87,7 @@ end
 
 function Door:OnInit()
       
-    LiveScriptActor.OnInit(self)
+    ScriptActor.OnInit(self)
        
     if (Server) then
     
@@ -287,7 +297,7 @@ function Door:GetWeldTime()
 end
 
 // If door is ready to be welded by buildbot right now, and in the future
-function Door:GetCanBeWelded(entity)
+function Door:GetCanBeWeldedOverride(entity)
 
     local canBeWeldedNow = (self.state == Door.kState.Closed)
     local canBeWeldedFuture = (self.state ~= Door.kState.Welded)

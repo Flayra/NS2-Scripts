@@ -48,7 +48,7 @@ function Alien:Evolve(techIds)
     elseif GetHasRoomForCapsule(eggExtents, position + Vector(0, eggExtents.y + Embryo.kEvolveSpawnOffset, 0), physicsMask, self)and
            GetHasRoomForCapsule(newAlienExtents, position + Vector(0, newAlienExtents.y + Embryo.kEvolveSpawnOffset, 0), physicsMask, self)  then
     
-        self:RemoveChildren()
+        self:DestroyChildren()
         
         // Deduct cost here as player is immediately replaced and copied.
         for i, techId in ipairs(techIds) do
@@ -114,11 +114,11 @@ end
 function Alien:GetArmorAbsorbPercentageOverride(damageType, baseArmorAbsorption)
     
     local bonusArmorAbsorption = 1    
-    if(GetTechSupported(self, kTechId.AlienArmor3Tech, true)) then
+    if(GetHasTech(self, kTechId.AlienArmor3Tech, true)) then
         bonusArmorAbsorption = kAlienArmorAbsorption3
-    elseif(GetTechSupported(self, kTechId.AlienArmor2Tech, true)) then
+    elseif(GetHasTech(self, kTechId.AlienArmor2Tech, true)) then
         bonusArmorAbsorption = kAlienArmorAbsorption2
-    elseif(GetTechSupported(self, kTechId.AlienArmor1Tech, true)) then
+    elseif(GetHasTech(self, kTechId.AlienArmor1Tech, true)) then
         bonusArmorAbsorption = kAlienArmorAbsorption1
     end
 

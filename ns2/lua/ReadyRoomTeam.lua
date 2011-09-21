@@ -30,7 +30,11 @@ function ReadyRoomTeam:GetRespawnMapName(player)
     end
     
     // Use previous life form if dead or in commander chair
-    if (mapName == MarineCommander.kMapName) or (mapName == AlienCommander.kMapName) or (mapName == Spectator.kMapName) or (mapName == AlienSpectator.kMapName) then 
+    if (mapName == MarineCommander.kMapName) 
+       or (mapName == AlienCommander.kMapName) 
+       or (mapName == Spectator.kMapName) 
+       or (mapName == AlienSpectator.kMapName) 
+       or (mapName ==  MarineSpectator.kMapName) then 
     
         mapName = player:GetPreviousMapName()
 
@@ -43,7 +47,7 @@ function ReadyRoomTeam:GetRespawnMapName(player)
         mapName = ReadyRoomPlayer.kMapName
         
     end
-
+    Print("ready room Name %s", ToString(mapName))
     return mapName
 
 end
@@ -55,7 +59,7 @@ function ReadyRoomTeam:ReplaceRespawnPlayer(player, origin, angles)
 
     local mapName = self:GetRespawnMapName(player)
     local isEmbryo = player:isa("Embryo") or (player:isa("Spectator") and player:GetPreviousMapName() == Embryo.kMapName)
-    local newPlayer = player:Replace(mapName, self:GetTeamNumber(), false)
+    local newPlayer = player:Replace(mapName, self:GetTeamNumber(), false, origin)
     
     // still allow embryos to show.
     if isEmbryo then

@@ -3,6 +3,7 @@
 	<description>Natural Selection 2</description>
 	<client>lua/Client.lua</client>
 	<server>lua/Server.lua</server>
+    <soundinfo>sound/NS2.soundinfo</soundinfo>
 	<locale>enUS</locale>
 	<locale>deDE</locale>
 	<locale>koKR</locale>

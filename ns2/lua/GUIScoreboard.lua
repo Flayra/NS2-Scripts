@@ -242,6 +242,8 @@ end
 
 function GUIScoreboard:Update(deltaTime)
 
+    PROFILE("GUIScoreboard:Update")
+
     local teamsVisible = ScoreboardUI_GetVisible()
     
     ASSERT(teamsVisible ~= nil)
@@ -310,10 +312,18 @@ function GUIScoreboard:UpdateTeam(updateTeam)
     local playerList = updateTeam["PlayerList"]
     local teamScores = updateTeam["GetScores"]()
     
-    local isLocalTeam = false
+    // Determines if the local player can see secret information
+    // for this team.
+    local isVisibleTeam = false
     local player = Client.GetLocalPlayer()
-    if player and player:GetTeamNumber() == updateTeam["TeamNumber"] then
-        isLocalTeam = true
+    if player then
+    
+        local teamNum = player:GetTeamNumber()
+        // Can see secret information if the player is on the team or is a spectator.
+        if teamNum == updateTeam["TeamNumber"] or teamNum == kSpectatorIndex then
+            isVisibleTeam = true
+        end
+        
     end
 
     // How many items per player.
@@ -323,7 +333,7 @@ function GUIScoreboard:UpdateTeam(updateTeam)
     teamNameGUIItem:SetText(string.format("%s (%s)", teamNameText, Pluralize(numPlayers, "Player")))
     
     // Update team resource display
-    local teamResourcesString = ConditionalValue(isLocalTeam, string.format("%d team resources", player:GetTeamResources()), "")
+    local teamResourcesString = ConditionalValue(isVisibleTeam, string.format("%d team resources", ScoreboardUI_GetTeamResources(updateTeam["TeamNumber"])), "")
     teamInfoGUIItem:SetText(string.format("%s", teamResourcesString))
     
     // Make sure there is enough room for all players on this team GUI.
@@ -344,7 +354,7 @@ function GUIScoreboard:UpdateTeam(updateTeam)
         local kills = playerRecord.Kills
         local deaths = playerRecord.Deaths
         local isCommander = playerRecord.IsCommander
-        local resourcesStr = ConditionalValue(isLocalTeam, tostring(playerRecord.Resources), "-")
+        local resourcesStr = ConditionalValue(isVisibleTeam, tostring(playerRecord.Resources), "-")
         local ping = playerRecord.Ping
         local pingStr = tostring(ping)
         local currentPosition = Vector(player["Background"]:GetPosition())

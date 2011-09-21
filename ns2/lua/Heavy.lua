@@ -50,11 +50,11 @@ function Heavy:GetArmorAmount()
 
     local armorLevels = 0
     
-    if(GetTechSupported(self, kTechId.Armor3)) then
+    if(GetHasTech(self, kTechId.Armor3)) then
         armorLevels = 3
-    elseif(GetTechSupported(self, kTechId.Armor2)) then
+    elseif(GetHasTech(self, kTechId.Armor2)) then
         armorLevels = 2
-    elseif(GetTechSupported(self, kTechId.Armor1)) then
+    elseif(GetHasTech(self, kTechId.Armor1)) then
         armorLevels = 1
     end
     

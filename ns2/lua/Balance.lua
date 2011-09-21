@@ -42,7 +42,7 @@ kTechMACSpeedResearchCost = 5
 kShotgunCost = 20
 kShotgunTechResearchCost = 15
 
-kGrenadeLauncherCost = 20
+kGrenadeLauncherCost = 25
 kGrenadeLauncherTechResearchCost = 15
 kNerveGasTechResearchCost = 15
 
@@ -224,7 +224,7 @@ kAxeFireDelay = 0.6
 kGrenadeLauncherGrenadeDamage = 150
 kGrenadeLauncherGrenadeDamageType = kDamageType.Structural
 kGrenadeLauncherFireDelay = 0.4
-kGrenadeLauncherClipSize = 4
+kGrenadeLauncherClipSize = 7
 kGrenadeLauncherGrenadeDamageRadius = 8
 kGrenadeLifetime = 1.5
 
@@ -379,7 +379,9 @@ kMelee3DamageScalar = 1.3
 
 // SPAWN TIMES
 kMarineRespawnTime = 10
-kAlienRespawnTime = 13
+kAlienPlayerSpawnTime = 90
+kAlienEggMinSpawnTime = 8
+kAlienEggMaxSpawnTime = 30
 
 // BUILD/RESEARCH TIMES
 kRecycleTime = 8
@@ -510,8 +512,6 @@ kMelee3ResearchTime = 40
 kAlienArmor1ResearchTime = 20
 kAlienArmor2ResearchTime = 30
 kAlienArmor3ResearchTime = 40
-
-
 
 
 

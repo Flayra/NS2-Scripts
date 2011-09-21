@@ -81,17 +81,6 @@ kPlayerEffectData =
             {sound = "sound/ns2.fev/alien/skulk/land"},
         }
     },
-    
-    // Played on player
-    distress_beacon_player_start =
-    {
-        distressBeaconPlayerStart =
-        {
-            // Play different sound effect for each player so aliens only hear it nearby, but marines
-            // hear it directionally from far away
-            {private_sound = "sound/ns2.fev/marine/common/distress_beacon_marine", ismarine = true, done = true},            
-        },
-    },
 
     // Triggered for local player
     disorient_loop =

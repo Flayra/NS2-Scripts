@@ -154,17 +154,20 @@ end
 
 // Handle transitions between starting-sliding, sliding, and ending-sliding
 function Gorge:UpdateSliding(input)
-
+    PROFILE("Gorge:UpdateSliding")
+    
     local desiredSliding = self:GetDesiredSliding(input)
         
-    if (desiredSliding and self.mode == kPlayerMode.Default and self:GetIsOnGround() and not self:GetIsJumping()) then
+    if (desiredSliding and self.mode == kPlayerMode.Default) then
         
-        self:SetAnimAndMode(Gorge.kStartSlide, kPlayerMode.GorgeStartSlide)
+        if (self:GetIsOnGround() and not self:GetIsJumping()) then
+            self:SetAnimAndMode(Gorge.kStartSlide, kPlayerMode.GorgeStartSlide)
         
-        // For modifying velocity
-        self.startedSliding = true
+            // For modifying velocity
+            self.startedSliding = true
 
-        self.lastYaw = self:GetViewAngles().yaw
+            self.lastYaw = self:GetViewAngles().yaw
+        end
                         
     elseif (not desiredSliding and self.mode == kPlayerMode.GorgeSliding) then
 
@@ -204,7 +207,8 @@ function Gorge:ModifyVelocity(input, velocity)
 end
 
 function Gorge:SetAnimAndMode(animName, mode)
-
+    PROFILE("Gorge:SetAnimAndMode")
+    
     Alien.SetAnimAndMode(self, animName, mode)
     
     // Belly sliding
@@ -419,8 +423,8 @@ function Gorge:UpdateViewAngles(input)
 
     PROFILE("Gorge:UpdateViewAngles")
 
-    local desiredPitch = nil
-    local desiredRoll = nil
+    local desiredPitch = 0
+    local desiredRoll = 0
    
     if(self:GetIsSliding()) then
     

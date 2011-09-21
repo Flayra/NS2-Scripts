@@ -203,7 +203,7 @@ end
 // Returns true when players are selecting new abilities. When true, draw small icons
 // next to your current weapon and force all abilities to draw.
 function Alien:GetInactiveVisible()
-    return self.timeOfLastWeaponSwitch ~= nil and (Shared.GetTime() < self.timeOfLastWeaponSwitch + kDisplayWeaponTime)
+    return Shared.GetTime() < self:GetTimeOfLastWeaponSwitch() + kDisplayWeaponTime
 end
 
 function Alien:OnUpdate(deltaTime)
@@ -236,15 +236,15 @@ function Alien:GetArmorAmount()
 
     local extraUpgradedArmor = 0
     
-    if(GetTechSupported(self, kTechId.AlienArmor3Tech, true)) then
+    if(GetHasTech(self, kTechId.AlienArmor3Tech, true)) then
     
         extraUpgradedArmor = self:GetArmorFullyUpgradedAmount()
     
-    elseif(GetTechSupported(self, kTechId.AlienArmor2Tech, true)) then
+    elseif(GetHasTech(self, kTechId.AlienArmor2Tech, true)) then
     
         extraUpgradedArmor = (self:GetArmorFullyUpgradedAmount() / 3) * 2
     
-    elseif(GetTechSupported(self, kTechId.AlienArmor1Tech, true)) then
+    elseif(GetHasTech(self, kTechId.AlienArmor1Tech, true)) then
     
         extraUpgradedArmor = self:GetArmorFullyUpgradedAmount() / 3
     

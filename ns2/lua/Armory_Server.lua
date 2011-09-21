@@ -22,25 +22,23 @@ local indexToUseOrigin = {
 
 function Armory:GetShouldResupplyPlayer(player)
 
+    if (not player:GetIsAlive()) then
+        return false
+    end
+    
     local inNeed = false
     
     // Don't resupply when already full
-    if( (player:GetHealth() < player:GetMaxHealth()) or (player:GetArmor() < player:GetMaxArmor()) ) then
-    
+    if player:GetHealth() < player:GetMaxHealth() or player:GetArmor() < player:GetMaxArmor() then
         inNeed = true
-        
     else
 
         // Do any weapons need ammo?
-        local weapons = player:GetHUDOrderedWeaponList()
-            
-        for index, weapon in ipairs(weapons) do
+        for i, child in ientitychildren(player, "ClipWeapon") do
         
-            if weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo() then
-            
+            if child:GetNeedsAmmo() then
                 inNeed = true
                 break
-                    
             end
             
         end
@@ -84,7 +82,7 @@ function Armory:ResupplyPlayer(player)
     local resuppliedPlayer = false
     
     // Heal player first
-    if( (player:GetHealth() < player:GetMaxHealth()) or (player:GetArmor() < player:GetMaxArmor()) ) then
+    if player:GetHealth() < player:GetMaxHealth() or player:GetArmor() < player:GetMaxArmor() then
 
         player:AddHealth(Armory.kHealAmount)
 
@@ -145,7 +143,7 @@ end
 
 function Armory:AddChildModel(modelName)
 
-    local scriptActor = CreateEntity(ScriptActor.kMapName, nil, self:GetTeamNumber())
+    local scriptActor = CreateEntity(ArmoryAddon.kMapName, nil, self:GetTeamNumber())
     
     scriptActor:SetModel(modelName)
     scriptActor:SetParent(self)
@@ -157,7 +155,7 @@ end
 
 function Armory:TriggerChildDeployAnimation(modelName)
 
-    local children = GetChildEntities(self, "ScriptActor")
+    local children = GetChildEntities(self, "ArmoryAddon")
     
     for index, child in ipairs(children) do
     

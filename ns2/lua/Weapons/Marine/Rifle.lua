@@ -6,7 +6,10 @@
 //                  Max McGuire (max@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
+
 Script.Load("lua/Weapons/Marine/ClipWeapon.lua")
+Script.Load("lua/TracerMixin.lua")
+Script.Load("lua/PickupableWeaponMixin.lua")
 
 class 'Rifle' (ClipWeapon)
 
@@ -41,7 +44,7 @@ Rifle.kAttackInViewModelAnimation =     "attack_in"
 Rifle.kAttackViewModelAnimation =       "attack"
 Rifle.kAttackOutViewModelAnimation =    "attack_out"
 
-local networkVars =
+Rifle.networkVars =
 {
     timeOfLastPrimaryAttack     = "float",
     timeStartedAttack           = "float",
@@ -50,6 +53,17 @@ local networkVars =
     viewAnimationState          = "enum Rifle.kViewAnimationStates",
     animationStateDoneTime      = "float"
 }
+
+PrepareClassForMixin(Rifle, TracerMixin)
+
+function Rifle:OnCreate()
+
+    ClipWeapon.OnCreate(self)
+    
+    InitMixin(self, TracerMixin, { kTracerPercentage = 0.2 })
+    InitMixin(self, PickupableWeaponMixin)
+
+end
 
 function Rifle:OnInit()
 
@@ -140,10 +154,6 @@ function Rifle:GetShellEffect()
     return chooseWeightedEntry ( Rifle.kShellEffectTable )
 end
 
-function Rifle:GetTracerPercentage()
-    return .2
-end
-
 function Rifle:CreatePrimaryAttackEffect(player)
 
     // Remember this so we can update gun_loop pose param
@@ -151,10 +161,6 @@ function Rifle:CreatePrimaryAttackEffect(player)
     
     self.lastAttackSecondary = false
 
-end
-
-function Rifle:GetReloadCancellable()
-    return true
 end
 
 function Rifle:GetCanIdle()
@@ -170,7 +176,7 @@ function Rifle:OnEntityChange(oldId, newId)
     // In case the parent is destroyed.
     if oldId == self.playingLoopingOnEntityId then
         self:StopLoopingEffects()
-        self:CancelReload()
+        self:CancelReload(self:GetParent())
     end
 
 end
@@ -323,16 +329,13 @@ function Rifle:OnHolster(player)
 end
 
 function Rifle:OnPrimaryAttack(player)
-	
-    if not self:GetIsReloading() then
 
-        if self.timeStartedAttack == 0 and self:GetClip() > 0 then
-            self.timeStartedAttack = Shared.GetTime()
-        end
-    
-        ClipWeapon.OnPrimaryAttack(self, player)
-     
+    if self.timeStartedAttack == 0 and self:GetClip() > 0 then
+        self.timeStartedAttack = Shared.GetTime()
     end
+    
+    ClipWeapon.OnPrimaryAttack(self, player)
+
 end
 
 function Rifle:OnPrimaryAttackEnd(player)
@@ -374,14 +377,14 @@ end
 // Perform melee attack with rifle butt
 function Rifle:OnSecondaryAttack(player)
 
-    if ( player:GetCanNewActivityStart() ) then
+    if player:GetCanNewActivityStart() then
     
         // Play view model effect
         player:SetActivityEnd(self:GetSecondaryAttackDelay() * player:GetCatalystFireModifier())
 
         player:DeactivateWeaponLift()
         
-        self:CancelReload()
+        self:CancelReload(player)
         
         ClipWeapon.OnSecondaryAttack(self, player)
         
@@ -404,18 +407,15 @@ end
 
 function Rifle:ApplyMeleeHitEffects(player, damage, target, endPoint, direction)
 
-    // Apply damage
-    if target and target:isa("LiveScriptActor") then
-    
-        target:TakeDamage(damage, player, self, endPoint, direction)
-        
-    end
-    
     if target then
     
-        // Throw back (or stun?) target a bit        
+        if HasMixin(target, "Live") then
+            target:TakeDamage(damage, player, self, endPoint, direction)
+        end
+        
+        // Throw back target a bit.
         target:AddImpulse(endPoint, direction)
-
+        
     end
     
 end
@@ -475,4 +475,4 @@ function Rifle:Dropped(prevOwner)
     
 end
 
-Shared.LinkClassToMap("Rifle", Rifle.kMapName, networkVars)
+Shared.LinkClassToMap("Rifle", Rifle.kMapName, Rifle.networkVars)

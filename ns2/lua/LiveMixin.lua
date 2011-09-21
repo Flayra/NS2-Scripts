@@ -185,20 +185,7 @@ end
 AddFunctionContract(LiveMixin.GetIsAlive, { Arguments = { "Entity" }, Returns = { "boolean" } })
 
 function LiveMixin:SetIsAlive(state)
-
-    // It isn't ideal to be destroying the controller here but it is more robust as there
-    // are cases where the entity will be marked as not alive without going through the
-    // TakeDamageServer() function.
-    if self.alive and not state then
-    
-        if HasMixin(self, "Controller") then
-            self:DestroyController()
-        end
-        
-    end
-    
     self.alive = state
-    
 end
 AddFunctionContract(LiveMixin.SetIsAlive, { Arguments = { "Entity", "boolean" }, Returns = { } })
 
@@ -365,7 +352,7 @@ function LiveMixin:GetAttackerIdOfLastDamage()
 end
 AddFunctionContract(LiveMixin.GetAttackerIdOfLastDamage, { Arguments = { "Entity" }, Returns = { "number" } })
 
-function LiveMixin:SetLastDamage(time, attacker)
+function LiveMixin:_SetLastDamage(time, attacker)
 
     if attacker and attacker.GetId then
         self.timeOfLastDamage = time
@@ -373,7 +360,7 @@ function LiveMixin:SetLastDamage(time, attacker)
     end
     
 end
-AddFunctionContract(LiveMixin.SetLastDamage, { Arguments = { "Entity", "number", { "Entity", "nil" } }, Returns = { } })
+AddFunctionContract(LiveMixin._SetLastDamage, { Arguments = { "Entity", "number", { "Entity", "nil" } }, Returns = { } })
 
 function LiveMixin:GetCanTakeDamage()
 
@@ -473,7 +460,7 @@ function LiveMixin:TakeDamageServer(damage, attacker, doer, point, direction)
             end
 
             // Remember time we were last hurt for Swarm upgrade
-            self:SetLastDamage(Shared.GetTime(), attacker)
+            self:_SetLastDamage(Shared.GetTime(), attacker)
             
             // Notify the doer they are giving out damage.
             local doerPlayer = doer
@@ -559,7 +546,7 @@ AddFunctionContract(LiveMixin.AddHealth, { Arguments = { "Entity", "number", "bo
 
 // This function needs to be tested.
 function LiveMixin:Kill(attacker, doer, point, direction)
-    self:TakeDamage((self:GetMaxHealth() + self:GetMaxArmor()), attacker, doer, nil, nil)
+    self:TakeDamage((self:GetMaxHealth() + self:GetMaxArmor() * 2), attacker, doer, nil, nil)
 end
 AddFunctionContract(LiveMixin.Kill, { Arguments = { "Entity", "Entity", "Entity", { "Vector", "nil" }, { "Vector", "nil" } }, Returns = { } })
 
@@ -577,7 +564,16 @@ AddFunctionContract(LiveMixin.GetSendDeathMessage, { Arguments = { "Entity" }, R
 /**
  * Entities using LiveMixin are only selectable when they are alive.
  */
-function LiveMixin:OnGetIsSelectable(selectableTable)
-    selectableTable.Selectable = selectableTable.Selectable and self:GetIsAlive()
+function LiveMixin:OnGetIsSelectable()
+    return self.selectable and self:GetIsAlive()
 end
 AddFunctionContract(LiveMixin.OnGetIsSelectable, { Arguments = { "Entity", "table" }, Returns = { } })
+
+function LiveMixin:GetIsHealable()
+    if self.GetIsHealableOverride then
+      return self:GetIsHealableOverride()
+    end
+    
+    return self:GetIsAlive()
+end
+AddFunctionContract(LiveMixin.GetIsHealable, { Arguments = { "Entity" }, Returns = { } })

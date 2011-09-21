@@ -89,8 +89,10 @@ end
 
 function GUIHealthCircle:Update(deltaTime)
 
-    ASSERT(healthPercentage >= 0 and healthPercentage <= 100)
-    ASSERT(buildPercentage >= 0 and buildPercentage <= 100)
+    PROFILE("GUIHealthCircle:Update")
+
+    healthPercentage = math.min(math.max(healthPercentage, 0), 100)
+    buildPercentage = math.min(math.max(buildPercentage, 0), 100)
     
     local useColor = kBuildColor
     local usePercentage = buildPercentage / 100

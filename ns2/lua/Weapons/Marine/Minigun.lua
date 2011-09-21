@@ -51,10 +51,6 @@ function Minigun:GetFireSoundName()
     return Minigun.kFireSoundName
 end
 
-function Minigun:GetTracerPercentage()
-    return .05
-end
-
 function Minigun:GetBaseIdleAnimation()
 
     if(NetworkRandom() < .45) then
@@ -67,10 +63,6 @@ end
 
 function Minigun:GetHUDSlot()
     return kPrimaryWeaponSlot
-end
-
-function Minigun:GetPenetration()
-    return 3
 end
 
 function Minigun:GetClipSize()

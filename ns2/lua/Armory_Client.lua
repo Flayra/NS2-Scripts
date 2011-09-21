@@ -224,9 +224,13 @@ end
 
 function Armory:OnUse(player, elapsedTime, useAttachPoint, usePoint)
 
+    local isPlayerAlive = player:GetIsAlive()
+    local isLocalPlayer = (Client.GetLocalPlayer() == player)
+    local isMouseVisble = Client.GetMouseVisible()
+    
     if self:GetIsBuilt() and self:GetIsActive() then
 
-        if not Client.GetMouseVisible() and (Client.GetLocalPlayer() == player) then    
+        if not isMouseVisible and (isPlayerAlive and isLocalPlayer) then    
         
             GetFlashPlayer(kClassFlashIndex):Load(Armory.kBuyMenuFlash)
             GetFlashPlayer(kClassFlashIndex):SetBackgroundOpacity(0)

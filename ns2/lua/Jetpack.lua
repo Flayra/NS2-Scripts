@@ -1,6 +1,6 @@
 // ======= Copyright © 2003-2011, Unknown Worlds Entertainment, Inc. All rights reserved. =======
 //
-// lua\Weapons\Axe.lua
+// lua\Jetpack.lua
 //
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com) and
 //                  Max McGuire (max@unknownworlds.com)
@@ -24,6 +24,7 @@ function Jetpack:OnInit()
     
 end
 
+// If OnTouch is going to be used here, the Jetpack should init the PickupableMixin.
 function Jetpack:OnTouch(player)
 
     if( player:GetTeamNumber() == self:GetTeamNumber() ) then

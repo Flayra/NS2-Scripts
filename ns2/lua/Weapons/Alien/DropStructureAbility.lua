@@ -106,7 +106,7 @@ function DropStructureAbility:PerformPrimaryAttack(player)
     
         player:SetAnimAndMode(Gorge.kCreateStructure, kPlayerMode.GorgeStructure)
             
-        player:SetActivityEnd(player:AdjustFuryFireDelay(self:GetPrimaryAttackDelay()))
+        player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
         success = self:DropStructure(player)
     end
     
@@ -200,7 +200,7 @@ function DropStructureAbility:GetPositionForStructure(player)
     
         if trace.entity == nil then
             validPosition = true
-        elseif trace.entity:isa("Infestation") or (not trace.entity:isa("LiveScriptActor") and not trace.entity:isa(self:GetDropClassName())) then
+        elseif trace.entity:isa("Infestation") or (not trace.entity:isa("ScriptActor") and not trace.entity:isa(self:GetDropClassName())) then
             validPosition = true
         end
         

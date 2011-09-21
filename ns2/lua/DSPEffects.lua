@@ -57,14 +57,16 @@ function CreateDSPs()
     
     // "master"
     dspId = Client.CreateDSP(SoundSystem.DSP_Compressor)
+    
+    // Note: These are causing an out of range error and don't doing anything currently.
     //             threshold
-    Client.SetDSPFloatParameter(dspId, 0, .320)
+    //Client.SetDSPFloatParameter(dspId, 0, .320)
     //               attack
-    Client.SetDSPFloatParameter(dspId, 1, .320)
+    //Client.SetDSPFloatParameter(dspId, 1, .320)
     //               release
-    Client.SetDSPFloatParameter(dspId, 2, .320)
+    //Client.SetDSPFloatParameter(dspId, 2, .320)
     //            make up gain
-    Client.SetDSPFloatParameter(dspId, 4, .320)
+    //Client.SetDSPFloatParameter(dspId, 4, .320)
     
 end
 
@@ -98,6 +100,8 @@ function UpdateShadeDSPs()
 end
 
 function UpdateDSPEffects()
+
+    PROFILE("UpdateDSPEffects")
 
     local player = Client.GetLocalPlayer()
     

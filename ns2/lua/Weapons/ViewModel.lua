@@ -158,15 +158,15 @@ function ViewModel:GetAttachPointCoords(attachPoint)
         attachPointIndex = self:GetAttachPointIndex(attachPoint)
     end
 
-    if (attachPointIndex ~= -1) then
-   
+    if attachPointIndex ~= -1 then
+    
         local model = Shared.GetModel(self.modelIndex)
     
-        if (model ~= nil) then
+        if model ~= nil then
         
             local coords = self:GetCoords()
             
-            if model:GetAttachPointExists(attachPointIndex) then
+            if model:GetAttachPointExists(attachPointIndex) and model:GetAttachPointBoneExists(attachPointIndex, self.boneCoords) then
                 coords = coords * model:GetAttachPointCoords(attachPointIndex, self.boneCoords)
             end
             

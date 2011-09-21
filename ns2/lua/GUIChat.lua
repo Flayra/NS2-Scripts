@@ -65,6 +65,8 @@ function GUIChat:Uninitialize()
 end
 
 function GUIChat:Update(deltaTime)
+
+    PROFILE("GUIChat:Update")
     
     local addChatMessages = ChatUI_GetMessages()
     local numberElementsPerMessage = 8
@@ -88,7 +90,10 @@ function GUIChat:Update(deltaTime)
         message["Background"]:SetPosition(currentPosition)
         message["Time"] = message["Time"] + deltaTime
         if message["Time"] >= GUIChat.kTimeStartFade then
-            local fadeAmount = ((GUIChat.kTimeEndFade - message["Time"]) / (GUIChat.kTimeEndFade - GUIChat.kTimeStartFade))
+        
+            local timePassed = GUIChat.kTimeEndFade - message["Time"]
+            local timeToFade = GUIChat.kTimeEndFade - GUIChat.kTimeStartFade
+            local fadeAmount = timePassed / timeToFade
             local currentColor = message["Player"]:GetColor()
             currentColor.a = fadeAmount
             message["Player"]:SetColor(currentColor)
@@ -98,6 +103,7 @@ function GUIChat:Update(deltaTime)
             if message["Time"] >= GUIChat.kTimeEndFade then
                 table.insert(removeMessages, message)
             end
+            
         end
     end
     

@@ -16,24 +16,39 @@ SelectableMixin.type = "Selectable"
 
 SelectableMixin.optionalCallbacks =
 {
-    OnGetIsSelectable = "Passes in a table with a Selectable field that can be set to true or false."
+    OnGetIsSelectable = "Returns if this entity is selectable or not"
 }
 
-function SelectableMixin:__initmixin()
+function SelectableMixin.__prepareclass(toClass)
+    
+    ASSERT(toClass.networkVars ~= nil, "SelectableMixin expects the class to have network fields")
+    
+    local addNetworkFields =
+    {
+        selectable       = "boolean",        
+    }
+    
+    for k, v in pairs(addNetworkFields) do
+        toClass.networkVars[k] = v
+    end
+    
 end
+
+function SelectableMixin:__initmixin()
+    self.selectable = true
+end
+
+function SelectableMixin:SetSelectable(selectable)
+    self.selectable = selectable
+end
+AddFunctionContract(SelectableMixin.SetSelectable, { Arguments = { "Entity", "Boolean" }, Returns = { } })
 
 function SelectableMixin:GetIsSelectable()
 
-    if self.OnGetIsSelectable then
-    
-        // Assume selectable by default.
-        local selectableTable = { Selectable = true }
-        self:OnGetIsSelectable(selectableTable)
-        return selectableTable.Selectable
-        
+    if self.OnGetIsSelectable then           
+        return self:OnGetIsSelectable()
     end
     
-    return true
-    
+    return self.selectable    
 end
 AddFunctionContract(SelectableMixin.GetIsSelectable, { Arguments = { "Entity" }, Returns = { "boolean" } })

@@ -161,8 +161,9 @@ function RagdollMixin:SafeDestroy()
         self:SetIsAlive(false)
         self:SetIsVisible(false)
         self:SetPhysicsType(PhysicsType.None)
-        
-    else
+    
+    // Players handle destroying themselves.
+    elseif not self:isa("Player") then
     
         DestroyEntity(self)
         

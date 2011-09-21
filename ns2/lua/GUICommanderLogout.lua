@@ -152,6 +152,8 @@ end
 
 function GUICommanderLogout:Update(deltaTime)
 
+    PROFILE("GUICommanderLogout:Update")
+
     local mouseX, mouseY = Client.GetCursorPosScreen()
     
     local animateArrows = false

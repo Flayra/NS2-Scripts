@@ -54,7 +54,7 @@ function TeamInfo:GetTeamNumber()
 end
 
 function TeamInfo:GetTeamResources()
-    return self.teamNumber
+    return self.teamResources
 end
 
 function TeamInfo:GetPersonalResources()

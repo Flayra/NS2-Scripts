@@ -23,8 +23,7 @@ RoboticsFactory.kState = enum( {'Idle', 'Building', 'Deploying', 'Deployed', 'Cl
 
 local networkVars =
     {        
-        state               = "enum RoboticsFactory.kState",
-        currentBuiltId      = "entityid"   
+        state               = "enum RoboticsFactory.kState",        
     }
 
 function RoboticsFactory:OnCreate()
@@ -43,8 +42,8 @@ function RoboticsFactory:OnInit()
     
     self:SetPhysicsType(PhysicsType.Kinematic)       
         
-    self.currentArcId = Entity.invalidId
-    
+    self.researchId = Entity.invalidId
+            
     if Server then
         self:SetState(RoboticsFactory.kState.Idle)
     end
@@ -76,10 +75,14 @@ function RoboticsFactory:GetTechButtons(techId)
     
 end
 
-function RoboticsFactory:GetPositionForEntity()
+function RoboticsFactory:GetPositionForEntity(entity)
     
     local direction = Vector(self:GetAngles():GetCoords().zAxis)    
     local origin = self:GetOrigin() + direction * 3.2
+    
+    if entity:GetIsFlying() then
+        origin = GetHoverAt(entity, origin)
+    end
     
     return BuildCoords(Vector(0, 1, 0), direction, origin)
 
@@ -88,56 +91,69 @@ end
 // $AS - FIXME: Clean this state machine up if you would even call it that :/ 
 
 function RoboticsFactory:ProcessOpenOrders()
-    local builtEntity = Shared.GetEntity(self.currentBuiltId)
-    if builtEntity ~= nil then      
-       // local dest = builtEntity:GetOrigin() + Vector(4, 0 , 0)
-       // builtEntity:GiveOrder(kTechId.Move, 0, dest, nil, true, true)
-        coords = self:GetPositionForEntity()
-        builtEntity:SetCoords(coords)
+    local mapName = LookupTechData(self.researchId, kTechDataMapName)    
+    local owner = Shared.GetEntity(self.researchingPlayerId)
+    
+    
+    local builtEntity = CreateEntity(mapName, self:GetOrigin(), self:GetTeamNumber())        
+                
+    if builtEntity ~= nil then             
+        local newPostion = self:GetPositionForEntity(builtEntity)
+        
+        builtEntity:SetOwner(owner)
+        builtEntity:SetCoords(newPostion)
+        
         self:SetActivityEnd(RoboticsFactory.kCloseDelay)
-        self:SetState(RoboticsFactory.kState.Closing)
+        self:SetState(RoboticsFactory.kState.Closing)        
     end
+end
+
+// Don't allow researching when we're still finishing up building the ARC
+function RoboticsFactory:GetIsResearching()
+    return Structure.GetIsResearching(self)
 end
 
 function RoboticsFactory:OnResearchComplete(structure, researchId)
 
     local researchNode = self:GetTeam():GetTechTree():GetTechNode(researchId)
-    if structure == self and (researchId == kTechId.ARC or researchId == kTechId.MAC) then                
+    if structure == self and (researchId == kTechId.ARC or researchId == kTechId.MAC) then
+    
         if researchNode then
-            local mapName = LookupTechData(researchId, kTechDataMapName)
-            local builtEntity = CreateEntity(mapName, self:GetOrigin(), structure:GetTeamNumber())
-            
-            // Set owner to commander that issued the order 
-            local owner = Shared.GetEntity(self.researchingPlayerId)
-            builtEntity:SetOwner(owner)
-                        
-            if (researchNode:GetIsManufacture()) then               
-                self.currentBuiltId = builtEntity:GetId()
+                                                    
+            if researchNode:GetIsManufacture() then
+                self.researchId = researchId           
                 self:TriggerEffects("robo_factory_open")                                  
                 self:SetState(RoboticsFactory.kState.Deploying)
+                
             else
+            
                 self.currentBuiltId = Entity.invalidId
                 self:SetState(RoboticsFactory.kState.Idle)
+                
             end
             
-            
         end
+        
     end
     
-    return Structure.OnResearchComplete(self, structure, researchId)            
+    return Structure.OnResearchComplete(self, structure, researchId)
+        
 end
 
 
 if Server then
+
     function RoboticsFactory:OnAnimationComplete(animName)
+    
         Structure.OnAnimationComplete(self, animName)
     
-        if (animName == RoboticsFactory.kAnimOpen) then
+        if animName == RoboticsFactory.kAnimOpen then
             self:SetState(RoboticsFactory.kState.Deployed)
         end
-        if (animName == RoboticsFactory.kAnimClose) then
+        if animName == RoboticsFactory.kAnimClose then
             self:SetState(RoboticsFactory.kState.Idle)
         end
+        
     end
 
     function RoboticsFactory:OnResearch(researchId)    
@@ -150,32 +166,32 @@ if Server then
     end
 
     function RoboticsFactory:SetState(state)
-        if self.state ~= state then        
-            self.state = state                   
-        end
+        self.state = state
     end
 
     function RoboticsFactory:OnUpdate(deltaTime)
 
-        LiveScriptActor.OnUpdate(self, deltaTime)
+        Structure.OnUpdate(self, deltaTime)
     
-        if (self.state == RoboticsFactory.kState.Building) then
+        if self.state == RoboticsFactory.kState.Building then
             self:TriggerEffects("robo_factory_building")
         end
         
         if self.state == RoboticsFactory.kState.Deployed then
-                self:ProcessOpenOrders()
+            self:ProcessOpenOrders()
         end
         
         if self.state == RoboticsFactory.kState.Closing then
-            if (self:GetCanNewActivityStart()) then
+        
+            if self:GetCanNewActivityStart() then
                 self:TriggerEffects("robo_factory_close")
             end
+            
         end
             
     end
+    
 end
 
 
 Shared.LinkClassToMap("RoboticsFactory", RoboticsFactory.kMapName, networkVars)
-

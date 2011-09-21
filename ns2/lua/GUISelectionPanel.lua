@@ -47,6 +47,7 @@ GUISelectionPanel.kSelectionStatusTextYOffset = -44
 GUISelectionPanel.kSelectionStatusBarYOffset = -20
 
 GUISelectionPanel.kSelectedSquadTextFontSize = 16 * kCommanderGUIsGlobalScale
+GUISelectionPanel.kSelectedSquadTextYOffset = -45
 
 GUISelectionPanel.kResourceIconSize = 25 * kCommanderGUIsGlobalScale
 GUISelectionPanel.kResourceIconXOffset = 2
@@ -165,11 +166,12 @@ function GUISelectionPanel:InitializeSingleSelectionItems()
     
     self.selectedSquadName = GUIManager:CreateTextItem()
     self.selectedSquadName:SetFontSize(GUISelectionPanel.kSelectedSquadTextFontSize)
+    self.selectedSquadName:SetFontIsBold(true)
     self.selectedSquadName:SetFontName(GUISelectionPanel.kFontName)
-    self.selectedSquadName:SetAnchor(GUIItem.Left, GUIItem.Top)
-    self.selectedSquadName:SetPosition(Vector(0, GUISelectionPanel.kSelectedLocationTextFontSize, 0))
-    self.selectedSquadName:SetTextAlignmentX(GUIItem.Align_Min)
-    self.selectedSquadName:SetTextAlignmentY(GUIItem.Align_Min)
+    self.selectedSquadName:SetAnchor(GUIItem.Middle, GUIItem.Bottom)
+    self.selectedSquadName:SetPosition(Vector(0, GUISelectionPanel.kSelectedSquadTextYOffset, 0))
+    self.selectedSquadName:SetTextAlignmentX(GUIItem.Align_Center)
+    self.selectedSquadName:SetTextAlignmentY(GUIItem.Align_Center)
     self.selectedSquadName:SetColor(GUISelectionPanel.kFontColor)
     table.insert(self.singleSelectionItems, self.selectedSquadName)
     self.background:AddChild(self.selectedSquadName)
@@ -277,6 +279,8 @@ function GUISelectionPanel:Uninitialize()
 end
 
 function GUISelectionPanel:Update(deltaTime)
+
+    PROFILE("GUISelectionPanel:Update")
     
     self:UpdateSelected()
     

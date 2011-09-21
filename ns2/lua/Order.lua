@@ -27,6 +27,7 @@ function Order:OnCreate()
     self.orderParam = -1
     self.orderLocation = Vector(0, 0, 0)
     self.orderOrientation = 0
+    self.ownerPlayerId = Entity.invalidId
     
     //self:SetIsVisible(false)
     
@@ -115,6 +116,14 @@ function Order:GetOrientation()
     return self.orderOrientation
 end
 
+function Order:SetOwner(owner)
+    self.ownerPlayerId = owner:GetId()
+end
+
+function Order:GetOwner()
+   return Shared.GetEntity(self.ownerPlayerId)
+end
+
 function CreateOrder(orderType, orderParam, position, orientation)
 
     local newOrder = CreateEntity(Order.kMapName)
@@ -149,7 +158,7 @@ function GetOrderTargetIsDefendTarget(order, doerTeamNumber)
     
         local entity = Shared.GetEntity(order:GetParam())
                         
-        if entity ~= nil and entity:isa("LiveScriptActor") and (entity:GetTeamNumber() == doerTeamNumber) then
+        if entity ~= nil and HasMixin(entity, "Live") and (entity:GetTeamNumber() == doerTeamNumber) then
         
             return entity
             
@@ -169,9 +178,7 @@ function GetOrderTargetIsWeldTarget(order, doerTeamNumber)
         if(entityId > 0) then
         
             local entity = Shared.GetEntity(entityId)
-            if(entity ~= nil and entity:isa("Door") and not entity.welded) then
-                return entity
-            elseif entity ~= nil and entity:isa("Structure") and entity:GetTeamNumber() == doerTeamNumber and ((entity:GetHealth() < entity:GetMaxHealth()) or entity:GetArmor() < entity:GetMaxArmor()) then
+            if entity ~= nil and HasMixin(entity, "Weldable") and entity:GetTeamNumber() == doerTeamNumber then
                 return entity
             end
             

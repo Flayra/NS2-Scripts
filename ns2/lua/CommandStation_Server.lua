@@ -83,6 +83,17 @@ function CommandStation:LoginPlayer(player)
     
 end
 
+function CommandStation:OnConstructionComplete()
+    Structure.OnConstructionComplete(self)
+    
+    local deployAnim = self:GetDeployAnimation()
+    if deployAnim ~= "" then
+        self:SetAnimation(deployAnim)
+    end
+        
+    self:TriggerEffects("deploy")
+end
+
 function CommandStation:GetDamagedAlertId()
     return kTechId.MarineAlertCommandStationUnderAttack
 end

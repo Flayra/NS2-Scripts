@@ -8,8 +8,6 @@
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/TechData.lua")
-
 class 'TechTree'
 
 if(Server) then
@@ -31,6 +29,7 @@ function TechTree:Initialize()
     
     if Server then
         self.techNodesChanged = {}
+        self.upgradedTechIdsSupporting = {}
     end
         
 end
@@ -51,8 +50,8 @@ function TechTree:GetTechNode(techId)
     return self.nodeList[techId]
 end
 
-function TechTree:GetTechSupported(techId, silenceError)
-    
+function TechTree:GetTechAvailable(techId)
+
     if techId == kTechId.None then
         return true
     else
@@ -61,15 +60,37 @@ function TechTree:GetTechSupported(techId, silenceError)
         if(techNode == nil) then
         
             if not silenceError then
-                Print("TechTree:GetTechSupported(kTechId.%s): Couldn't find tech node (%s)", EnumToString(kTechId, techId), GetDisplayNameForTechId(techId))
+                local msg = "TechTree:GetTechAvailable(kTechId.%s): Couldn't find tech node (%s)"
+                Print(msg, EnumToString(kTechId, techId), GetDisplayNameForTechId(techId))
             end
             
             return false
         end
         
-        return techNode.hasTech or (techNode:GetIsResearch() and techNode.researched)
+        return techNode:GetAvailable()
         
     end
+
+end
+
+// Check if active structures on our team that support this technology. These are
+// are computed during ComputeAvailability().
+function TechTree:GetHasTech(techId)
+
+    if techId == kTechId.None then
+        return true
+    else
+    
+        local node = self:GetTechNode(techId)    
+        if node ~= nil then
+        
+            return node:GetHasTech()
+            
+        end
+        
+    end
+    
+    return false
 
 end
 
@@ -98,20 +119,23 @@ function TechTree:GetRequiresText(techId)
             local addedPrereq1 = false
             local addedPrereq2 = false
             if(techNode.prereq1 ~= kTechId.None) then
-                local missingDisplayText = string.format("<missing display for %s", EnumToString(kTechId, techNode.prereq1))
-                text = string.format("%s%s", text, GetDisplayNameForTechId(techNode.prereq1, missingDisplayText))
+                local missing = string.format("<missing display for %s", EnumToString(kTechId, techNode.prereq1))
+                text = string.format("%s%s", text, GetDisplayNameForTechId(techNode.prereq1, missing))
                 addedPrereq1 = true
             end
             
             if(techNode.prereq2 ~= kTechId.None) then        
-                local missingDisplayText = string.format("<missing display for %s>", EnumToString(kTechId, techNode.prereq2))
-                text = string.format("%s%s%s", text, ConditionalValue(addedPrereq1, ", ", ""), GetDisplayNameForTechId(techNode.prereq2, missingDisplayText))
+                local missing = string.format("<missing display for %s>", EnumToString(kTechId, techNode.prereq2))
+                local displayName = GetDisplayNameForTechId(techNode.prereq2, missing)
+                text = string.format("%s%s%s", text, ConditionalValue(addedPrereq1, ", ", ""), displayName)
                 addedPrereq2 = true
             end
             
             if(techNode.addOnTechId ~= kTechId.None) then
-                local missingDisplayText = string.format("<missing display for %s>", EnumToString(kTechId, techNode.addOnTechId))
-                text = string.format("%s%s%s", text, ConditionalValue(addedPrereq1 or addedPrereq2, " on ", ""), GetDisplayNameForTechId(techNode.addOnTechId, missingDisplayText))
+                local missing = string.format("<missing display for %s>", EnumToString(kTechId, techNode.addOnTechId))
+                local displayName = GetDisplayNameForTechId(techNode.addOnTechId, missing)
+                local prereqText = ConditionalValue(addedPrereq1 or addedPrereq2, " on ", ""), displayName
+                text = string.format("%s%s%s", text, prereqText)
             end
             
         end
@@ -135,8 +159,8 @@ function TechTree:GetEnablesText(techId)
                 text = text .. ", "
             end
             
-            local missingDisplayText = string.format("<missing display for %s>", EnumToString(kTechId, techNode:GetTechId()))
-            text = string.format("%s%s", text, GetDisplayNameForTechId(techNode:GetTechId(), missingDisplayText))
+            local display = string.format("<missing display for %s>", EnumToString(kTechId, techNode:GetTechId()))
+            text = string.format("%s%s", text, GetDisplayNameForTechId(techNode:GetTechId(), display))
             
         end        
         
@@ -150,7 +174,7 @@ end
 // prerequisite is research. For instance, check the research process for Shotgun, which has its
 // prerequisite1 as ShotgunTech. Used for displaying research in progress at the marine and alien
 // buy menus. Returns 1 if tech is available or if there is no prerequisite.
-function TechTree:GetResearchProgressForBuyNode(buyTechId)
+function TechTree:GetResearchProgressForNode(buyTechId)
 
     local researchAmount = 1
     local techNode = self:GetTechNode(buyTechId)
@@ -193,7 +217,8 @@ function TechTree:GetAddOnsForTechId(techId)
             
         else
         
-            Print("TechTree:GetAddOnsForTechId(%d) - Couldn't find tech node with id %d (%s)", techId, id, SafeClassName(techNode))
+            local formatString = "TechTree:GetAddOnsForTechId(%d) - Couldn't find tech node with id %d (%s)"
+            Print(formatString, techId, id, SafeClassName(techNode))
             
         end
         
@@ -250,4 +275,3 @@ function TechTree:ComputeUpgradedTechIdsSupportingId(techId)
     
 end
 
-Shared.RegisterNetworkMessage( "ClearTechTree", {} )

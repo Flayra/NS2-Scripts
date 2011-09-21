@@ -7,6 +7,7 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
 Script.Load("lua/TimedCallbackMixin.lua")
+Script.Load("lua/PhysicsGroups.lua")
 
 /**
  * An Actor is a type of Entity that has a model associated with it.
@@ -504,8 +505,7 @@ local function UpdateTagsRecursively(parent)
 
     PROFILE("UpdateTagsRecursively")
     
-    for i = 0, parent:GetNumChildren() - 1 do
-        local child = parent:GetChildAtIndex(i)
+    for i, child in ientitychildren(parent, "Actor") do
         UpdateTagsRecursively(child)
     end
     
@@ -924,6 +924,8 @@ function Actor:OnUpdatePhysics()
 end
 
 function Actor:UpdatePhysicsModel()
+
+    PROFILE("Actor:UpdatePhysicsModel")
 
     // Create a physics model if necessary.
     if (self.physicsModel == nil and self:GetPhysicsModelAllowed()) then

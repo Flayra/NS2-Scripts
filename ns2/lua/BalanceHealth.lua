@@ -14,7 +14,7 @@ kExosuitHealth = 100	kExosuitArmor = 200	kExosuitPointValue = 10
 		
 kSkulkHealth = 70	kSkulkArmor = 5	kSkulkPointValue = 5
 kGorgeHealth = 150	kGorgeArmor = 50	kGorgePointValue = 7
-kLerkHealth = 200	kLerkArmor = 25	kLerkPointValue = 15
+kLerkHealth = 125	kLerkArmor = 30	kLerkPointValue = 15
 kFadeHealth = 200	kFadeArmor = 50	kFadePointValue = 20
 kOnosHealth = 700	kOnosArmor = 600	kOnosPointValue = 30
 		
@@ -71,11 +71,11 @@ kHiveHealth = 6300	kHiveArmor = 350	kHivePointValue = 30
 kDrifterHealth = 150	kDrifterArmor = 0	kDrifterPointValue = 2
 kMACHealth = 300	kMACArmor = 50	kMACPointValue = 5
 		
-kExtractorHealth = 4200	kExtractorArmor = 900	kExtractorPointValue = 15
+kExtractorHealth = 4400	kExtractorArmor = 550	kExtractorPointValue = 15
 kHarvesterHealth = 1750	kHarvesterArmor = 375	kHarvesterPointValue = 15
 		
 kSentryHealth = 1440	kSentryArmor = 180	kSentryPointValue = 10
-kARCHealth = 1600	kARCArmor = 200	kARCPointValue = 20
+kARCHealth = 2400	kARCArmor = 300	kARCPointValue = 20
 		
 kCragHealth = 600	kCragArmor = 200	kCragPointValue = 10
 kMatureCragHealth = 600	kMatureCragArmor = 300	kMatureCragPointValue = 15

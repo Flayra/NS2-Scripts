@@ -6,11 +6,13 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+local kWeaponUseTimeLimit = 0.5
+
 function Weapon:OnInit()
 
     ScriptActor.OnInit(self)
 
-    self:SetWeaponWorldState(true)    
+    self:SetWeaponWorldState(true)
     
 end
 
@@ -103,25 +105,7 @@ function Weapon:OnCollision(targetHit)
             
         end
    
-    elseif targetHit and targetHit:isa("Player") and targetHit.GetTeamNumber and targetHit:GetTeamNumber() == self:GetTeamNumber() then
-    
-        // Don't allow dropper to pick it up until it hits the ground            
-        if (targetHit:GetId() ~= self.prevOwnerId) or self.hitGround then
-
-            // Note: The reason why the OnDraw effect isn't heard for a picked up weapon is because
-            // this code is only triggered on the server.
-            // Sets it active also.
-            if targetHit.AddWeapon and targetHit:AddWeapon(self, true) then
-
-                self:SetWeaponWorldState(false)
-                
-                targetHit:ClearActivity()
-                
-            end
-            
-        end
-        
-    end    
+    end
     
 end
 
@@ -129,6 +113,25 @@ function Weapon:OnThink()
     if self.weaponWorldState then
         DestroyEntity(self)
     end
+end
+
+// This OnUse() method requires the player to look at the weapon.
+function Weapon:GetCanBeUsed(player)
+    return self.weaponWorldState == true and player:isa("Marine")
+end
+
+function Weapon:OnUse(player, elapsedTime, useAttachPoint, usePoint)
+
+    // Limit how often a weapon may be used by a player.
+    // _lastWeaponUseTime should only be used in this function!
+    if Shared.GetTime() - (player._lastWeaponUseTime or 0) > kWeaponUseTimeLimit then
+    
+        player:AddWeapon(self, true)
+        
+        player._lastWeaponUseTime = Shared.GetTime()
+        
+    end
+
 end
 
 function Weapon:CreateWeaponEffect(player, playerAttachPointName, entityAttachPointName, cinematicName)

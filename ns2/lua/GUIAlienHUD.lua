@@ -326,6 +326,8 @@ function GUIAlienHUD:Uninitialize()
 end
 
 function GUIAlienHUD:Update(deltaTime)
+
+    PROFILE("GUIAlienHUD:Update")
     
     self:UpdateHealthBall(deltaTime)
     self:UpdateEnergyBall(deltaTime)

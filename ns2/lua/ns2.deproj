@@ -340,9 +340,6 @@
     <filename>RoboticsFactory.lua</filename>
   </file>
   <file>
-    <filename>MedPack_Server.lua</filename>
-  </file>
-  <file>
     <filename>CatPack.lua</filename>
   </file>
   <file>
@@ -463,12 +460,6 @@
     <filename>Weapons\Alien\Absorb.lua</filename>
   </file>
   <file>
-    <filename>LiveScriptActor.lua</filename>
-  </file>
-  <file>
-    <filename>LiveScriptActor_Server.lua</filename>
-  </file>
-  <file>
     <filename>Whip_Server.lua</filename>
   </file>
   <file>
@@ -493,9 +484,6 @@
     <filename>Commander_FocusPanel.lua</filename>
   </file>
   <file>
-    <filename>LiveScriptActor_Client.lua</filename>
-  </file>
-  <file>
     <filename>BlendedActor.lua</filename>
   </file>
   <file>
@@ -509,9 +497,6 @@
   </file>
   <file>
     <filename>Weapons\Alien\Spit.lua</filename>
-  </file>
-  <file>
-    <filename>Weapons\Alien\Spike.lua</filename>
   </file>
   <file>
     <filename>MarineBuy_Client.lua</filename>
@@ -650,9 +635,6 @@
   </file>
   <file>
     <filename>GUIRifleDisplay.lua</filename>
-  </file>
-  <file>
-    <filename>Weapons\Alien\Blink_Client.lua</filename>
   </file>
   <file>
     <filename>Weapons\Alien\Blink.lua</filename>
@@ -943,9 +925,6 @@
     <filename>GUIVoiceChat.lua</filename>
   </file>
   <file>
-    <filename>MakeMapBlipMixin.lua</filename>
-  </file>
-  <file>
     <filename>TeamInfo.lua</filename>
   </file>
   <file>
@@ -1016,5 +995,65 @@
   </file>
   <file>
     <filename>ScoringMixin.lua</filename>
+  </file>
+  <file>
+    <filename>..\..\core\lua\Mixins\SpectatorMoveMixin.lua</filename>
+  </file>
+  <file>
+    <filename>..\..\core\lua\Mixins\BaseMoveMixin.lua</filename>
+  </file>
+  <file>
+    <filename>..\..\core\lua\Mixins\ControllerMixin.lua</filename>
+  </file>
+  <file>
+    <filename>..\..\core\lua\Mixins\GroundMoveMixin.lua</filename>
+  </file>
+  <file>
+    <filename>..\..\core\lua\Mixins\CommanderMoveMixin.lua</filename>
+  </file>
+  <file>
+    <filename>DeathTrigger.lua</filename>
+  </file>
+  <file>
+    <filename>NS2Utility_Server.lua</filename>
+  </file>
+  <file>
+    <filename>FuryMixin.lua</filename>
+  </file>
+  <file>
+    <filename>WeldableMixin.lua</filename>
+  </file>
+  <file>
+    <filename>ExtentsMixin.lua</filename>
+  </file>
+  <file>
+    <filename>LOSMixin.lua</filename>
+  </file>
+  <file>
+    <filename>FrenzyMixin.lua</filename>
+  </file>
+  <file>
+    <filename>MapBlipMixin.lua</filename>
+  </file>
+  <file>
+    <filename>MarineSpectator.lua</filename>
+  </file>
+  <file>
+    <filename>PickupableMixin.lua</filename>
+  </file>
+  <file>
+    <filename>TracerMixin.lua</filename>
+  </file>
+  <file>
+    <filename>GUIPickups.lua</filename>
+  </file>
+  <file>
+    <filename>PickupableWeaponMixin.lua</filename>
+  </file>
+  <file>
+    <filename>SoundEffect.lua</filename>
+  </file>
+  <file>
+    <filename>WeaponUtility.lua</filename>
   </file>
 </project>

@@ -347,30 +347,24 @@ function InfantryPortal:GetCanIdle()
     return (self.timeSpinUpStarted == nil)
 end
 
-function InfantryPortal:OnPoweredChange(newPoweredState)
+function InfantryPortal:SetPowerOn()
+    Structure.SetPowerOn(self)
 
-    Structure.OnPoweredChange(self, newPoweredState)
-    
-    if not self.powered then
-    
-        self:StopSpinning()
-        // Put the player back in queue if there was one hoping to spawn at this IP.
-        self:RequeuePlayer()
-        
-    elseif (self.queuedPlayerId ~= nil) then
-    
-        local queuedPlayer = Shared.GetEntity(self.queuedPlayerId)
-        
-        if queuedPlayer then
-        
-            queuedPlayer:SetRespawnQueueEntryTime(Shared.GetTime())
-            
-            self:StartSpinning()
-            
-        end
-        
+    if (self.queuedPlayerId ~= nil) then    
+        local queuedPlayer = Shared.GetEntity(self.queuedPlayerId)        
+        if queuedPlayer then        
+            queuedPlayer:SetRespawnQueueEntryTime(Shared.GetTime())            
+            self:StartSpinning()            
+        end        
     end
+end
+
+function InfantryPortal:SetPowerOff()
+    Structure.SetPowerOff(self)
     
+    // Put the player back in queue if there was one hoping to spawn at this IP.
+    self:StopSpinning()        
+    self:RequeuePlayer()
 end
 
 function InfantryPortal:GetDamagedAlertId()

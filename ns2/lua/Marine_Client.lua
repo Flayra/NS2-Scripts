@@ -16,7 +16,7 @@ function Marine:OnInitLocalClient()
 
     Player.OnInitLocalClient(self)
     
-    if(self:GetTeamNumber() ~= kTeamReadyRoom) then
+    if self:GetTeamNumber() ~= kTeamReadyRoom then
 
         // For armory menu
         Client.BindFlashTexture("marine_buymenu", Marine.kBuyMenuTexture)
@@ -26,20 +26,29 @@ function Marine:OnInitLocalClient()
         if self.marineHUD == nil then
             self.marineHUD = GetGUIManager():CreateGUIScriptSingle("GUIMarineHUD")
         end
+        
         if self.waypoints == nil then
             self.waypoints = GetGUIManager():CreateGUIScriptSingle("GUIWaypoints")
         end
+        
+        if self.pickups == nil then
+            self.pickups = GetGUIManager():CreateGUIScriptSingle("GUIPickups")
+        end
+        
         if self.guiOrders == nil then
             self.guiOrders = GetGUIManager():CreateGUIScriptSingle("GUIOrders")
         end
+        
         if self.guiSquad == nil then
             self.guiSquad = GetGUIManager():CreateGUIScriptSingle("GUISquad")
         end
+        
         if self.guiDistressBeacon == nil then
             self.guiDistressBeacon = GetGUIManager():CreateGUIScript("GUIDistressBeacon")
         end
         
-    end    
+    end
+    
 end
 
 function Marine:OnDestroyClient()
@@ -50,18 +59,27 @@ function Marine:OnDestroyClient()
         self.marineHUD = nil
         GetGUIManager():DestroyGUIScriptSingle("GUIMarineHUD")
     end
+    
     if self.waypoints then
         self.waypoints = nil
         GetGUIManager():DestroyGUIScriptSingle("GUIWaypoints")
     end
+    
+    if self.pickups then
+        self.pickups = nil
+        GetGUIManager():DestroyGUIScriptSingle("GUIPickups")
+    end
+    
     if self.guiOrders then
         self.guiOrders = nil
         GetGUIManager():DestroyGUIScriptSingle("GUIOrders")
     end
+    
     if self.guiSquad then
         self.guiSquad = nil
         GetGUIManager():DestroyGUIScriptSingle("GUISquad")
     end
+    
     if self.guiDistressBeacon then
         GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
         self.guiDistressBeacon = nil

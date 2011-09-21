@@ -5,8 +5,10 @@
 //    Created by:   Charlie Cleveland (charlie@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
+
 Script.Load("lua/Structure.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/TracerMixin.lua")
 
 class 'Sentry' (Structure)
 
@@ -43,11 +45,11 @@ PrecacheMultipleAssets(Sentry.kRicochetEffect, kSurfaceList)
 Sentry.kPingInterval = 4
 Sentry.kFov = 160
 Sentry.kMaxPitch = 45
-Sentry.kMaxYaw = Sentry.kFov/2
+Sentry.kMaxYaw = Sentry.kFov / 2
 
 Sentry.kBaseROF = kSentryAttackBaseROF
 Sentry.kRandROF = kSentryAttackRandROF
-Sentry.kSpread = Vector( 0.02618, 0.02618, 0.02618 )
+Sentry.kSpread = Math.Radians(3)
 Sentry.kBulletsPerSalvo = kSentryAttackBulletsPerSalvo
 Sentry.kDamagePerBullet = kSentryAttackDamage
 Sentry.kBarrelScanRate = 60      // Degrees per second to scan back and forth with no target
@@ -75,7 +77,8 @@ Sentry.kEyeNode = "fxnode_eye"
 
 Sentry.kMode = enum( {'Unbuilt', 'PoweredDown', 'PoweringUp', 'PoweringDown', 'Scanning', 'SpinningUp', 'Attacking', 'SpinningDown', 'SettingTarget'} )
 
-local networkVars = {
+Sentry.networkVars =
+{
 
     mode                        = "enum Sentry.kMode",
     desiredMode                 = "enum Sentry.kMode",
@@ -93,11 +96,14 @@ local networkVars = {
     
 }
 
+PrepareClassForMixin(Sentry, TracerMixin)
+
 function Sentry:OnCreate()
 
     Structure.OnCreate(self)
     
     InitMixin(self, RagdollMixin)
+    InitMixin(self, TracerMixin, { kTracerPercentage = 0.2 })
     
     self.desiredYawDegrees = 0
     self.desiredPitchDegrees = 0    
@@ -151,7 +157,7 @@ function Sentry:OnInit()
             Sentry.kRange, 
             true,
             { kMarineStaticTargets, kMarineMobileTargets },
-            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter() })
+            { PitchTargetFilter(self,  -Sentry.kMaxPitch, Sentry.kMaxPitch), CloakTargetFilter(), CamouflageTargetFilter() })
     end
 end
 
@@ -279,7 +285,7 @@ function Sentry:GetIsFunctioning()
     return self:GetIsAlive() and self:GetIsBuilt() and self:GetIsActive() and self:GetAmmo() > 0
 end
 
-function Sentry:GetAttackOrigin()
+function Sentry:GetBarrelPoint()
     return self:GetAttachPointOrigin(Sentry.kMuzzleNode)    
 end
 
@@ -307,25 +313,6 @@ function Sentry:OnUpdate(deltaTime)
             self:UpdateAngles(deltaTime)
         end
         
-        /* Draw direction we're shooting */
-        /*
-        if Client then
-        
-            local direction = self:GetAttachPointCoords(Sentry.kMuzzleNode).xAxis 
-            DebugLine(self:GetAttackOrigin(), self:GetAttackOrigin() + direction * 10, .1, 1, 0, 0, 1)
-            
-            if self.targetDirection then
-                DebugLine(self:GetAttackOrigin(), self:GetAttackOrigin() + self.targetDirection * 10, .1, 1, 1, 1, 1)
-            end
-
-            if self.relativeTargetDirection then
-                local worldRelativeTargetDirection = self:GetAngles():GetCoords():TransformVector(self.relativeTargetDirection)
-                DebugLine(self:GetAttackOrigin(), self:GetAttackOrigin() + worldRelativeTargetDirection* 15, .1, 0, 1, 0, 1)
-            end
-            
-        end
-        */
-        
     end
     
     self:UpdatePoseParameters(deltaTime)
@@ -348,4 +335,4 @@ function Sentry:GetCanGiveDamageOverride()
 end
 
 
-Shared.LinkClassToMap("Sentry", Sentry.kMapName, networkVars)
+Shared.LinkClassToMap("Sentry", Sentry.kMapName, Sentry.networkVars)

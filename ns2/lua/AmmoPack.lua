@@ -6,104 +6,52 @@
 //                  Max McGuire (max@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
+
 Script.Load("lua/DropPack.lua")
+Script.Load("lua/PickupableMixin.lua")
+
 class 'AmmoPack' (DropPack)
+
 AmmoPack.kMapName = "ammopack"
 
 AmmoPack.kModelName = PrecacheAsset("models/marine/ammopack/ammopack.model")
 
 AmmoPack.kPickupSound = PrecacheAsset("sound/ns2.fev/marine/common/pickup_ammo")
 
-AmmoPack.kNumBullets = 100
-
 AmmoPack.kNumClips = 1
+
+function AmmoPack:OnCreate()
+
+    DropPack.OnCreate(self)
+    
+    InitMixin(self, PickupableMixin, { kRecipientType = "Marine" })
+
+end
 
 function AmmoPack:OnInit()
 
-    if(Server) then
+    DropPack.OnInit(self)
     
+    if Server then
         self:SetModel(AmmoPack.kModelName)
-        
-        self:SetNextThink(DropPack.kThinkInterval)
-        
-        self.timeSpawned = Shared.GetTime()
-        
-    end
-    
-    Shared.CreateEffect(nil, DropPack.kPackDropEffect, self)
-    
-    self:SetPathingFlag(kPathingFlags.UnBuildable)
-    
-end
-
-function AmmoPack:OnTouch(player)
-
-    if( player:GetTeamNumber() == self:GetTeamNumber() ) then
-    
-        local weapon = player:GetActiveWeapon()
-        
-        if(weapon ~= nil and weapon:isa("ClipWeapon") and (weapon:GetAmmo() < weapon:GetMaxAmmo()) ) then
-        
-            if(weapon:GiveAmmo(AmmoPack.kNumClips)) then
-
-                player:PlaySound(AmmoPack.kPickupSound)
-                
-                DestroyEntity(self)
-                
-            end
-            
-        end        
-        
     end
     
 end
 
-function AmmoPack:GetPackRecipient()
+function AmmoPack:OnTouch(recipient)
 
-    local potentialRecipients = GetEntitiesForTeamWithinRange("Marine", self:GetTeamNumber(), self:GetOrigin(), 1)
-    
-    for index, player in pairs(potentialRecipients) do
-    
-        local weapon = player:GetActiveWeapon()
-        
-        if(weapon ~= nil and weapon:isa("ClipWeapon") and (weapon:GetAmmo() < weapon:GetMaxAmmo()) ) then
-        
-            return player
-            
-        end
-    
-    end
-
-    return nil
-    
-end
-
-if(Server) then
-function AmmoPack:OnThink()
-
-    DropPack.OnThink(self)
-
-    // Scan for nearby friendly players that need medpacks because we don't have collision detection yet
-    local player = self:GetPackRecipient()
-
-    if(player ~= nil) then
-    
-        self:OnTouch(player)
-        
-    end
-
-    if( Shared.GetTime() > (self.timeSpawned + DropPack.kLifetime) ) then
-    
-        // Go away after a time
-        DestroyEntity(self)
-
-    else
-    
-        self:SetNextThink(DropPack.kThinkInterval)
-        
+    local weapon = recipient:GetActiveWeapon()
+    if weapon and weapon:GiveAmmo(AmmoPack.kNumClips) then
+        recipient:PlaySound(AmmoPack.kPickupSound)
     end
     
 end
+
+function AmmoPack:GetIsValidRecipient(recipient)
+
+    local weapon = recipient:GetActiveWeapon()
+    return weapon ~= nil and weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo()
+    
 end
 
 Shared.LinkClassToMap("AmmoPack", AmmoPack.kMapName)

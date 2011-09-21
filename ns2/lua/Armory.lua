@@ -93,8 +93,6 @@ function Armory:OnInit()
     self.loginEastAmount = 0
     self.loginSouthAmount = 0
     self.loginWestAmount = 0
-    
-    self.timeLastUpdate = Shared.GetTime()
 
     if Server then    
     
@@ -211,16 +209,10 @@ function Armory:OnUpdate(deltaTime)
         self:UpdatePoseParams({ Armory.kAdvancedArmoryChildModel })
         
         // Set pose parameters according to if we're logged in or not
-        if self.timeLastUpdate ~= nil then
-        
-            local timePassed = Shared.GetTime() - self.timeLastUpdate
-        
-            self:UpdateArmoryAnim("e", self.loggedInEast, self.timeScannedEast, timePassed)
-            self:UpdateArmoryAnim("n", self.loggedInNorth, self.timeScannedNorth, timePassed)
-            self:UpdateArmoryAnim("w", self.loggedInWest, self.timeScannedWest, timePassed)
-            self:UpdateArmoryAnim("s", self.loggedInSouth, self.timeScannedSouth, timePassed)
-            
-        end
+        self:UpdateArmoryAnim("e", self.loggedInEast, self.timeScannedEast, deltaTime)
+        self:UpdateArmoryAnim("n", self.loggedInNorth, self.timeScannedNorth, deltaTime)
+        self:UpdateArmoryAnim("w", self.loggedInWest, self.timeScannedWest, deltaTime)
+        self:UpdateArmoryAnim("s", self.loggedInSouth, self.timeScannedSouth, deltaTime)
         
     end
     
@@ -235,3 +227,25 @@ class 'AdvancedArmory' (Armory)
 AdvancedArmory.kMapName = "advancedarmory"
 
 Shared.LinkClassToMap("AdvancedArmory", AdvancedArmory.kMapName, {})
+
+class 'ArmoryAddon' (ScriptActor)
+
+ArmoryAddon.kMapName = "ArmoryAddon"
+
+
+
+PrepareClassForMixin(ArmoryAddon, LOSMixin)
+
+function ArmoryAddon:OnCreate()
+    ScriptActor.OnCreate(self)
+    InitMixin(self, LOSMixin)
+end
+    
+function ArmoryAddon:OverrideVisionRadius()
+    return LOSMixin.kStructureMinLOSDistance
+end
+    
+
+
+Shared.LinkClassToMap("ArmoryAddon", ArmoryAddon.kMapName)
+

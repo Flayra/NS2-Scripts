@@ -23,33 +23,6 @@ function Marine:MakeSpecialEdition()
     self:SetModel(Marine.kSpecialModelName)
 end
 
-function Marine:AddWeapon(weapon, setActive)
-
-    local success = false
-    
-    if self:GetCanNewActivityStart() then
-    
-        // If incoming weapon uses occupied weapon slot, only pick it up if it costs more than our current weapon (ie, it's better)
-        // In that case, drop current weapon before adding new one
-        local newSlot = weapon:GetHUDSlot()
-        local weaponInSlot = self:GetWeaponInHUDSlot(newSlot)
-        
-        if not weaponInSlot or (weapon:GetCost() > weaponInSlot:GetCost()) then
-        
-            if weaponInSlot and not self:Drop(weaponInSlot) then
-                return false                
-            end
-            
-            success = Player.AddWeapon(self, weapon, setActive)
-            
-        end
-        
-    end
-    
-    return success
-    
-end
-
 function Marine:OnOverrideOrder(order)
     
     local orderTarget = nil
@@ -68,7 +41,7 @@ function Marine:OnOverrideOrder(order)
         order:SetType(kTechId.SquadDefend)
 
     // If target is enemy, attack it
-    elseif (order:GetType() == kTechId.Default) and orderTarget ~= nil and orderTarget:isa("LiveScriptActor") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
+    elseif (order:GetType() == kTechId.Default) and orderTarget ~= nil and HasMixin(orderTarget, "Live") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
     
         order:SetType(kTechId.Attack)
 
@@ -102,8 +75,6 @@ function Marine:AttemptToBuy(techIds)
             
             if techId == kTechId.Jetpack then
                 Shared.PlayWorldSound(nil, Marine.kJetpackPickupSound, nil, self:GetOrigin())
-            else
-                Shared.PlayWorldSound(nil, Marine.kGunPickupSound, nil, self:GetOrigin())
             end
             
             //armory:PlayArmoryScan()
@@ -120,9 +91,9 @@ end
 
 function Marine:OnKill(damage, attacker, doer, point, direction)
 
-    // Drop main weapon, delete the others
-    self:Drop(self:GetWeaponInHUDSlot(kPrimaryWeaponSlot))
-    self:KillWeapons()
+    // Drop main weapon, destroy the others.
+    self:Drop(self:GetWeaponInHUDSlot(kPrimaryWeaponSlot), true)
+    self:DestroyWeapons()
     
     Player.OnKill(self, damage, attacker, doer, point, direction)
     self:PlaySound(Marine.kDieSoundName)
@@ -134,21 +105,6 @@ function Marine:OnKill(damage, attacker, doer, point, direction)
     
     // Remember squad we were in on death so we can beam back to them
     self.lastSquad = self:GetSquad()
-    
-end
-
-function Marine:KillWeapons()
-
-    local weapons = self:GetHUDOrderedWeaponList()
-    
-    for index = 1, table.count(weapons) do
-    
-        local weapon = weapons[index]
-        if weapon then
-            DestroyEntity(weapon)
-        end
-        
-    end
     
 end
 

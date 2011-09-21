@@ -31,10 +31,6 @@ function OnCommandResetMouse()
     Client.SetPitch(0)
 end
 
-function OnCommandTracer(tracerTable)
-    CreateTracer(ParseTracerMessage(tracerTable))
-end
-
 function OnCommandDebugLine(debugLineMessage)
     DebugLine(ParseDebugLineMessage(debugLineMessage))
 end
@@ -57,6 +53,5 @@ Client.HookNetworkMessage("TechNodeUpdate",     OnCommandTechNodeUpdate)
 Client.HookNetworkMessage("MinimapAlert",       OnCommandMinimapAlert)
 
 Client.HookNetworkMessage("ResetMouse",         OnCommandResetMouse)
-Client.HookNetworkMessage("Tracer",             OnCommandTracer)
 
 Client.HookNetworkMessage("DebugLine",          OnCommandDebugLine)

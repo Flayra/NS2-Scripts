@@ -9,6 +9,7 @@
 // secondary attacks.
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
+
 Script.Load("lua/Weapons/Weapon.lua")
 
 class 'ClipWeapon' (Weapon)
@@ -85,11 +86,6 @@ function ClipWeapon:GetRange()
     return 8012
 end
 
-// Not currently used
-function ClipWeapon:GetPenetration()
-    return 1
-end
-
 function ClipWeapon:GetPrimaryAttackDelay()
     return .5
 end
@@ -114,16 +110,23 @@ function ClipWeapon:GetMaxAmmo()
     return 4 * self:GetClipSize()
 end
 
-// Return world position of gun barrel, used for weapon effects
-function ClipWeapon:GetBarrelPoint(player)
-    // TODO: Get this from the model and artwork
-    return player:GetOrigin() + Vector(0, 2*Player.kYExtents*.8, 0)
+// Return world position of gun barrel, used for weapon effects.
+function ClipWeapon:GetBarrelPoint()
+
+    // TODO: Get this from the model and artwork.
+    local player = self:GetParent()
+    if player then
+        return player:GetOrigin() + Vector(0, 2 * player:GetExtents().y * 0.8, 0) + player:GetCoords().zAxis * 0.5
+    end
+    
+    return self:GetOrigin()
+    
 end
 
 // Add energy back over time, called from Player:OnProcessMove
 function ClipWeapon:OnProcessMove(player, input)
 
-    if((self.reloadTime ~= 0) and (Shared.GetTime() >= self.reloadTime)) then
+    if self.reloadTime ~= 0 and Shared.GetTime() >= self.reloadTime then
     
         self:FillClip()
         self.reloadTime = 0
@@ -137,18 +140,19 @@ function ClipWeapon:OnProcessMove(player, input)
 end
 
 function ClipWeapon:OnHolster(player)
+
     Weapon.OnHolster(self, player)
-    self:CancelReload()
+    
+    self:CancelReload(player)
+    
 end
 
 function ClipWeapon:OnInit()
 
+    // Set model to be rendered in 3rd-person
     local worldModel = LookupTechData(self:GetTechId(), kTechDataModel)
-    if(worldModel ~= nil) then
-    
-        // Set model to be rendered in 3rd-person
+    if worldModel ~= nil then
         self:SetModel(worldModel)
-        
     end
     
     self:SetMoveWithView(true)
@@ -178,44 +182,44 @@ function ClipWeapon:GetBulletDamage(target, endPoint)
 end
 
 function ClipWeapon:GetIsReloading()
-
     return self.reloadTime > Shared.GetTime()
-
 end
 
 function ClipWeapon:GetCanIdle()
-
-    return (Weapon.GetCanIdle(self)) and (not self:GetIsReloading())
-
-end
-
-function ClipWeapon:OnIdle()
-
-    if (self.clip == 0 and self.ammo > 0) then
-    
-        // Try to reload if we're out of ammo and not doing anything
-        self:GetParent():Reload()
-        
-    else
-        Weapon.OnIdle(self)
-    end
-    
+    return Weapon.GetCanIdle(self) and not self:GetIsReloading()
 end
 
 function ClipWeapon:GiveAmmo(numClips)
 
-    // Fill reserves, never clip
-    local bullets = numClips * self:GetClipSize()
-    local bulletsToAmmo = math.min(bullets, self:GetMaxAmmo() - self:GetAmmo())
+    // Fill reserves, then clip. NS1 just filled reserves but I like the implications of filling the clip too.
+    // But don't do it until reserves full.
+    local success = false
+    local bulletsToGive = numClips * self:GetClipSize()
     
-    self.ammo = self.ammo + bulletsToAmmo
+    local bulletsToAmmo = math.min(bulletsToGive, self:GetMaxAmmo() - self:GetAmmo())        
+    if bulletsToAmmo > 0 then
+
+        self.ammo = self.ammo + bulletsToAmmo
+
+        bulletsToGive = bulletsToGive - bulletsToAmmo        
+        
+        success = true
+        
+    end
     
-    return (bulletsToAmmo > 0)
+    if bulletsToGive > 0 and (self:GetClip() < self:GetClipSize()) then
+        
+        self.clip = self.clip + math.min(bulletsToGive, self:GetClipSize() - self:GetClip())
+        success = true        
+        
+    end
+
+    return success
     
 end
 
 function ClipWeapon:GetNeedsAmmo()
-    return self:GetClip() < self:GetClipSize() or self:GetAmmo() < self:GetMaxAmmo()
+    return (self:GetClip() < self:GetClipSize()) or (self:GetAmmo() < self:GetMaxAmmo())
 end
 
 function ClipWeapon:GetWarmupTime()
@@ -232,10 +236,12 @@ end
 
 function ClipWeapon:OnPrimaryAttack(player)
    
-    if(not self:GetPrimaryAttackRequiresPress() or not player:GetPrimaryAttackLastFrame()) then
+    if not self:GetPrimaryAttackRequiresPress() or not player:GetPrimaryAttackLastFrame() then
     
-        if (self.clip > 0 ) then
+        if self.clip > 0 then
         
+            self:CancelReload(player)
+            
             // Allow the weapon to be fired again before the activity animation ends.
             // This allows us to have a fast rate of fire and still have nice animation
             // effects in the case of the final shot
@@ -250,7 +256,7 @@ function ClipWeapon:OnPrimaryAttack(player)
                 
             else
         
-                self:FirePrimary(player, self:GetBulletsPerShot(), self:GetRange(), self:GetPenetration())
+                self:FirePrimary(player)
                 
                 // Play the end effect now before the clip runs out in case there are effects that
                 // don't trigger when empty.
@@ -275,7 +281,7 @@ function ClipWeapon:OnPrimaryAttack(player)
             
             Weapon.OnPrimaryAttack(self, player)
                     
-        elseif (self.ammo > 0) then
+        elseif self.ammo > 0 then
 
             Weapon.OnPrimaryAttackEnd(self, player)
             
@@ -308,13 +314,8 @@ function ClipWeapon:OnSecondaryAttack(player)
     
 end
 
-function ClipWeapon:FirePrimary(player, bullets, range, penetration)
-    self:FireBullets(player, bullets, range, penetration)
-end
-
-// To create a tracer 20% of the time, return .2. 0 disables tracers.
-function ClipWeapon:GetTracerPercentage()
-    return 0
+function ClipWeapon:FirePrimary(player)
+    self:FireBullets(player)
 end
 
 // Play ricochet sound/effect every %d bullets
@@ -327,83 +328,65 @@ function ClipWeapon:GetIsDroppable()
 end
 
 /**
- * Fires the specified number of bullets in a cone from the player's current view. Returns true if it hit.
+ * Fires the specified number of bullets in a cone from the player's current view.
  */
-function ClipWeapon:FireBullets(player, bulletsToShoot, range, penetration)
+function ClipWeapon:FireBullets(player)
 
-    local hitTarget = false
     local viewAngles = player:GetViewAngles()
-    local viewCoords = viewAngles:GetCoords()
+    local shootCoords = viewAngles:GetCoords()
     
-    local startPoint = player:GetEyePos()
-        
     // Filter ourself out of the trace so that we don't hit ourselves.
     local filter = EntityFilterTwo(player, self)
-       
+    local range = self:GetRange()
+    local numberBullets = self:GetBulletsPerShot()
+    local startPoint = player:GetEyePos()
+    
     if Client then
         DbgTracer.MarkClientFire(player, startPoint)
     end
-   
-    for bullet = 1, bulletsToShoot do
     
-        // Calculate spread for each shot, in case they differ
-        local spreadAngle = self:GetSpread() * self:GetInaccuracyScalar() / 2
+    for bullet = 1, numberBullets do
+    
+        local spreadDirection = CalculateSpread(shootCoords, self:GetSpread() * self:GetInaccuracyScalar(), NetworkRandom)
         
-        local randomAngle  = NetworkRandom() * math.pi * 2
-        local randomRadius = NetworkRandom() * NetworkRandom() * math.tan(spreadAngle)
-        
-        local fireDirection = viewCoords.zAxis + (viewCoords.xAxis * math.cos(randomAngle) + viewCoords.yAxis * math.sin(randomAngle)) * randomRadius
-        fireDirection:Normalize()
-       
-        local endPoint = startPoint + fireDirection * range
+        local endPoint = startPoint + spreadDirection * range
         
         local trace = Shared.TraceRay(startPoint, endPoint, PhysicsMask.Bullets, filter)
         
         if Server then
-            Server.dbgTracer:TraceBullet(player, startPoint, trace)  
+            Server.dbgTracer:TraceBullet(player, startPoint, trace)
         end
         
-        if (trace.fraction < 1) then
+        if Server and HasMixin(self, "Tracer") then
+            self:TriggerTracer(trace.endPoint)
+        end
         
+        if trace.fraction < 1 then
+
             local blockedByUmbra = GetBlockedByUmbra(trace.entity)
-            
-            // Create local tracer effect, and send to other players
-            if (NetworkRandom(string.format("%s:FireBullet():TracerCheck", self:GetClassName())) < self:GetTracerPercentage()) then
-            
-                local tracerStart = startPoint + player:GetViewAngles():GetCoords().zAxis
-                local tracerVelocity = GetNormalizedVector(trace.endPoint - tracerStart) * 45
-                TriggerTracer(player, tracerStart, trace.endPoint, tracerVelocity)
-                
-            end
-            
-            //DebugLine(startPoint, trace.endPoint, 15, ConditionalValue(trace.entity, 1, 0), ConditionalValue(trace.entity, 0, 1), ConditionalValue(trace.entity, 0, 0), 1)
-            
             if not blockedByUmbra then
             
                 if trace.entity then
                 
                     local direction = (trace.endPoint - startPoint):GetUnit()
                     self:ApplyBulletGameplayEffects(player, trace.entity, trace.endPoint, direction)
-                    hitTarget = true
 
                 end
                 
-            end
-                        
-            // TODO: Account for this
-            // Play ricochet sound for player locally for feedback, but not necessarily for every bullet
-            local effectFrequency = self:GetRicochetEffectFrequency()
+                // Play ricochet sound for player locally for feedback, but not necessarily for every bullet
+                local effectFrequency = self:GetRicochetEffectFrequency()
+                if bullet % effectFrequency == 0 then
             
-            if not blockedByUmbra and ((bullet % effectFrequency) == 0) then
-            
-                local impactPoint = trace.endPoint - GetNormalizedVector(endPoint - startPoint) * Weapon.kHitEffectOffset
-                local surfaceName = trace.surface
-                TriggerHitEffects(self, trace.entity, impactPoint, surfaceName, false)
-                
-                // If we are far away from our target, trigger a private sound so we can hear we hit something
-                if surfaceName and string.len(surfaceName) > 0 and (trace.endPoint - player:GetOrigin()):GetLength() > 5 then
+                    local impactPoint = trace.endPoint - GetNormalizedVector(endPoint - startPoint) * Weapon.kHitEffectOffset
+                    local surfaceName = trace.surface
+                    TriggerHitEffects(self, trace.entity, impactPoint, surfaceName, false)
                     
-                    player:TriggerEffects("hit_effect_local", {surface = surfaceName})
+                    // If we are far away from our target, trigger a private sound so we can hear we hit something
+                    if surfaceName and string.len(surfaceName) > 0 and (trace.endPoint - player:GetOrigin()):GetLength() > 5 then
+                        
+                        player:TriggerEffects("hit_effect_local", {surface = surfaceName})
+                        
+                    end
                     
                 end
                 
@@ -415,16 +398,14 @@ function ClipWeapon:FireBullets(player, bulletsToShoot, range, penetration)
         end
 
     end
-    
-    return hitTarget
 
 end
 
 function ClipWeapon:ApplyBulletGameplayEffects(player, target, endPoint, direction)
 
-    if(Server) then
+    if Server then
     
-        if target:isa("LiveScriptActor") then
+        if HasMixin(target, "Live") then
         
             target:TakeDamage(self:GetBulletDamage(target, endPoint), player, self, endPoint, direction)
             
@@ -437,38 +418,32 @@ function ClipWeapon:ApplyBulletGameplayEffects(player, target, endPoint, directi
 end
 
 function ClipWeapon:CanReload()
-    return ((self.ammo > 0) and (self.clip < self:GetClipSize()) and (self.reloadTime == 0))
+    return (self.ammo > 0) and (self.clip < self:GetClipSize()) and (self.reloadTime == 0)
 end
 
-// Return true for weapons with melee as alt-fire. Allows reload to be canceled by attacking
-// (but reload will be canceled for all weapons when switching weapons).
-function ClipWeapon:GetReloadCancellable()
-    return false
-end
-
-function ClipWeapon:CancelReload()
+function ClipWeapon:CancelReload(player)
 
     if self:GetIsReloading() then
+    
         self.reloadTime = 0
         self:TriggerEffects("reload_cancel")
+        if self.OnCancelReload then
+            self:OnCancelReload(player)
+        end
+        
     end
     
 end
 
 function ClipWeapon:OnReload(player)
 
-    if ( self:CanReload() ) then
+    if self:CanReload() then
     
         // Assumes view model animation WILL be set or reload time might be the idle or something else
         self:TriggerEffects("reload")
         
         // Play the reload sequence and optionally let it be interrupted before it finishes
         local length = player:GetViewAnimationLength()
-        
-        if(not self:GetReloadCancellable()) then
-            player:SetActivityEnd(length)
-        end
-        
         self.reloadTime = Shared.GetTime() + length
         
     end

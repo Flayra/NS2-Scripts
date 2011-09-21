@@ -105,24 +105,28 @@ function Shade:OnThink()
 
     Structure.OnThink(self)
     
-    local timeLeft = self:GetTimeLeft()
-
-    if timeLeft > 0 then
+    if self:GetIsBuilt() and self:GetIsActive() then
     
-        self:TriggerEffects("shade_cloak_start")
-    
-        for index, entity in ipairs(GetEntitiesForTeamWithinRange("LiveScriptActor", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
-        
-            if HasMixin(entity, "Cloakable") and entity:GetIsCloakable() then
+        local timeLeft = self:GetTimeLeft()
 
-                entity:SetIsCloaked(true, timeLeft, true)
-                    
-            end
+        if timeLeft > 0 then
+    
+            self:TriggerEffects("shade_cloak_start")
+    
+            for index, entity in ipairs(GetEntitiesWithMixinForTeamWithinRange("Cloakable", self:GetTeamNumber(), self:GetOrigin(), Shade.kCloakRadius)) do
             
-        end
+                if entity:GetIsCloakable() then
 
-        // when we have no time left, we stop thinking
-        self:SetNextThink(Shade.kActiveThinkInterval)
+                    entity:SetIsCloaked(true, timeLeft, false)
+                    
+                end
+            
+            end
+
+            // when we have no time left, we stop thinking
+            self:SetNextThink(Shade.kActiveThinkInterval)
+        
+        end
         
     end
     

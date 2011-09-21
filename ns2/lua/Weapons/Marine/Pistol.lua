@@ -6,7 +6,10 @@
 //                  Max McGuire (max@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
+
 Script.Load("lua/Weapons/Marine/ClipWeapon.lua")
+Script.Load("lua/TracerMixin.lua")
+Script.Load("lua/PickupableWeaponMixin.lua")
 
 class 'Pistol' (ClipWeapon)
 
@@ -14,7 +17,6 @@ Pistol.kMapName = "pistol"
 
 Pistol.kModelName = PrecacheAsset("models/marine/pistol/pistol.model")
 Pistol.kViewModelName = PrecacheAsset("models/marine/pistol/pistol_view.model")
-
 
 Pistol.kMuzzleFlashEffect = PrecacheAsset("cinematics/marine/pistol/muzzle_flash.cinematic")
 Pistol.kBarrelSmokeEffect = PrecacheAsset("cinematics/marine/pistol/barrel_smoke.cinematic")
@@ -34,12 +36,23 @@ Pistol.kAltFireDelay = kPistolAltFireDelay
 Pistol.kSpread = ClipWeapon.kCone1Degrees
 Pistol.kAltSpread = ClipWeapon.kCone0Degrees    // From NS1
 
-local networkVars =
+Pistol.networkVars =
 {
     altMode             = "boolean",
     emptyPoseParam      = "compensated float"
 }
+
+PrepareClassForMixin(Pistol, TracerMixin)
+
+function Pistol:OnCreate()
+
+    ClipWeapon.OnCreate(self)
     
+    InitMixin(self, TracerMixin, { kTracerPercentage = 0.3 })
+    InitMixin(self, PickupableWeaponMixin)
+
+end
+
 function Pistol:OnInit()
 
     ClipWeapon.OnInit(self)
@@ -58,10 +71,6 @@ end
 
 function Pistol:GetViewModelName()
     return Pistol.kViewModelName
-end
-
-function Pistol:GetTracerPercentage()
-    return .3
 end
 
 // When in alt-fire mode, keep very accurate
@@ -105,6 +114,8 @@ function Pistol:OnSecondaryAttack(player)
 
     ClipWeapon.OnSecondaryAttack(self, player)
     
+    self:CancelReload(player)
+    
     player:SetActivityEnd(player:GetViewAnimationLength())
     
     self.altMode = not self.altMode
@@ -138,4 +149,4 @@ function Pistol:GetEffectParams(tableParams)
     
 end
 
-Shared.LinkClassToMap("Pistol", Pistol.kMapName, networkVars )
+Shared.LinkClassToMap("Pistol", Pistol.kMapName, Pistol.networkVars)

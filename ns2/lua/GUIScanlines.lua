@@ -58,6 +58,8 @@ end
 
 function GUIScanlines:Update(deltaTime)
 
+    PROFILE("GUIScanlines:Update")
+
     // Only marine commanders can see the scan lines.
     self.background:SetIsVisible(not CommanderUI_IsAlienCommander())
 

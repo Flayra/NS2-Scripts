@@ -14,7 +14,6 @@ Script.Load("lua/MapEntityLoader.lua")
 Script.Load("lua/Button.lua")
 Script.Load("lua/TechData.lua")
 
-Script.Load("lua/EggSpawn.lua")
 Script.Load("lua/MarineTeam.lua")
 Script.Load("lua/AlienTeam.lua")
 Script.Load("lua/TeamJoin.lua")
@@ -37,7 +36,6 @@ Server.infestationMap = InfestationMap():Init()
 
 Server.readyRoomSpawnList = {}
 Server.playerSpawnList = {}
-Server.eggSpawnList = {}
 Server.playerBanList = {}
 
 // map name, group name and values keys for all map entities loaded to
@@ -96,8 +94,8 @@ local function LoadServerMapEntity(mapName, groupName, values)
             entity:SetMapEntity()
             LoadEntityFromValues(entity, values)
 
-            // LiveScriptActors can be destroyed during the game so
-            if entity:isa("LiveScriptActor") then
+            // Map Entities with LiveMixin can be destroyed during the game.
+            if HasMixin(entity, "Live") then
 
                 // Insert into table so we can re-create them all on map post load (and game reset)
                 table.insert(Server.mapLoadLiveEntityValues, {mapName, groupName, values})
@@ -171,13 +169,6 @@ local function LoadServerMapEntity(mapName, groupName, values)
         LoadEntityFromValues(entity, values)
         table.insert(Server.readyRoomSpawnList, entity)
 
-    elseif (mapName == EggSpawn.kMapName) then
-
-        local entity = EggSpawn()
-        entity:OnCreate()
-        LoadEntityFromValues(entity, values)
-        table.insert(Server.eggSpawnList, entity)
-
     elseif (mapName == AmbientSound.kMapName) then
 
         // Make sure sound index is precached but only create ambient sound object on client
@@ -224,7 +215,6 @@ function OnMapPreLoad()
     // Clear spawn points
     Server.readyRoomSpawnList = {}
     Server.playerSpawnList = {}
-    Server.eggSpawnList = {}
 
     Server.locationList = {}
 
@@ -244,18 +234,20 @@ function DestroyLiveMapEntities()
         end
 
     end
+    
+    Server.mapLiveEntities = { }
 
 end
 
 function CreateLiveMapEntities()
 
-    // Create new LiveScriptActor map entities
+    // Create new Live map entities
     for index, triple in ipairs(Server.mapLoadLiveEntityValues) do
 
         // {mapName, groupName, keyvalues}
         local entity = Server.CreateEntity(triple[1])
         LoadEntityFromValues(entity, triple[3], true)
-
+        
         // Store so we can track it during the game and delete it on game reset if not dead yet
         table.insert(Server.mapLiveEntities, entity:GetId())
 

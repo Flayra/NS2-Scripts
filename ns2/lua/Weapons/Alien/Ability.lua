@@ -63,13 +63,13 @@ function Ability:GetInterfaceData(secondary, inactive)
         if inactive then
             return {self:GetIconOffsetX(secondary), self:GetIconOffsetY(secondary), hudSlot}
         else
-        
-            if secondary then
-                return {parent:GetEnergy()/Ability.kMaxEnergy, self:GetSecondaryEnergyCost()/Ability.kMaxEnergy, self:GetIconOffsetX(secondary), self:GetIconOffsetY(secondary), vis, hudSlot}
-            else
-                return {parent:GetEnergy()/Ability.kMaxEnergy, self:GetEnergyCost()/Ability.kMaxEnergy, self:GetIconOffsetX(secondary), self:GetIconOffsetY(secondary), vis, hudSlot}
-            end
-            
+            if HasMixin(parent, "Energy") then
+                if secondary then
+                    return {parent:GetEnergy()/Ability.kMaxEnergy, self:GetSecondaryEnergyCost()/Ability.kMaxEnergy, self:GetIconOffsetX(secondary), self:GetIconOffsetY(secondary), vis, hudSlot}
+                else
+                    return {parent:GetEnergy()/Ability.kMaxEnergy, self:GetEnergyCost()/Ability.kMaxEnergy, self:GetIconOffsetX(secondary), self:GetIconOffsetY(secondary), vis, hudSlot}
+                end
+             end            
         end
     end
     
@@ -186,7 +186,7 @@ function Ability:GetEffectParams(tableParams)
     local player = self:GetParent()
     if player then
     
-        tableParams[kEffectParamAnimationSpeed] = 1/player:AdjustFuryFireDelay(1)
+        tableParams[kEffectParamAnimationSpeed] = 1 / player:AdjustAttackDelay(1)
         
     end
     

@@ -100,7 +100,7 @@ function GetUnpurchasedUpgradeInfoArray(techIdTable)
             
             table.insert(t, GetDisplayNameForTechId(techId))
             
-            table.insert(t, GetTechTree():GetResearchProgressForBuyNode(techId))
+            table.insert(t, GetTechTree():GetResearchProgressForNode(techId))
             
             table.insert(t, LookupTechData(techId, kTechDataCostKey, 0))
             

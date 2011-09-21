@@ -540,6 +540,22 @@ function EffectManager:InternalTriggerCinematic(effectTable, triggeringParams, t
             success = triggeringEntity:RemoveEffect(cinematicName)
         end
 
+    elseif effectTable[kStopViewModelCinematicType] then
+    
+        if player then
+        
+            local viewModel = player:GetViewModelEntity()
+            if viewModel then
+            
+                Shared.StopEffect(player, cinematicName, viewModel)
+                if viewModel.RemoveEffect then
+                    success = viewModel:RemoveEffect(cinematicName)
+                end
+                
+            end
+            
+        end
+    
     end    
     
     if success then
@@ -880,7 +896,10 @@ function EffectManager:InternalTriggerEffect(effectTable, triggeringParams, trig
     
     // Do not trigger certain effects when running prediction.
     if not Shared.GetIsRunningPrediction() then
-        if effectTable[kCinematicType] or effectTable[kWeaponCinematicType] or effectTable[kViewModelCinematicType] or effectTable[kPlayerCinematicType] or effectTable[kParentedCinematicType] or effectTable[kLoopingCinematicType] or effectTable[kStopCinematicType] then
+        if effectTable[kCinematicType] or effectTable[kWeaponCinematicType] or effectTable[kViewModelCinematicType] or
+            effectTable[kPlayerCinematicType] or effectTable[kParentedCinematicType] or
+            effectTable[kLoopingCinematicType] or effectTable[kStopCinematicType] or
+            effectTable[kStopViewModelCinematicType] then
         
             success = self:InternalTriggerCinematic(effectTable, triggeringParams, triggeringEntity)
             

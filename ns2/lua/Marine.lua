@@ -211,11 +211,11 @@ function Marine:GetArmorAmount()
 
     local armorLevels = 0
     
-    if(GetTechSupported(self, kTechId.Armor3, true)) then
+    if(GetHasTech(self, kTechId.Armor3, true)) then
         armorLevels = 3
-    elseif(GetTechSupported(self, kTechId.Armor2, true)) then
+    elseif(GetHasTech(self, kTechId.Armor2, true)) then
         armorLevels = 2
-    elseif(GetTechSupported(self, kTechId.Armor1, true)) then
+    elseif(GetHasTech(self, kTechId.Armor1, true)) then
         armorLevels = 1
     end
     
@@ -380,7 +380,7 @@ function Marine:UpdateSprintingState(input)
         
     end
     
-    if(self.desiredSprinting ~= self.sprinting and self:GetCanNewActivityStart()) then
+    if self.desiredSprinting ~= self.sprinting and self:GetCanNewActivityStart() then
 
         local weapon = self:GetActiveWeapon()
         if(weapon ~= nil) then       
@@ -402,6 +402,16 @@ function Marine:UpdateSprintingState(input)
             end
             
             self.sprinting = self.desiredSprinting
+            
+            // Cancel possible reload when starting to sprint.
+            if self.sprinting then
+            
+                local weapon = self:GetActiveWeapon()
+                if weapon ~= nil and weapon:isa("ClipWeapon") then
+                    weapon:CancelReload(self)
+                end
+                
+            end
             
         end
     
@@ -498,31 +508,6 @@ function Marine:SetSquad(squadIndex)
     self.squad = squadIndex
 end
 
-function Marine:GetWeaponInHUDSlot(slot)
-    
-    local weapon = nil
-    
-    local childEntities = GetChildEntities(self, "Weapon")
-    
-    if(table.maxn(childEntities) > 0) then
-    
-        for index, entity in ipairs(childEntities) do
-            
-            if(entity:GetHUDSlot() == slot) then
-            
-                weapon = entity
-                break
-                
-            end
-                
-        end
-    
-    end
-    
-    return weapon
-    
-end
-
 function Marine:GetCanJump()
     return Player.GetCanJump(self) and not self.sprinting
 end
@@ -543,16 +528,14 @@ function Marine:UpdateInventoryWeight()
     local totalWeight = 0
     
     local activeWeapon = self:GetActiveWeapon()
-    local weaponList = self:GetHUDOrderedWeaponList()
-    for index = 1, table.count(weaponList) do
-
-        local weapon = weaponList[index]
-        local weaponWeight = ConditionalValue(activeWeapon and (weapon:GetId() == activeWeapon:GetId()), weapon:GetWeight(), weapon:GetWeight() * Marine.kStowedWeaponWeightScalar)
-        
-        // Active items count full, count less when stowed 
+    for i, child in ientitychildren(self, "Weapon") do
+    
+        // Active items count full, count less when stowed.
+        local weaponIsActive = activeWeapon and (child:GetId() == activeWeapon:GetId())
+        local weaponWeight = (weaponIsActive and child:GetWeight()) or (child:GetWeight() * Marine.kStowedWeaponWeightScalar)
         totalWeight = totalWeight + weaponWeight
-            
-    end            
+    
+    end
     
     self.inventoryWeight = Clamp(totalWeight, 0, 1)
 
@@ -809,6 +792,10 @@ function Marine:GetChatSound()
     return Marine.kChatSound
 end
 
+function Marine:GetDeathMapName()
+    return MarineSpectator.kMapName
+end
+
 function Marine:UpdateHelp()
 
     local activeWeaponName = self:GetActiveWeaponName()   
@@ -875,16 +862,16 @@ function Marine:GetPlayerStatusDesc()
     return status
 end
 
-function Marine:GetCanDropWeapon(weapon)
+function Marine:GetCanDropWeapon(weapon, ignoreDropTimeLimit)
 
     if not weapon then
         weapon = self:GetActiveWeapon()
     end
     
-    if( weapon ~= nil and weapon.GetIsDroppable and weapon:GetIsDroppable() ) then
+    if weapon ~= nil and weapon.GetIsDroppable and weapon:GetIsDroppable() then
     
-        // Don't drop weapons too fast
-        if self.timeOfLastDrop == 0 or (Shared.GetTime() > self.timeOfLastDrop + 1.5) then
+        // Don't drop weapons too fast.
+        if ignoreDropTimeLimit or self.timeOfLastDrop == 0 or (Shared.GetTime() > self.timeOfLastDrop + 1.5) then
             return true
         end
         
@@ -896,20 +883,20 @@ end
 
 // Do basic prediction of the weapon drop on the client so that any client
 // effects for the weapon can be dealt with
-function Marine:Drop(weapon)
+function Marine:Drop(weapon, ignoreDropTimeLimit)
 
     local activeWeapon = self:GetActiveWeapon()
     
     if not weapon then
         weapon = activeWeapon
     end
-
-    if weapon == activeWeapon then
-        self:SelectNextWeapon()
-    end
     
-    if self:GetCanDropWeapon(weapon) then
+    if self:GetCanDropWeapon(weapon, ignoreDropTimeLimit) then
         
+        if weapon == activeWeapon then
+            self:SelectNextWeapon()
+        end
+    
         weapon:OnPrimaryAttackEnd(self)
     
         // Remove from player's inventory
@@ -952,34 +939,41 @@ end
 
 function Marine:OnUse(player, elapsedTime, useAttachPoint, usePoint)
 
-    // Allow others to repair our armor
-    if self:GetArmor() < self:GetMaxArmor() then
+    // Make sure the people using me are on my team... we don't want any freebies!!
+    if (self:GetTeamNumber() == player:GetTeamNumber()) then
+        // Allow others to repair our armor
+        if self:GetArmor() < self:GetMaxArmor() then
     
-        self:SetArmor( self:GetArmor() + elapsedTime * Marine.kArmorWeldRate )
+            self:SetArmor( self:GetArmor() + elapsedTime * Marine.kArmorWeldRate )
     
-        // Trigger welding effects occassionally
-        if Server then
+            // Trigger welding effects occassionally
+            if Server then
         
-            if not self.timeOfNextWeldedEffects or (Shared.GetTime() > self.timeOfNextWeldedEffects) then
+                if not self.timeOfNextWeldedEffects or (Shared.GetTime() > self.timeOfNextWeldedEffects) then
             
-                self:TriggerEffects("marine_welded", {effecthostcoords = BuildCoordsFromDirection(player:GetViewCoords().zAxis, usePoint), false})
-                self.timeOfNextWeldedEffects = Shared.GetTime() + Marine.kWeldedEffectsInterval
+                    self:TriggerEffects("marine_welded", {effecthostcoords = BuildCoordsFromDirection(player:GetViewCoords().zAxis, usePoint), false})
+                    self.timeOfNextWeldedEffects = Shared.GetTime() + Marine.kWeldedEffectsInterval
                 
-            end
+                end
             
-            // Give a point for restoring to full armor
-            if self:GetArmor() == self:GetMaxArmor() then
-                player:AddScore(kRepairMarineArmorPointValue)
-            end
+                // Give a point for restoring to full armor
+                if self:GetArmor() == self:GetMaxArmor() then
+                    player:AddScore(kRepairMarineArmorPointValue)
+                end
             
+            end
+        
+            return true
+        
         end
-        
-        return true
-        
     end
     
     return Player.OnUse(self, player, elapsedTime, useAttachPoint, usePoint)
     
+end
+
+function Marine:OnWeaponAdded(weapon)
+    Shared.PlayWorldSound(nil, Marine.kGunPickupSound, nil, self:GetOrigin())
 end
 
 // No animations for it yet

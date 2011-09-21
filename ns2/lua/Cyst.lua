@@ -147,10 +147,6 @@ function _DebugTrack(points, dur, r, g, b, a, force)
     end
 end
 
-function Cyst:GetAddToPathing()
-  return false
-end
-
 /**
  * Draw the track using the given color/dur (defaults to 30/green)
  */
@@ -254,7 +250,7 @@ end
 function Cyst:GetEngagementPoint()
    // Structure:GetEngagementPoint requires a target attachment point on the model, which Cyst doesn't have right now,
    // so override to get rid of the console spam
-    return LiveScriptActor.GetEngagementPoint(self) 
+    return ScriptActor.GetEngagementPoint(self) 
 end
 
 function Cyst:OnOverrideSpawnInfestation(infestation)
@@ -408,6 +404,10 @@ end
 
 function Cyst:GetCystModelName(connected)
     return ConditionalValue(connected, Cyst.kModelName, Cyst.kOffModelName)
+end
+
+function Cyst:GetIsHealableOverride()
+  return self:GetIsAlive() and self:GetIsConnected()
 end
 
 Shared.LinkClassToMap("Cyst", Cyst.kMapName, networkVars)

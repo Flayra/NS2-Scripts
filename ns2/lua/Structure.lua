@@ -8,17 +8,26 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Balance.lua")
-Script.Load("lua/LiveScriptActor.lua")
+Script.Load("lua/ScriptActor.lua")
+Script.Load("lua/EnergyMixin.lua")
+Script.Load("lua/LiveMixin.lua")
 Script.Load("lua/UpgradableMixin.lua")
 Script.Load("lua/PointGiverMixin.lua")
 Script.Load("lua/GameEffectsMixin.lua")
+Script.Load("lua/FuryMixin.lua")
 Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/FlinchMixin.lua")
+Script.Load("lua/OrdersMixin.lua")
+Script.Load("lua/FireMixin.lua")
 Script.Load("lua/CloakableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
+Script.Load("lua/WeldableMixin.lua")
+Script.Load("lua/PathingMixin.lua")
+Script.Load("lua/HiveSightBlipMixin.lua")
+Script.Load("lua/PowerMixin.lua")
 
-class 'Structure' (LiveScriptActor)
+class 'Structure' (ScriptActor)
 
 Structure.kMapName                  = "structure"
 
@@ -71,26 +80,42 @@ Structure.networkVars =
 }
 
 PrepareClassForMixin(Structure, EnergyMixin)
+PrepareClassForMixin(Structure, LiveMixin)
 PrepareClassForMixin(Structure, UpgradableMixin)
 PrepareClassForMixin(Structure, GameEffectsMixin)
+PrepareClassForMixin(Structure, FuryMixin)
 PrepareClassForMixin(Structure, FlinchMixin)
+PrepareClassForMixin(Structure, OrdersMixin)
+PrepareClassForMixin(Structure, FireMixin)
 PrepareClassForMixin(Structure, CloakableMixin)
+PrepareClassForMixin(Structure, SelectableMixin)
+PrepareClassForMixin(Structure, LOSMixin)
+PrepareClassForMixin(Structure, PowerMixin)
 
 function Structure:OnCreate()
 
-    LiveScriptActor.OnCreate(self)
+    ScriptActor.OnCreate(self)
     
+    InitMixin(self, EnergyMixin)
+    InitMixin(self, LiveMixin)
     InitMixin(self, UpgradableMixin)
     InitMixin(self, GameEffectsMixin)
+    InitMixin(self, FuryMixin)
     InitMixin(self, FlinchMixin)
     InitMixin(self, PointGiverMixin)
+    InitMixin(self, OrdersMixin)
+    InitMixin(self, FireMixin)
     InitMixin(self, SelectableMixin)
     InitMixin(self, CloakableMixin)
     InitMixin(self, PathingMixin)
+    InitMixin(self, LOSMixin)
+    InitMixin(self, PowerMixin)
     
     if Server then
         InitMixin(self, TargetMixin)
-        InitMixin(self, LOSMixin)
+        
+        InitMixin(self, WeldableMixin)
+        InitMixin(self, HiveSightBlipMixin)
     end
     
     self:SetLagCompensated(true)
@@ -102,35 +127,36 @@ function Structure:OnCreate()
     
     self.effectsActive = false
     
-    self.timeWarmupComplete = 0
-
-    if (self:GetAddToPathing()) then
-      self:AddToMesh()     
-    end
+    self.timeWarmupComplete = 0  
     
     self:SetPathingFlags(Pathing.PolyFlag_NoBuild)
+    
 end
 
 function Structure:OnKill(damage, killer, doer, point, direction)
-if Server then
-    if(self:GetIsAlive()) then
+
+    if Server then
     
-        self.buildTime = 0
-        self.buildFraction = 0
-        self.constructionComplete = false
-    
-        self:SetIsAlive(false)
-   
-        self:ClearAttached()
-        self:AbortResearch()        
-    end        
-end
+        if self:GetIsAlive() then
+        
+            self.buildTime = 0
+            self.buildFraction = 0
+            self.constructionComplete = false
+        
+            self:SetIsAlive(false)
+       
+            self:ClearAttached()
+            self:AbortResearch()
+     
+        end        
+        
+    end
 
     self:ClearPathingFlags(Pathing.PolyFlag_NoBuild)
-    LiveScriptActor.OnKill(self, damage, killer, doer, point, direction)    
+    
 end
 
-function Structure:GetAddToPathing()
+function Structure:GetAddToPathingOverride()
   return true
 end
 
@@ -157,15 +183,15 @@ function Structure:SetTechId(techId)
     end
     
     if success then
-        success = LiveScriptActor.SetTechId(self, techId)
+        success = ScriptActor.SetTechId(self, techId)
     end
     
     return success
     
 end
 
-function Structure:GetIsActive()
-    return self:GetIsAlive() and (self:GetIsPowered() or not self:GetRequiresPower()) and self:GetIsWarmedUp()
+function Structure:GetIsActive(skipWarmup)
+    return self:GetIsAlive() and (self:GetIsPowered() or not self:GetRequiresPower()) and (skipWarmup or self:GetIsWarmedUp())
 end
 
 function Structure:GetResearchingId()
@@ -247,7 +273,7 @@ function Structure:GetTechAllowed(techId, techNode, player)
         return false
     end
     
-    return LiveScriptActor.GetTechAllowed(self, techId, techNode, player)
+    return ScriptActor.GetTechAllowed(self, techId, techNode, player)
 end
    
 function Structure:GetStatusDescription()
@@ -295,20 +321,9 @@ function Structure:GetSpawnAnimation()
     return Structure.kAnimSpawn
 end
 
-// If structure can be repaired by buildbot welder right now, along with whether it can be welded in the future
-function Structure:GetCanBeWelded(entity)
-
-    local canBeWeldedNow = self:GetIsBuilt() and entity:GetTeamNumber() == self:GetTeamNumber() and
-                           (self:GetHealth() < self:GetMaxHealth() or self:GetArmor() < self:GetMaxArmor())
-    local canBeWeldedFuture = false
-    
-    return canBeWeldedNow, canBeWeldedFuture
-    
-end
-
 function Structure:OnUpdate(deltaTime)
 
-    LiveScriptActor.OnUpdate(self, deltaTime)
+    ScriptActor.OnUpdate(self, deltaTime)
 
     // Pose parameters calculated on server from current order
     self:UpdatePoseParameters(deltaTime)
@@ -331,15 +346,11 @@ function Structure:GetRequiresPower()
     return false
 end
 
-function Structure:GetIsPowered()
-    return self.powered
-end
-
 function Structure:GetEngagementPoint()
 
     local attachPoint, success = self:GetAttachPointOrigin("target")
     if not success then
-        return LiveScriptActor.GetEngagementPoint(self)
+        return ScriptActor.GetEngagementPoint(self)
     end
     return attachPoint
     
@@ -347,7 +358,7 @@ end
 
 function Structure:GetEffectParams(tableParams)
 
-    LiveScriptActor.GetEffectParams(self, tableParams)
+    ScriptActor.GetEffectParams(self, tableParams)
     
     tableParams[kEffectFilterBuilt] = self:GetIsBuilt()
     tableParams[kEffectFilterActive] = self:GetEffectsActive()

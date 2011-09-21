@@ -109,7 +109,7 @@ function Build:_SetBuildProgress(progress)
         
             buildNode:SetResearchProgress(self.buildProgress)
             
-            owner:GetTeam():GetTechTree():SetTechNodeChanged(buildNode)            
+            owner:GetTeam():GetTechTree():SetTechNodeChanged(buildNode, string.format("researchProgress = %.2f", self.buildProgress))            
         end
         
     end

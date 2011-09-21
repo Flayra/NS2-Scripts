@@ -115,8 +115,6 @@ ClassToGrid["Observatory"] = { 6, 5 }
 
 ClassToGrid["HiveBuilding"] = { 1, 6 }
 ClassToGrid["Hive"] = { 2, 6 }
-ClassToGrid["HiveL2"] = { 3, 6 }
-ClassToGrid["HiveL3"] = { 4, 6 }
 ClassToGrid["Harvester"] = { 5, 6 }
 ClassToGrid["Hydra"] = { 6, 6 }
 ClassToGrid["Egg"] = { 7, 6 }
@@ -363,6 +361,8 @@ function GUIMinimap:SetButtonsScript(setButtonsScript)
 end
 
 function GUIMinimap:Update(deltaTime)
+
+    PROFILE("GUIMinimap:Update")
  
     // Commander always sees the minimap.
     if PlayerUI_IsACommander() then
@@ -377,27 +377,34 @@ function GUIMinimap:Update(deltaTime)
         self.background:SetIsVisible(false)
     end
     
-    self:UpdateIcon()
+
+    if self.background:GetIsVisible() then
     
-    self:UpdateStaticBlips(deltaTime)
+        self:UpdateIcon()
+        
+        self:UpdateStaticBlips(deltaTime)
+        
+        self:UpdateDynamicBlips(deltaTime)
+        
+        self:UpdateInput()
+        
+        if self.minimap:GetIsVisible() then
+            // The color cannot be attained right away in some cases so
+            // we need to make sure it is the correct color.
+            self.minimap:SetColor(PlayerUI_GetTeamColor())
+        end
     
-    self:UpdateDynamicBlips(deltaTime)
-    
-    self:UpdateInput()
-    
-    if self.minimap:GetIsVisible() then
-        // The color cannot be attained right away in some cases so
-        // we need to make sure it is the correct color.
-        self.minimap:SetColor(PlayerUI_GetTeamColor())
-    end
-    
-    if self.scanlines then
-        self.scanlines:Update(deltaTime)
+        if self.scanlines then
+            self.scanlines:Update(deltaTime)
+        end
+
     end
     
 end
 
 function GUIMinimap:UpdateIcon()
+
+    PROFILE("GUIMinimap:UpdateIcon")
 
     if PlayerUI_IsACommander() then
 
@@ -464,15 +471,25 @@ end
 
 function GUIMinimap:UpdateStaticBlips(deltaTime)
 
+    PROFILE("GUIMinimap:UpdateStaticBlips")
+
     // First hide all previous static blips.
     for index, oldBlip in ipairs(self.staticBlips) do
         oldBlip:SetIsVisible(false)
     end
+
     
     local staticBlips = PlayerUI_GetStaticMapBlips()
     local blipItemCount = 7
     local numBlips = table.count(staticBlips) / blipItemCount
     local currentIndex = 1
+    local freeBlip = 1
+    
+    // Create all of the blips we'll need.
+    for i=#self.staticBlips,numBlips do
+        self:AddStaticBlip()
+    end    
+    
     while numBlips > 0 do
 		local xPos, yPos = PlotToMap(staticBlips[currentIndex], staticBlips[currentIndex + 1], self.comMode)
 		local rotation = staticBlips[currentIndex + 2]
@@ -480,27 +497,21 @@ function GUIMinimap:UpdateStaticBlips(deltaTime)
         local yTexture = staticBlips[currentIndex + 4]
         local blipType = staticBlips[currentIndex + 5]
         local blipTeam = staticBlips[currentIndex + 6]
-        self:SetStaticBlip(xPos, yPos, rotation, xTexture, yTexture, blipType, blipTeam)
+        
+        local blip = self.staticBlips[freeBlip]
+        freeBlip = freeBlip + 1
+        
+        self:SetStaticBlip(blip, xPos, yPos, rotation, xTexture, yTexture, blipType, blipTeam)
         currentIndex = currentIndex + blipItemCount
         numBlips = numBlips - 1
+        
     end
     
 end
 
-function GUIMinimap:SetStaticBlip(xPos, yPos, rotation, xTexture, yTexture, blipType, blipTeam)
+function GUIMinimap:SetStaticBlip(foundBlip, xPos, yPos, rotation, xTexture, yTexture, blipType, blipTeam)
     
-    // Find a free static blip to reuse or create a new one.
-    local foundBlip = nil
-    for index, oldBlip in ipairs(self.staticBlips) do
-        if not oldBlip:GetIsVisible() then
-            foundBlip = oldBlip
-            break
-        end
-    end
-    
-    if not foundBlip then
-        foundBlip = self:AddStaticBlip()
-    end
+    PROFILE("GUIMinimap:SetStaticBlip")
     
     local textureName = GUIMinimap.kIconFileName
     local iconWidth = GUIMinimap.kIconWidth
@@ -557,6 +568,8 @@ function GUIMinimap:AddStaticBlip()
 end
 
 function GUIMinimap:UpdateDynamicBlips(deltaTime)
+
+    PROFILE("GUIMinimap:UpdateDynamicBlips")
 
     if PlayerUI_IsACommander() then
         local newDynamicBlips = CommanderUI_GetDynamicMapBlips()

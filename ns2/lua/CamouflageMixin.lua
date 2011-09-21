@@ -84,9 +84,11 @@ function CamouflageMixin:OnUpdate(deltaTime)
     self:_UpdateCamouflage()
 end
 
-function CamouflageMixin:OnSynchronized()
+if Client then
 
-    if Client then
+    function CamouflageMixin:OnUpdateRender()
+
+        PROFILE("CamouflageMixin:OnSynchronized")
     
         local newHiddenState = self:GetIsCamouflaged()
         if self.clientCamoed ~= newHiddenState then

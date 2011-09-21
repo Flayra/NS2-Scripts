@@ -72,7 +72,7 @@ function GetDeathMessageEntityName(isPlayer, clientIndex)
 
     if isPlayer == 1 then
         name = Scoreboard_GetPlayerData(clientIndex, "Name")
-    else
+    elseif clientIndex ~= -1 then
         name = GetDisplayNameForTechId(clientIndex)
     end
     

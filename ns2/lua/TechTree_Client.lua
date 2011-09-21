@@ -7,15 +7,15 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-function GetTechSupported(callingEntity, techId, silentError)
+function GetHasTech(callingEntity, techId, silentError)
 
     local techTree = GetTechTree()
     if(techTree ~= nil) then
     
-        return techTree:GetTechSupported(techId, silentError)
+        return techTree:GetHasTech(techId, silentError)
     
     else
-        Shared.Message("GetTechSupported (Client) returned nil tech tree.")
+        Shared.Message("GetHasTech (Client) returned nil tech tree.")
     end
     
     return false
@@ -40,7 +40,7 @@ function TechTree:CreateTechNodeFromNetwork(techNodeBaseTable)
     
     local techNode = TechNode()
     
-    techNode:InitializeFromNetwork(techNodeBaseTable)
+    ParseTechNodeBaseMessage(techNode, techNodeBaseTable)
     
     self:AddNode(techNode)
     
@@ -52,7 +52,7 @@ function TechTree:UpdateTechNodeFromNetwork(techNodeUpdateTable)
     local techNode = self:GetTechNode(techId)
     
     if techNode ~= nil then
-        techNode:UpdateFromNetwork(techNodeUpdateTable)
+        ParseTechNodeUpdateMessage(techNode, techNodeUpdateTable)
     else
         Print("UpdateTechNodeFromNetwork(): Couldn't find technode with id %s, skipping update.", ToString(techId))
     end

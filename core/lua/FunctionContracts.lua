@@ -148,11 +148,12 @@ end
  */
 function SetFunctionContractsEnabled(setEnabled)
 
-    if setEnabled then
+    // DISABLED UNTIL I CAN FIX A PROBLEM.
+    /*if setEnabled then
         debug.sethook(VerifyFunctionPrototypes, "cr")
     else
         debug.sethook()
-    end
+    end*/
     
 end
 

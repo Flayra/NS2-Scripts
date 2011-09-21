@@ -96,7 +96,7 @@ function BuildScoresMessage(scorePlayer, sendToPlayer)
     t.score = scorePlayer:GetScore()
     t.kills = scorePlayer:GetKills()
     t.deaths = scorePlayer:GetDeaths()
-    t.resources = scorePlayer:GetResources()
+    t.resources = ConditionalValue(isEnemy, 0, scorePlayer:GetResources())
     t.isCommander = ConditionalValue(isEnemy, false, scorePlayer:isa("Commander"))
     t.status = ConditionalValue(isEnemy, "-", scorePlayer:GetPlayerStatusDesc())
     t.isSpectator = ConditionalValue(isEnemy, false, scorePlayer:isa("Spectator"))
@@ -321,29 +321,6 @@ function ParseCommTargetedActionMessage(t)
     return t.techId, Vector(t.x, t.y, t.z), t.orientationRadians
 end
 
-local kTracerMessage = 
-{
-    startPoint  = "vector",
-    endPoint    = "vector",
-    velocity    = "vector"
-}
-
-function BuildTracerMessage(startPoint, endPoint, velocity)
-
-    local t = {}
-    
-    t.startPoint = Vector(startPoint)
-    t.endPoint = Vector(endPoint)
-    t.velocity = Vector(velocity)
-    
-    return t
-    
-end
-
-function ParseTracerMessage(t)
-    return t.startPoint, t.endPoint, t.velocity
-end
-
 local kExecuteSayingMessage = 
 {
     sayingIndex = "integer (1 to 5)",
@@ -413,6 +390,19 @@ function BuildDebugLineMessage(startPoint, endPoint, lifetime, r, g, b, a)
     
 end
 
+function BuildSelectIdMessage(entityId)
+
+    local t = {}	    
+    t.entityId = entityId	    
+    return t
+
+end
+
+function ParseSelectIdMessage(t)
+
+	    return t.entityId
+	    
+end
 function ParseDebugLineMessage(t)
     return t.startPoint, t.endPoint, t.lifetime, t.r, t.g, t.b, t.a
 end
@@ -426,14 +416,125 @@ local kMinimapAlertMessage =
     entityTechId = "enum kTechId"
 }
 
+local kSelectIdMessage =
+{
+    entityId = "entityid"
+}
+
+// From TechNode.kTechNodeVars
+local kTechNodeBaseMessage =
+{
+
+    // Unique id
+    techId              = string.format("integer (0 to %d)", kTechIdMax),
+    
+    // Type of tech
+    techType            = "enum kTechType",
+    
+    // Tech nodes that are required to build or research (or kTechId.None)
+    prereq1             = string.format("integer (0 to %d)", kTechIdMax),
+    prereq2             = string.format("integer (0 to %d)", kTechIdMax),
+    
+    // This node is an upgrade, addition, evolution or add-on to another node
+    // This includes an alien upgrade for a specific lifeform or an alternate
+    // ammo upgrade for a weapon. For research nodes, they can only be triggered
+    // on structures of this type (ie, mature versions of a structure).
+    addOnTechId         = string.format("integer (0 to %d)", kTechIdMax),
+
+    // Resource costs (team resources, individual resources or energy depending on type)
+    cost                = "integer (0 to 125)",
+
+    // If tech node can be built/researched/used. Requires prereqs to be met and for 
+    // research, means that it hasn't already been researched and that it's not
+    // in progress. Computed when structures are built or killed or when
+    // global research starts or stops (TechTree:ComputeAvailability()).
+    available           = "boolean",
+
+    // Seconds to complete research or upgrade. Structure build time is kept in Structure.buildTime (Server).
+    time                = "integer (0 to 360)",   
+    
+    // 0-1 research progress. This is non-authoritative and set/duplicated from Structure:SetResearchProgress()
+    // so player buy menus can display progress.
+    researchProgress    = "float",
+    
+    // 0-1 research progress of the prerequisites of this node.
+    prereqResearchProgress = "float",
+
+    // True after being researched.
+    researched          = "boolean",
+    
+    // True for research in progress (not upgrades)
+    researching         = "boolean",
+    
+    // If true, tech tree activity requires ghost, otherwise it will execute at target location's position (research, most actions)
+    requiresTarget      = "boolean",
+    
+}
+
+// Build tech node from data sent in base update
+// Was TechNode:InitializeFromNetwork
+function ParseTechNodeBaseMessage(techNode, networkVars)
+
+    techNode.techId                 = networkVars.techId
+    techNode.techType               = networkVars.techType
+    techNode.prereq1                = networkVars.prereq1
+    techNode.prereq2                = networkVars.prereq2
+    techNode.addOnTechId            = networkVars.addOnTechId
+    techNode.cost                   = networkVars.cost
+    techNode.available              = networkVars.available
+    techNode.time                   = networkVars.time
+    techNode.researchProgress       = networkVars.researchProgress
+    techNode.prereqResearchProgress = networkVars.prereqResearchProgress
+    techNode.researched             = networkVars.researched
+    techNode.researching            = networkVars.researching
+    techNode.requiresTarget         = networkVars.requiresTarget
+    
+end
+
+// Update values from kTechNodeUpdateMessage
+// Was TechNode:UpdateFromNetwork
+function ParseTechNodeUpdateMessage(techNode, networkVars)
+
+    techNode.available              = networkVars.available
+    techNode.researchProgress       = networkVars.researchProgress
+    techNode.prereqResearchProgress = networkVars.prereqResearchProgress
+    techNode.researched             = networkVars.researched
+    techNode.researching            = networkVars.researching
+    
+end
+
+function BuildTechNodeBaseMessage(techNode)
+
+    local t = {}
+    
+    t.techId                    = techNode.techId
+    t.techType                  = techNode.techType
+    t.prereq1                   = techNode.prereq1
+    t.prereq2                   = techNode.prereq2
+    t.addOnTechId               = techNode.addOnTechId
+    t.cost                      = techNode.cost
+    t.available                 = techNode.available
+    t.time                      = techNode.time
+    t.researchProgress          = techNode.researchProgress
+    t.prereqResearchProgress    = techNode.prereqResearchProgress
+    t.researched                = techNode.researched
+    t.researching               = techNode.researching
+    t.requiresTarget            = techNode.requiresTarget
+    
+    return t
+    
+end
+
 Shared.RegisterNetworkMessage("EntityChanged", kEntityChangedMessage)
 Shared.RegisterNetworkMessage("ResetMouse", {} )
+Shared.RegisterNetworkMessage("ResetGame", {} )
 
 // Selection
 Shared.RegisterNetworkMessage("MarqueeSelect", kMarqueeSelectMessage)
 Shared.RegisterNetworkMessage("ClickSelect", kClickSelectMessage)
 Shared.RegisterNetworkMessage("ControlClickSelect", kControlClickSelectMessage)
 Shared.RegisterNetworkMessage("SelectHotkeyGroup", kSelectHotkeyGroupMessage)
+Shared.RegisterNetworkMessage("SelectId", kSelectIdMessage)
 
 // Commander actions
 Shared.RegisterNetworkMessage("CommAction", kCommAction)
@@ -443,12 +544,12 @@ Shared.RegisterNetworkMessage("CommTargetedActionWorld", kCommTargetedAction)
 // Notifications
 Shared.RegisterNetworkMessage("MinimapAlert", kMinimapAlertMessage)
 
-// Tracer effect
-Shared.RegisterNetworkMessage("Tracer", kTracerMessage)
-
 // Player actions
 Shared.RegisterNetworkMessage("ExecuteSaying", kExecuteSayingMessage)
 Shared.RegisterNetworkMessage("MutePlayer", kMutePlayerMessage)
 
 // Debug messages
 Shared.RegisterNetworkMessage("DebugLine", kDebugLineMessage)
+
+Shared.RegisterNetworkMessage( "TechNodeBase", kTechNodeBaseMessage )
+Shared.RegisterNetworkMessage( "ClearTechTree", {} )

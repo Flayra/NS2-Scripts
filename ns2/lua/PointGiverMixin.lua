@@ -46,11 +46,19 @@ function PointGiverMixin:OnKill(damage, attacker, doer, point, direction)
     // Points not awarded for entities on the same team.
     if pointOwner ~= nil and HasMixin(pointOwner, "Scoring") and pointOwner:GetTeamNumber() ~= self:GetTeamNumber() then
     
-        pointOwner:AddKill()
         local resAwarded = 0
-        if pointOwner.AwardResForKill then
-            resAwarded = pointOwner:AwardResForKill(self)
+        
+        // Only killing players increases the kill count and awards resources for kills.
+        if self:isa("Player") then
+        
+            pointOwner:AddKill()
+            
+            if pointOwner.AwardResForKill then
+                resAwarded = pointOwner:AwardResForKill(self)
+            end
+            
         end
+        
         pointOwner:AddScore(self:GetPointValue(), resAwarded)
         
     end

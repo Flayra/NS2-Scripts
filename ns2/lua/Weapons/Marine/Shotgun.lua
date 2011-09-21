@@ -8,6 +8,7 @@
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Balance.lua")
 Script.Load("lua/Weapons/Marine/ClipWeapon.lua")
+Script.Load("lua/PickupableWeaponMixin.lua")
 
 class 'Shotgun' (ClipWeapon)
 
@@ -15,12 +16,12 @@ Shotgun.kMapName = "shotgun"
 
 local kReloadPhase = enum( {'None', 'Start', 'LoadShell', 'End'} )
 
-local networkVars =
-    {
-        reloadPhase         = string.format("integer (1 to %d)", kReloadPhase.End),
-        reloadPhaseEnd      = "float",
-        emptyPoseParam      = "compensated float"
-    }
+Shotgun.networkVars =
+{
+    reloadPhase         = string.format("integer (1 to %d)", kReloadPhase.End),
+    reloadPhaseEnd      = "float",
+    emptyPoseParam      = "compensated float"
+}
 
 Shotgun.kModelName = PrecacheAsset("models/marine/shotgun/shotgun.model")
 Shotgun.kViewModelName = PrecacheAsset("models/marine/shotgun/shotgun_view.model")
@@ -34,6 +35,14 @@ Shotgun.kPrimaryMaxDamageRange = kShotgunMaxDamageRange
 Shotgun.kSecondaryRange = 10
 Shotgun.kFireDelay = kShotgunFireDelay
 Shotgun.kSecondaryFireDelay = 0.5
+
+function Shotgun:OnCreate()
+
+    ClipWeapon.OnCreate(self)
+    
+    InitMixin(self, PickupableWeaponMixin)
+
+end
 
 function Shotgun:GetViewModelName()
     return Shotgun.kViewModelName
@@ -122,25 +131,20 @@ function Shotgun:EnterReloadPhase(player, phase)
 
     local blockActivity = true
 
-    if(phase == kReloadPhase.None) then
-    
+    if phase == kReloadPhase.None then
         blockActivity = false
-        
-    elseif(phase == kReloadPhase.Start) then
-    
+    elseif phase == kReloadPhase.Start then
         self:TriggerEffects("shotgun_reload_start")
-                
-    elseif(phase == kReloadPhase.LoadShell) then
+        blockActivity = false
+    elseif phase == kReloadPhase.LoadShell then
 
         self:TriggerEffects("shotgun_reload_shell")
     
         // We can cancel reloading of every bullet past the first            
         blockActivity = false
         
-    elseif(phase == kReloadPhase.End) then
-
+    elseif phase == kReloadPhase.End then
         self:TriggerEffects("shotgun_reload_end")
-
     end
     
     self.reloadPhase = phase
@@ -148,10 +152,8 @@ function Shotgun:EnterReloadPhase(player, phase)
     local viewAnimationLength = player:GetViewAnimationLength()
     self.reloadPhaseEnd = Shared.GetTime() + viewAnimationLength
     
-    if(blockActivity) then
-    
+    if blockActivity then
         player:SetActivityEnd(viewAnimationLength)
-        
     end
 
 end
@@ -159,7 +161,10 @@ end
 function Shotgun:GetCanIdle()
 
     // Allow idling when not reloading or when finishing reloading if the reload is done.
-    return ((self.reloadPhase == kReloadPhase.None) or (self.reloadPhase == kReloadPhase.End and (self.reloadPhaseEnd == nil or Shared.GetTime() >= self.reloadPhaseEnd))) and ClipWeapon.GetCanIdle(self)
+    return ((self.reloadPhase == kReloadPhase.None) or
+            (self.reloadPhase == kReloadPhase.End and
+             (self.reloadPhaseEnd == nil or Shared.GetTime() >= self.reloadPhaseEnd)))
+           and ClipWeapon.GetCanIdle(self)
 
 end
 
@@ -235,6 +240,13 @@ function Shotgun:OnReload(player)
     
 end
 
+function Shotgun:CancelReload(player)
+
+    self:EnterReloadPhase(player, kReloadPhase.None)
+    self.reloadPhaseEnd = 0
+    
+end
+
 function Shotgun:OnHolster(player)
 
     self:EnterReloadPhase(player, kReloadPhase.None)
@@ -258,4 +270,4 @@ function Shotgun:UpdateViewModelPoseParameters(viewModel, input)
     viewModel:SetPoseParam("empty", self.emptyPoseParam)
 end
 
-Shared.LinkClassToMap("Shotgun", Shotgun.kMapName, networkVars )
+Shared.LinkClassToMap("Shotgun", Shotgun.kMapName, Shotgun.networkVars)

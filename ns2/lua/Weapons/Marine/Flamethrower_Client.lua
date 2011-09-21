@@ -16,6 +16,7 @@ end
 
 function Flamethrower:SetPilotLightState(state)
 
+    /*
     if self.pilotLightState ~= state then
     
         // Pilot can't be on when out of fuel
@@ -37,6 +38,7 @@ function Flamethrower:SetPilotLightState(state)
         self:SetUpdates(self.pilotLightState)
         
     end
+    */
     
 end
 

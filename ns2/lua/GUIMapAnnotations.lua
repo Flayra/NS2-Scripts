@@ -64,6 +64,8 @@ end
 
 function GUIMapAnnotations:Update(deltaTime)
 
+    PROFILE("GUIMapAnnotations:Update")
+
     for i, annotation in ipairs(self.annotations) do
         if not self.visible then
             annotation.Item:SetIsVisible(false)

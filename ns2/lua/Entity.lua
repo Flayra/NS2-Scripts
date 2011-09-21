@@ -24,15 +24,21 @@ end
  * For use in Lua for statements to iterate over EntityList objects.
  */
 function ientitylist(entityList)
+
     local function ientitylist_it(entityList, currentIndex)
+    
         if currentIndex >= entityList:GetSize() then
             return nil
         end
+        
         local currentEnt = entityList:GetEntityAtIndex(currentIndex)
         currentIndex = currentIndex + 1
         return currentIndex, currentEnt
+        
     end
+    
     return ientitylist_it, entityList, 0
+    
 end
 
 function GetEntitiesWithFilter(entityList, filterFunction)
@@ -325,6 +331,49 @@ function GetChildEntities(player, isaClassName)
     end
     
     return childEntities
+    
+end
+
+/**
+ * Iterates over the children of the passed in entity of the passed in type
+ * and calls the function passed in. All children will be iterated if the
+ * childType is nil.
+ */
+function ForEachChildOfType(entity, childType, callback)
+
+    for i = 0, entity:GetNumChildren() - 1 do
+    
+        local currentChild = entity:GetChildAtIndex(i)
+        if childType == nil or currentChild:isa(childType) then
+            callback(currentChild)
+        end
+        
+    end
+
+end
+
+/**
+ * For use in Lua for statements to iterate over an Entities' children.
+ * Optionally pass in a string class name to only iterate children of that class.
+ */
+function ientitychildren(parentEntity, optionalClass)
+
+    local function ientitychildren_it(parentEntity, currentIndex)
+    
+        if currentIndex >= parentEntity:GetNumChildren() then
+            return nil
+        end
+        
+        local currentEnt = parentEntity:GetChildAtIndex(currentIndex)
+        currentIndex = currentIndex + 1
+        if optionalClass and not currentEnt:isa(optionalClass) then
+            return ientitychildren_it(parentEntity, currentIndex)
+        end
+        return currentIndex, currentEnt
+        
+    end
+    
+    return ientitychildren_it, parentEntity, 0
     
 end
 

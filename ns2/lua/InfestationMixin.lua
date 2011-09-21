@@ -98,7 +98,7 @@ end
 function InfestationMixin:OnSighted(sighted)
   local infestation = Shared.GetEntity(self.infestationId)
   if (infestation ~= nil) then    
-    infestation:SetSighted(sighted)
+    infestation:SetIsSighted(sighted)
   end
   
 end

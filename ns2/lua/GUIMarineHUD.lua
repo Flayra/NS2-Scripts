@@ -191,6 +191,8 @@ function GUIMarineHUD:Uninitialize()
 end
 
 function GUIMarineHUD:Update(deltaTime)
+
+    PROFILE("GUIMarineHUD:Update")
     
     self:UpdateHealthBar(deltaTime)
     self:UpdateArmorBar(deltaTime)

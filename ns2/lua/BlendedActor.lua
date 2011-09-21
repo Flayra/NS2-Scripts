@@ -108,7 +108,8 @@ end
  * uses the default blend time. Returns true if the animation was changed.
  */
 function BlendedActor:SetAnimationWithBlending(baseAnimationName, blendTime, force, speed)
-
+    PROFILE("BlendedActor:SetAnimationWithBlending")
+    
     if(baseAnimationName == "" or baseAnimationName == nil) then
         return false
     end
@@ -174,7 +175,8 @@ function BlendedActor:SetAnimationWithBlending(baseAnimationName, blendTime, for
 end
 
 function BlendedActor:SetOverlayAnimation(animationName, dontForce)
-
+    PROFILE("BlendedActor:SetOverlayAnimation")
+    
     if( animationName == nil or animationName == "") then
     
         if self.GetClassName and self:GetClassName() == gActorAnimDebugClass then
@@ -212,7 +214,7 @@ end
 
 // Stop playing specified overlay animation if it's playing
 function BlendedActor:StopOverlayAnimation(animationName)
-
+    PROFILE("BlendedActor:StopOverlayAnimation")
     local success = false
     
     if( animationName ~= nil and animationName ~= "") then

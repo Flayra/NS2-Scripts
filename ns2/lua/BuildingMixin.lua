@@ -45,7 +45,7 @@ end
 
 // Returns true or false, as well as the entity id of the new structure (or -1 if false)
 // pickVec optional (for AI units). In those cases, builderEntity will be the entity doing the building.
-function BuildingMixin:AttemptToBuild(techId, origin, normal, orientation, pickVec, buildTech, builderEntity, trace)
+function BuildingMixin:AttemptToBuild(techId, origin, normal, orientation, pickVec, buildTech, builderEntity, trace, owner)
 
     local legalBuildPosition = false
     local position = nil
@@ -58,6 +58,10 @@ function BuildingMixin:AttemptToBuild(techId, origin, normal, orientation, pickV
         local commander = self:GetOwner()
         if commander == nil then
             commander = self
+        end
+        
+        if (owner ~= nil) then
+            commander = owner
         end
         
         local newEnt = CreateEntityForCommander(techId, position, commander)

@@ -9,11 +9,15 @@
 //   Research (eg, research siege) - Costs team resources, queued from a structure, non-positional
 //   Upgrade (eg, upgrade command station) - Like research but can be performed more than once
 //   Action (eg, medpack, drifter flare) - Optionally costs energy, optional position, optionally must be researched
-//   Buy (eg, create siege cannon from factory, player buy weapon) - Costs resources, position implied from buyer or originating structure (unless targeted). Requires target for commander.
+//   Buy (eg, create siege cannon from factory, player buy weapon) - Costs resources, position implied from buyer 
+//      or originating structure (unless targeted). Requires target for commander. Can be built on entities.
 //   Build (eg, build structure from drifter) - Costs team resources, requires position
-//   EnergyManufacture (add to manufacture queue, create unit when done) - Costs energy, takes time to complete, no position (MACs, Drifters). Only use for AI units that don't need a position.
-//   PlasmaManufacture (add to manufacture queue, create unit when done) - Costs player resources, takes time to complete, no position (MACs, Drifters). Only use for AI units that don't need a position.
-//   Manufacture (add to manufacture queue, create unit when done) - Costs resources, takes time to complete, no position (ARCs)
+//   EnergyManufacture (add to manufacture queue, create unit when done) - Costs energy, takes time to complete, no 
+//      position (MACs, Drifters). Only use for AI units that don't need a position.
+//   PlasmaManufacture (add to manufacture queue, create unit when done) - Costs player resources, takes time to 
+//      complete, no position (MACs, Drifters). Only use for AI units that don't need a position.
+//   Manufacture (add to manufacture queue, create unit when done) - Costs resources, takes time to complete, no 
+//      position (ARCs)
 //   Activation (eg, deploy/undeploy siege) - Optionally costs energy, optional position
 //   Menu - No cost, no position
 //
@@ -21,67 +25,16 @@
 //                  Max McGuire (max@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/TechData.lua")
+//Script.Load("lua/TechData.lua")
 
 class 'TechNode'
 TechNode.kMapName = "technode"
 
-TechNode.kTechNodeVars =
-{
-
-    // Unique id
-    techId              = string.format("integer (0 to %d)", kTechIdMax),
-    
-    // Type of tech
-    techType            = "enum kTechType",
-    
-    // Tech nodes that are required to build or research (or kTechId.None)
-    prereq1             = string.format("integer (0 to %d)", kTechIdMax),
-    prereq2             = string.format("integer (0 to %d)", kTechIdMax),
-    
-    // This node is an upgrade, addition, evolution or add-on to another node
-    // This includes an alien upgrade for a specific lifeform or an alternate
-    // ammo upgrade for a weapon. For research nodes, they can only be triggered
-    // on structures of this type (ie, mature versions of a structure).
-    addOnTechId         = string.format("integer (0 to %d)", kTechIdMax),
-
-    // Resource costs (team resources, individual resources or energy depending on type)
-    cost                = "integer (0 to 125)",
-
-    // If tech node can be built/researched/used. Requires prereqs to be met and for 
-    // research, means that it hasn't already been researched and that it's not
-    // in progress. Computed when structures are built or killed or when
-    // global research starts or stops (TechTree:ComputeAvailability()).
-    available           = "boolean",
-
-    // Seconds to complete research or upgrade. Structure build time is kept in Structure.buildTime (Server).
-    time                = "integer (0 to 360)",   
-    
-    // 0-1 research progress. This is non-authoritative and set/duplicated from Structure:SetResearchProgress()
-    // so player buy menus can display progress.
-    researchProgress    = "float",
-    
-    // 0-1 research progress of the prerequisites of this node.
-    prereqResearchProgress = "float",
-
-    // True after being researched.
-    researched          = "boolean",
-    
-    // True for research in progress (not upgrades)
-    researching         = "boolean",
-    
-    // True if this is tech node represents a structure that is built or if the tech is satisfied (Hive, TwoCommandStations, etc.)
-    hasTech             = "boolean",
-    
-    // If true, tech tree activity requires ghost, otherwise it will execute at target location's position (research, most actions)
-    requiresTarget      = "boolean",
-    
-}
-
 function TechNode:Initialize(techId, techType, prereq1, prereq2)
 
     if(techId == nil) then
-        Print("TechNode:Initialize(%s, %s, %s, %s): techId is nil", tostring(techId), tostring(techType), tostring(prereq1), tostring(prereq2))
+        local formatString = "TechNode:Initialize(%s, %s, %s, %s): techId is nil"
+        Print(formatString, tostring(techId), tostring(techType), tostring(prereq1), tostring(prereq2))
     end
     
     self.techId = techId
@@ -99,6 +52,9 @@ function TechNode:Initialize(techId, techType, prereq1, prereq2)
     self.prereq1 = prereq1
     self.prereq2 = prereq2
     
+    ASSERT(self.techId ~= prereq1)
+    ASSERT(self.techId ~= prereq2)
+
     self.addOnTechId = kTechId.None
     
     self.cost = LookupTechData(self.techId, kTechDataCostKey, 0)
@@ -113,9 +69,9 @@ function TechNode:Initialize(techId, techType, prereq1, prereq2)
     
     self.researched = false
     
-    self.researching = false
-    
     self.hasTech = false
+    
+    self.researching = false
     
     self.requiresTarget = false
     
@@ -250,6 +206,7 @@ function TechNode:GetPrereqResearchProgress()
     return self.prereqResearchProgress
 end
 
+// Indicates if we this tech node can be bought, researched, etc.
 function TechNode:GetAvailable()
     return self.available
 end
@@ -260,8 +217,13 @@ function TechNode:GetCanResearch()
     
 end
 
+// True if this is tech node represents a structure that is built or if the tech is satisfied (Hive, TwoCommandStations, etc.)
 function TechNode:GetHasTech()
-    return self.hasTech
+    return self.hasTech    
+end
+
+function TechNode:SetHasTech(hasTech)
+    self.hasTech = hasTech
 end
 
 function TechNode:GetResearching()
@@ -288,6 +250,8 @@ end
 // Make sure to call TechTree:ComputeAvailability() after making a change here.
 function TechNode:SetResearched(state)
 
+    ASSERT(state ~= nil)
+    
     if(self.techType == kTechType.Research) then
         self.researched = state
         self.researchProgress = 1
@@ -295,69 +259,5 @@ function TechNode:SetResearched(state)
     
 end
 
-if Client then
-
-    // Build tech node from data sent in base update
-    function TechNode:InitializeFromNetwork(networkVars)
-
-        self.techId                 = networkVars.techId
-        self.techType               = networkVars.techType
-        self.prereq1                = networkVars.prereq1
-        self.prereq2                = networkVars.prereq2
-        self.addOnTechId            = networkVars.addOnTechId
-        self.cost                   = networkVars.cost
-        self.available              = networkVars.available
-        self.time                   = networkVars.time
-        self.researchProgress       = networkVars.researchProgress
-        self.prereqResearchProgress = networkVars.prereqResearchProgress
-        self.researched             = networkVars.researched
-        self.researching            = networkVars.researching
-        self.hasTech                = networkVars.hasTech
-        self.requiresTarget         = networkVars.requiresTarget
-        
-    end
-
-    // Update values from kTechNodeUpdateMessage
-    function TechNode:UpdateFromNetwork(networkVars)
-
-        self.available              = networkVars.available
-        self.researchProgress       = networkVars.researchProgress
-        self.prereqResearchProgress = networkVars.prereqResearchProgress
-        self.researched             = networkVars.researched
-        self.researching            = networkVars.researching
-        self.hasTech                = networkVars.hasTech
-        
-    end
-
-end
-
-if Server then
-
-    function BuildTechNodeBaseMessage(techNode)
-
-        local t = {}
-        
-        t.techId                    = techNode.techId
-        t.techType                  = techNode.techType
-        t.prereq1                   = techNode.prereq1
-        t.prereq2                   = techNode.prereq2
-        t.addOnTechId               = techNode.addOnTechId
-        t.cost                      = techNode.cost
-        t.available                 = techNode.available
-        t.time                      = techNode.time
-        t.researchProgress          = techNode.researchProgress
-        t.prereqResearchProgress    = techNode.prereqResearchProgress
-        t.researched                = techNode.researched
-        t.researching               = techNode.researching
-        t.requiresTarget            = techNode.requiresTarget
-        
-        return t
-        
-    end
-
-end
-
-// TODO: Make this reliable
-Shared.RegisterNetworkMessage( "TechNodeBase", TechNode.kTechNodeVars )
 
 

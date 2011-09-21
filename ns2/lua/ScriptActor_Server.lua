@@ -217,7 +217,7 @@ function ScriptActor:FindTarget(attackDistance)
 
     // Find enemy in range
     local enemyTeamNumber = GetEnemyTeamNumber(self:GetTeamNumber())
-    local potentialTargets = GetEntitiesForTeamWithinRange("LiveScriptActor", enemyTeamNumber, self:GetOrigin(), attackDistance)
+    local potentialTargets = GetEntitiesWithMixinForTeamWithinRange("Live", enemyTeamNumber, self:GetOrigin(), attackDistance)
     
     local nearestTarget = nil
     local nearestTargetDistance = 0

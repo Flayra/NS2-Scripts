@@ -135,7 +135,7 @@ function ARC:PerformAttack()
         target:TriggerEffects("arc_hit_primary")
 
         // Do damage to everything in radius. Use upgraded splash radius if researched.
-        local damageRadius = ConditionalValue(GetTechSupported(self, kTechId.ARCSplashTech), ARC.kUpgradedSplashRadius, ARC.kSplashRadius)
+        local damageRadius = ConditionalValue(self:GetHasUpgrade(kTechId.ARCSplashTech), ARC.kUpgradedSplashRadius, ARC.kSplashRadius)
         local hitEntities = self.targetSelector:AcquireTargets(1000, damageRadius, target:GetOrigin())
 
         // Do damage to every target in range
@@ -178,7 +178,7 @@ function ARC:SetMode(mode)
         // Now process actions per mode
         if self.mode == ARC.kMode.Deployed then
         
-            self:AcquireTarget()
+            self:AcquireTarget()                
 
         elseif self.mode == ARC.kMode.Firing then
         
@@ -254,6 +254,21 @@ function ARC:UpdateMode()
         end
         
     end
+    
+end
+
+function ARC:OnWeld(entity, elapsedTime)
+
+    // MACs repair structures
+    local health = 0
+    
+    if entity:isa("MAC") then
+    
+        health = self:AddHealth(MAC.kRepairHealthPerSecond * elapsedTime)
+        
+    end
+    
+    return (health > 0)
     
 end
 
