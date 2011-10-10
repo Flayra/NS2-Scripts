@@ -65,7 +65,7 @@ MAC.kWeldThinkInterval = .5
 MAC.kHealth = kMACHealth
 MAC.kArmor = kMACArmor
 MAC.kMoveSpeed = 9
-MAC.kHoverHeight = 1.5
+MAC.kHoverHeight = .5
 MAC.kStartDistance = 3
 MAC.kWeldDistance = 3
 MAC.kBuildDistance = 2     // Distance at which bot can start building a structure. 
@@ -94,7 +94,6 @@ PrepareClassForMixin(MAC, GameEffectsMixin)
 PrepareClassForMixin(MAC, FuryMixin)
 PrepareClassForMixin(MAC, FlinchMixin)
 PrepareClassForMixin(MAC, OrdersMixin)
-PrepareClassForMixin(MAC, FireMixin)
 PrepareClassForMixin(MAC, SelectableMixin)
 PrepareClassForMixin(MAC, LOSMixin)
 

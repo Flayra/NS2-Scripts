@@ -99,7 +99,7 @@ kMarineStructureEffects =
     {
         powerUpEffects =
         {
-            {sound = "sound/ns2.fev/marine/structures/phase_gate_active", classname = "PhaseGate", done = true},
+            {parented_sound = "sound/ns2.fev/marine/structures/phase_gate_active", classname = "PhaseGate", done = true},
             {sound = "sound/ns2.fev/marine/structures/power_up"},
             // Structure power down animations handled in code ("power_down")
         },
@@ -423,7 +423,7 @@ kMarineStructureEffects =
         {
             // Play spin for spinning infantry portal
             {looping_cinematic = "cinematics/marine/phasegate/phasegate.cinematic"},
-            {sound = "sound/ns2.fev/marine/structures/phase_gate_active"},
+            {parented_sound = "sound/ns2.fev/marine/structures/phase_gate_active"},
         },
     },
     
@@ -432,8 +432,8 @@ kMarineStructureEffects =
         pgLinkedEffects = 
         {
             // Destroy it if not spinning
-            {stop_cinematic = "cinematics/marine/phasegate/phasegate.cinematic", done = true},
             {stop_sound = "sound/ns2.fev/marine/structures/phase_gate_active"},
+            {stop_cinematic = "cinematics/marine/phasegate/phasegate.cinematic", done = true},            
         },
     },
     

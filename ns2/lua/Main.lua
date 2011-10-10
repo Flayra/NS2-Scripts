@@ -74,14 +74,6 @@ function OnClientDisconnected(reason)
     GetGUIManager():DestroyGUIScriptSingle("GUIVoiceChat")
     GetGUIManager():DestroyGUIScriptSingle("GUIMinimap")
     GetGUIManager():DestroyGUIScriptSingle("GUIMapAnnotations")
-    // Marine GUIs
-    GetGUIManager():DestroyGUIScriptSingle("GUIMarineHUD")
-    GetGUIManager():DestroyGUIScriptSingle("GUIWaypoints")
-    GetGUIManager():DestroyGUIScriptSingle("GUIPickups")
-    GetGUIManager():DestroyGUIScriptSingle("GUISquad")
-    // Alien GUIs
-    GetGUIManager():DestroyGUIScriptSingle("GUIAlienHUD")
-    GetGUIManager():DestroyGUIScriptSingle("GUIHiveBlips")
     
     // Destroy graphical debug text items
     for index, item in ipairs(gDebugTextList) do

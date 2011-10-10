@@ -9,12 +9,16 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 Script.Load("lua/Structure.lua")
-Script.Load("lua/Onos.lua")
 Script.Load("lua/InfestationMixin.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/EvolveMixin.lua")
 
 class 'Egg' (Structure)
+
+Egg.networkVars = {}
+
 PrepareClassForMixin(Egg, InfestationMixin)
+PrepareClassForMixin(Egg, EvolveMixin)
 
 Egg.kMapName = "egg"
 
@@ -34,14 +38,12 @@ Egg.kArmor = kEggArmor
 
 Egg.kThinkInterval = .5
 
-// automatically spawn the player after a while
-Egg.kHatchTime = 4
-
 function Egg:OnCreate()
 
     Structure.OnCreate(self)
     
     InitMixin(self, RagdollMixin)
+    InitMixin(self, EvolveMixin)
     
     self:SetModel(Egg.kModelName)
     
@@ -79,6 +81,50 @@ function Egg:GetIsAlienStructure()
     return true
 end
 
+function Egg:GetTechButtons(techId)
+
+    local techButtons = nil
+    
+    if(techId == kTechId.RootMenu) then     
+        techButtons = { kTechId.Gorge, kTechId.Lerk, kTechId.Fade, kTechId.Onos }      
+    end
+    
+    return techButtons
+    
+end
+
+function Egg:GetTechAllowed(techId, techNode, player)
+    if (self.gestationTypeTechId ~= kTechId.Skulk) then
+        return false
+    end
+    
+    return false
+end
+
+function Egg:PerformAction(techNode, position)
+    local techId = techNode:GetTechId()
+    
+    local success = false    
+    if techId == kTechId.Gorge or 
+       techId == kTechId.Lerk  or  
+       techId == kTechId.Fade  or 
+       techId == kTechId.Onos then
+        
+        healthScalar = self:GetHealth() / self:GetMaxHealth()
+        armorScalar = self:GetArmor() / self:GetMaxArmor() 
+    
+        self:SetGestationData({techId}, kTechId.Skulk, healthScalar, armorScalar)
+        success = true
+    end
+    return success
+    
+end
+function Egg:GetDescription()
+    local eggDescription = GetDisplayNameForTechId(self:GetTechId())       
+    eggDescription = string.format("%s %s", GetDisplayNameForTechId(self.gestationTypeTechId), eggDescription)    
+    return eggDescription
+end
+
 function Egg:QueueWaitingPlayer()
 
     // Get team
@@ -94,7 +140,7 @@ function Egg:QueueWaitingPlayer()
             
             team:RemovePlayerFromRespawnQueue(playerToSpawn)        
             self:SetQueuedPlayerId(playerToSpawn:GetId())
-            
+
         end
         
     end
@@ -141,10 +187,10 @@ function Egg:SpawnPlayer(player)
     local queuedPlayer = player
     
     if not queuedPlayer or self.queuedPlayerId ~= nil then
-            queuedPlayer = Shared.GetEntity(self.queuedPlayerId)
+        queuedPlayer = Shared.GetEntity(self.queuedPlayerId)
     end
     
-    if (queuedPlayer ~= nil) then
+    if queuedPlayer ~= nil then
     
         local queuedPlayer = player
         if not queuedPlayer then
@@ -154,9 +200,12 @@ function Egg:SpawnPlayer(player)
         // Spawn player on top of egg
         local spawnOrigin = Vector(self:GetOrigin())
         
+        local gestationClass = LookupTechData(self.gestationTypeTechId, kTechDataGestateName)
+
         local team = queuedPlayer:GetTeam()
-        local success, player = team:ReplaceRespawnPlayer(queuedPlayer, spawnOrigin, queuedPlayer:GetAngles())
-        if(success) then
+        local success, player = team:ReplaceRespawnPlayer(queuedPlayer, spawnOrigin, queuedPlayer:GetAngles(), gestationClass)                
+        
+        if success then
         
             self.queuedPlayerId = nil
             
@@ -231,81 +280,78 @@ function Egg:GetTimeQueuedPlayer()
 end
 
 function Egg:OverrideCheckvision()
-  return false
+    return false
 end
 
 if Server then
 
-// spawn the player automatically after some time. That's just a measure against AFK players
-function Egg:OnThink()
-    
-    if self:GetIsAlive() then
-    
-        Structure.OnThink(self)
-
-        // If no player in queue
-        if(self.queuedPlayerId == nil) then
-            
-            // Grab available player from team and put in queue
-            self:QueueWaitingPlayer()
-
-        else
+    // spawn the player automatically after some time. That's just a measure against AFK players
+    function Egg:OnThink()
         
-            local startTime = self:GetTimeQueuedPlayer()
-            if startTime ~= nil then
-                
-                // auto spawn player
-                if startTime + Egg.kHatchTime < Shared.GetTime() then
-                    self:SpawnPlayer()
-                end                 
-                
+        if self:GetIsAlive() then
+        
+            Structure.OnThink(self)
+
+            // If no player in queue
+            if self.queuedPlayerId == nil then
+                // Grab available player from team and put in queue
+                self:QueueWaitingPlayer()
             end
             
         end
         
+        self:SetNextThink(Egg.kThinkInterval)
+
+    end
+
+    // delete the egg to avoid invalid ID's and reset the player to spawn queue if one is occupying it
+    function Egg:OnDestroy()
+
+        self:ClearInfestation()
+        local team = self:GetTeam()
+        
+        // Can be nil on map change / server shutdown.
+        if team ~= nil then
+            team:RemoveEgg(self:GetId())
+        end
+        
+        // Just in case there is a player waiting to spawn in this egg.
+        self:RequeuePlayer()
+        
+        Structure.OnDestroy(self)
+        
+    end
+
+    // it's important to add the egg to the teams' table for cycling through them
+    function Egg:OnConstructionComplete()
+
+        Structure.OnConstructionComplete(self)
+        local team = self:GetTeam()
+        team:AddEgg(self:GetId())
+        
+        // disabled, it is now handled in AlienTeam.lua
+        // self:SetNextThink(Egg.kThinkInterval)
+
     end
     
-    self:SetNextThink(Egg.kThinkInterval)
-
+    function Egg:OnEntityChange(entityId, newEntityId)
+    
+        Structure.OnEntityChange(self, entityId, newEntityId)
+        
+        if self.queuedPlayerId == entityId then
+            self:RequeuePlayer()
+        end
+    
+    end
+    
 end
 
-// delete the egg to avoid invalid ID's and reset the player to spawn queue if one is occupying it
-function Egg:OnDestroy()
-
-    self:ClearInfestation()
-    local team = self:GetTeam()
-    
-    // can be nil on map change / server shutdown
-    if team ~= nil then
-    
-        team:RemoveEgg(self:GetId())
-
-	    if self.queuedPlayerId ~= nil then
-	    
-	        if not team:FindEggForPlayerAndQueue(self:GetId(), self.queuedPlayerId) then
-	            // Put the player back in queue only if we could not find any new egg for him (new created eggs will fetch them for respawning)
-	            self:RequeuePlayer()
-	        end
-	        
-	    end
-	    
-    end
+function Egg:OverrideGestationData()
+     self:SetHealth(LookupTechData(self.gestationTypeTechId, kTechDataMaxHealth))
      
-    Structure.OnDestroy(self)
-    
+     local maxArmor = LookupTechData(self.gestationTypeTechId, kTechDataMaxArmor, self:GetMaxArmor())     
+     self:SetMaxArmor(maxArmor)
+     self:SetArmor(maxArmor)
 end
 
-// it's important to add the egg to the teams' table for cycling through them
-function Egg:OnConstructionComplete()
-
-    Structure.OnConstructionComplete(self)
-    local team = self:GetTeam()
-    team:AddEgg(self:GetId())
-    
-    self:SetNextThink(Egg.kThinkInterval)
-
-end
-    
-end
-
-Shared.LinkClassToMap("Egg", Egg.kMapName, {})
+Shared.LinkClassToMap("Egg", Egg.kMapName, Egg.networkVars)

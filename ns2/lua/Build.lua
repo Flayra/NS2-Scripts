@@ -32,6 +32,9 @@ function Build:OnCreate()
 
     self.buildPlayerId      = Entity.invalidId
     self.buildEntity        = Entity.invalidId
+    
+    self:SetSynchronizes(false)
+    
 end
 
 function Build:Initialize(buildType, buildTechId, position, orientation, playerId)

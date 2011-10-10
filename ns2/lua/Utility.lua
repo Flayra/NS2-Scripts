@@ -1411,7 +1411,17 @@ function StringTrim(inString)
 
     ASSERT(type(inString) == "string")
     
-    return (inString:gsub("^%s*(.-)%s*$", "%1"))
+    return inString:gsub("^%s*(.-)%s*$", "%1")
+    
+end
+
+function TrimName(nameString)
+
+    ASSERT(type(nameString) == "string")
+    
+    local whitespaceCleanName = StringTrim(nameString)
+    
+    return whitespaceCleanName:gsub("\"", "")
     
 end
 

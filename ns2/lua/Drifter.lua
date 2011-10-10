@@ -36,8 +36,10 @@ Drifter.kMapName = "drifter"
 
 Drifter.kModelName = PrecacheAsset("models/alien/drifter/drifter.model")
 
-Drifter.kOrdered2DSoundName  = PrecacheAsset("sound/ns2.fev/alien/drifter/ordered_2d")
-Drifter.kOrdered3DSoundName  = PrecacheAsset("sound/ns2.fev/alien/drifter/ordered")
+Drifter.kOrdered2DSoundName = PrecacheAsset("sound/ns2.fev/alien/drifter/ordered_2d")
+Drifter.kOrdered3DSoundName = PrecacheAsset("sound/ns2.fev/alien/drifter/ordered")
+
+local kDrifterMorphing = PrecacheAsset("sound/ns2.fev/alien/commander/drop_structure")
 
 Drifter.kAnimFly = "fly"
 Drifter.kAnimLandBuild = "land_build"
@@ -74,7 +76,6 @@ PrepareClassForMixin(Drifter, GameEffectsMixin)
 PrepareClassForMixin(Drifter, FuryMixin)
 PrepareClassForMixin(Drifter, FlinchMixin)
 PrepareClassForMixin(Drifter, OrdersMixin)
-PrepareClassForMixin(Drifter, FireMixin)
 PrepareClassForMixin(Drifter, CloakableMixin)
 PrepareClassForMixin(Drifter, SelectableMixin)
 PrepareClassForMixin(Drifter, LOSMixin)
@@ -187,13 +188,6 @@ end
 function Drifter:OnOrderChanged()
 
     self:SetNextThink(Drifter.kMoveThinkInterval)
-    
-    self:PlaySound(Drifter.kOrdered3DSoundName)
-    
-    local owner = self:GetOwner()
-    if owner then
-        Server.PlayPrivateSound(owner, Drifter.kOrdered2DSoundName, owner, 1.0, Vector(0, 0, 0))
-    end
         
 end
 
@@ -221,16 +215,27 @@ function Drifter:OverrideTechTreeAction(techNode, position, orientation, command
     
 end
 
+function Drifter:_PlayOrderedSounds()
+
+    self:PlaySound(Drifter.kOrdered3DSoundName)
+    
+    local owner = self:GetOwner()
+    if owner then
+        Server.PlayPrivateSound(owner, Drifter.kOrdered2DSoundName, owner, 1.0, Vector(0, 0, 0))
+    end
+
+end
+
 function Drifter:OnOverrideOrder(order)
     
     local orderTarget = nil
     
-    if (order:GetParam() ~= nil) then
+    if order:GetParam() ~= nil then
         orderTarget = Shared.GetEntity(order:GetParam())
     end
     
     // If target is enemy, attack it
-    if (order:GetType() == kTechId.Default) then
+    if order:GetType() == kTechId.Default then
     
         if orderTarget ~= nil and HasMixin(orderTarget, "Live") and GetEnemyTeamNumber(self:GetTeamNumber()) == orderTarget:GetTeamNumber() and orderTarget:GetIsAlive() then
             order:SetType(kTechId.Attack)
@@ -240,16 +245,33 @@ function Drifter:OnOverrideOrder(order)
         
     end
     
+    self:_PlayOrderedSounds()
+    
 end
 
 function Drifter:GetPositionForEntity(hive)
 
-    local angle = NetworkRandom() * math.pi*2
-    local startPoint = self:GetOrigin() + Vector( math.cos(angle)*Drifter.kStartDistance , Drifter.kHoverHeight, math.sin(angle)*Drifter.kStartDistance )
-    local direction = Vector(self:GetAngles():GetCoords().zAxis)                               
-    startPoint = GetHoverAt(self, startPoint)
+    local function RandomPoint()
+        local angle = NetworkRandom() * math.pi*2
+        local startPoint = self:GetOrigin() + Vector( math.cos(angle)*Drifter.kStartDistance , Drifter.kHoverHeight, math.sin(angle)*Drifter.kStartDistance )
+        return startPoint
+    end
     
-    return BuildCoords(Vector(0, 1, 0), direction, startPoint)
+    local direction = Vector(self:GetAngles():GetCoords().zAxis)
+
+    local finalPoint = Pathing.GetClosestPoint(RandomPoint())
+    
+    local points = {}    
+    local isBlocked = Pathing.IsBlocked(hive:GetModelOrigin(), finalPoint)
+    
+    while (isBlocked) do        
+        finalPoint = Pathing.GetClosestPoint(RandomPoint())
+        isBlocked = Pathing.IsBlocked(hive:GetModelOrigin(), finalPoint)
+    end
+                              
+    finalPoint = GetHoverAt(self, finalPoint)
+    
+    return BuildCoords(Vector(0, 1, 0), direction, finalPoint)
     
 end
 
@@ -332,7 +354,7 @@ function Drifter:OnThink()
     
 end
 
-function Drifter:ResetOrders(resetOrigin)
+function Drifter:ResetOrders(resetOrigin, clearOrders)
 
     if resetOrigin then        
         if (self.oldLocation ~= nil) then
@@ -344,8 +366,12 @@ function Drifter:ResetOrders(resetOrigin)
     end
     
     self.landed = false
-    self:SetIgnoreOrders(false)    
-    self:ClearOrders()
+    self:SetIgnoreOrders(false)
+    
+    if (clearOrders) then
+        self:ClearOrders()
+    end
+    
     self.oldLocation = nil 
 end
 
@@ -366,7 +392,7 @@ function Drifter:ProcessBuildOrder(moveSpeed)
         // Create structure here
         local commander = self:GetOwner()
         if (not commander) then
-            self:ResetOrders(true)            
+            self:ResetOrders(true, true)
             return
         end
         
@@ -378,7 +404,7 @@ function Drifter:ProcessBuildOrder(moveSpeed)
         // know its going to fail and to be honest we should never get to this point anyways
         legalBuildPosition, position, attachEntity = self:EvalBuildIsLegal(techId, groundLocation, self, Vector(0, 1, 0))
         if (not legalBuildPosition) then
-            self:ResetOrders(true)
+            self:ResetOrders(true, true)
             return
         end
              
@@ -414,17 +440,20 @@ function Drifter:ProcessBuildOrder(moveSpeed)
                     local createdStructureId = -1
                     success, createdStructureId = self:AttemptToBuild(techId, groundLocation, Vector(0, 1, 0), currentOrder:GetOrientation(), nil, nil, self, nil, currentOrder:GetOwner())
                                     
-                    if(success) then
+                    if success then
+                    
                         team:AddTeamResources(-cost)
                         self:CompletedCurrentOrder()
                         self:SendEntityChanged(createdStructureId)
+                        
+                        StartSoundEffectAtOrigin(kDrifterMorphing, self:GetOrigin())
                                     
                         // Now remove Drifter - we're morphing into structure
                         DestroyEntity(self)
                                     
                     else
                         // TODO: Issue alert to commander that way was blocked?
-                        self:ResetOrders(true)
+                        self:ResetOrders(true,true)
                     end
                                 
                 else
@@ -432,7 +461,7 @@ function Drifter:ProcessBuildOrder(moveSpeed)
                     self:GetTeam():TriggerAlert(kTechId.AlienAlertNotEnoughResources, self)
                                     
                     // Cancel build bots orders so he doesn't move away
-                    self:ResetOrders(true)
+                    self:ResetOrders(true, true)
                                     
                 end 
             end                    
@@ -654,6 +683,18 @@ end
 
 function Drifter:UpdateIncludeRelevancyMask()
     self:SetAlwaysRelevantToCommander(true)
+end
+
+function Drifter:OnDestroyCurrentOrder(order)
+    if (order:GetType() == kTechId.Build) then
+        local resetOrigin = false
+        
+        if (self.landed) then
+            resetOrigin = true
+        end
+        
+        self:ResetOrders(resetOrigin)
+    end
 end
 
 Shared.LinkClassToMap("Drifter", Drifter.kMapName, Drifter.networkVars)

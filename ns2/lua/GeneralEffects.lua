@@ -39,10 +39,7 @@ kGeneralEffectData =
             {sound = "sound/ns2.fev/alien/onos/spawn", classname = "Onos", done = true},
             {sound = "sound/ns2.fev/common/connect", classname = "Player", done = true},            
 
-            {parented_sound = "sound/ns2.fev/alien/infestation/build", classname = "Cyst", done = true},
-
             {parented_sound = "sound/ns2.fev/marine/structures/mac/hover", classname = "MAC", done = true},
-            {parented_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", done = true},            
             {sound = "sound/ns2.fev/alien/drifter/spawn", classname = "Drifter", done = true},
             
             {sound = "sound/ns2.fev/alien/structures/spawn_small", isalien = true, done = true},
@@ -97,7 +94,8 @@ kGeneralEffectData =
             {animation = {{1.5, "idle"}, {.1, "idle2"}}, classname = "Hydra", done = true},
             {animation = {{1, "idle"}, {.4, "idle2"}, {.3, "idle3"}, {.2, "idle4"}}, classname = "Whip", done = true},
             {animation = {{1, "idle"}, {.1, "idle2"}}, classname = "MAC", done = true},
-            {animation = {{1, "idle"}, {.01, "idle2"}, {.01, "idle3"}}, classname = "PhaseGate", done = true},
+            {animation = "idle", classname = "PhaseGate", active = false, done = true},
+            {animation = "idle_link", classname = "PhaseGate", active = true, done = true},
             {animation = {{1, "idle_deployed"}, {1, "idle_deployed2"}, {1, "idle_deployed3"}, {.3, "idle_deployed4"}}, classname = "ARC", deployed = true, done = true},
             {animation = {{1, "idle_undeployed"}, {1, "idle_undeployed2"}, {1, "idle_undeployed3"}, {.3, "idle_undeployed4"}}, classname = "ARC", deployed = false, done = true},
             {animation = {{2.0, "idle"}, {.1, "idle2"}}, classname = "RoboticsFactory", done = true},
@@ -124,8 +122,12 @@ kGeneralEffectData =
             {parented_sound = "sound/ns2.fev/alien/structures/shade/idle", classname = "Shade", done = true},
             {parented_sound = "sound/ns2.fev/alien/structures/shift/idle", classname = "Shift", done = true},
             {parented_sound = "sound/ns2.fev/alien/structures/whip/idle", classname = "Whip", done = true},
+            
             {parented_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", deployed = false, done = true},   
+            {stop_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", deployed = true, done = true},
+            
             {sound = "sound/ns2.fev/marine/flamethrower/idle", classname = "Flamethrower", done = true},
+            
         },
     },
 
@@ -174,7 +176,7 @@ kGeneralEffectData =
             {sound = "sound/ns2.fev/alien/onos/wound_serious", classname = "Onos", world_space = true, flinch_severe = true, done = true},
             {sound = "sound/ns2.fev/alien/onos/wound", classname = "Onos", world_space = true, done = true},
             
-            {sound = "sound/ns2.fev/alien/structures/hive_wound", classname = "Hive", done = true},
+            // Hive wound sound is handled inside Hive:OnTakeDamage().
             {sound = "sound/ns2.fev/alien/structures/harvester_wound", classname = "Harvester", done = true},  
             {sound = "sound/ns2.fev/alien/structures/hurt", classname = "Structure", isalien = true, done = true}, 
          
@@ -271,8 +273,6 @@ kGeneralEffectData =
             
             {stop_sound = "sound/ns2.fev/marine/structures/arc/fire", classname = "ARC"},
             
-            {stop_sound = "sound/ns2.fev/alien/infestation/build", classname = "Cyst", done = true},
-            
             {sound = "sound/ns2.fev/marine/structures/mac/death", classname = "MAC", done = true},
             {sound = "sound/ns2.fev/alien/drifter/death", classname = "Drifter", done = true},
             {sound = "sound/ns2.fev/alien/skulk/death", classname = "Skulk", done = true},
@@ -284,6 +284,7 @@ kGeneralEffectData =
             {sound = "sound/ns2.fev/marine/common/death", classname = "Marine", done = true},
             {sound = "sound/ns2.fev/marine/structures/extractor_death", classname = "Extractor", done = true},
             {sound = "sound/ns2.fev/marine/structures/arc/death", classname = "ARC", done = true},
+            {stop_sound = "sound/ns2.fev/marine/structures/arc/idle", classname = "ARC", done = true},
             
             // Note: PowerPoints are in game script
             

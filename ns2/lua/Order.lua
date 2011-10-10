@@ -23,6 +23,8 @@ Order.networkVars =
 
 function Order:OnCreate()
 
+    self:SetSynchronizes(false)
+
     self.orderType = kTechId.None
     self.orderParam = -1
     self.orderLocation = Vector(0, 0, 0)
@@ -90,10 +92,10 @@ function Order:GetLocation()
     local location = self.orderLocation
 
     // For move orders with an entity specified, lookup location of entity as it may have moved
-    if(not location or ((self.orderType == kTechId.Move or self.orderType == kTechId.Construct) and self.orderParam > 0)) then
+    if not location or ((self.orderType == kTechId.Move or self.orderType == kTechId.Construct) and self.orderParam > 0) then
     
         local entity = Shared.GetEntity(self.orderParam)
-        if(entity ~= nil) then
+        if entity ~= nil then
             location = Vector(entity:GetOrigin())
         end
         
@@ -105,10 +107,12 @@ end
 
 // When setting this location, add in GetHoverHeight() so MACs and Drifters stay off the ground
 function Order:SetLocation(position)
+
     if self.orderLocation == nil then
         self.orderLocation = Vector()
     end
     self.orderLocation = position
+    
 end
 
 // In radians - could be nil

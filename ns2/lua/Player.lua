@@ -32,6 +32,7 @@ Script.Load("lua/SelectableMixin.lua")
 Script.Load("lua/TargetMixin.lua")
 Script.Load("lua/LOSMixin.lua")
 Script.Load("lua/HiveSightBlipMixin.lua")
+Script.Load("lua/DetectableMixin.lua")
 
 /**
  * Player should not be instantiated directly. Only instantiate a Player through
@@ -205,18 +206,6 @@ Player.networkVars =
     // Indicates how active the player has been
     outOfBreath             = "integer (0 to 255)",
     
-    // The next point in the world to go to in order to reach an order target location
-    nextOrderWaypoint       = "vector",
-    
-    // The final point in the world to go to in order to reach an order target location
-    finalWaypoint           = "vector",
-    
-    // Whether this entity has a next order waypoint
-    nextOrderWaypointActive = "boolean",
-    
-    // Move, Build, etc.
-    waypointType            = "enum kTechId",
-    
     fallReadyForPlay        = "integer (0 to 3)",
     
     // Used to smooth out the eye movement when going up steps.
@@ -241,9 +230,9 @@ PrepareClassForMixin(Player, GameEffectsMixin)
 PrepareClassForMixin(Player, FuryMixin)
 PrepareClassForMixin(Player, FlinchMixin)
 PrepareClassForMixin(Player, OrdersMixin)
-PrepareClassForMixin(Player, FireMixin)
 PrepareClassForMixin(Player, SelectableMixin)
 PrepareClassForMixin(Player, LOSMixin)
+PrepareClassForMixin(Player, DetectableMixin)
 
 function Player:OnCreate()
     
@@ -266,6 +255,7 @@ function Player:OnCreate()
     InitMixin(self, FireMixin)
     InitMixin(self, SelectableMixin)
     InitMixin(self, LOSMixin)
+    InitMixin(self, DetectableMixin)
     
     if Server then
         InitMixin(self, TargetMixin)       
@@ -350,11 +340,6 @@ function Player:OnCreate()
 
     // Make the player kinematic so that bullets and other things collide with it.
     self:SetPhysicsGroup(PhysicsGroup.PlayerGroup)
-    
-    self.nextOrderWaypoint = nil
-    self.finalWaypoint = nil
-    self.nextOrderWaypointActive = false
-    self.waypointType = kTechId.None
     
     self.isUsing = false
     self.slowAmount = 0
@@ -1434,6 +1419,8 @@ end
  */
 function Player:DropToFloor()
 
+    PROFILE("Player:DropToFloor")
+
     if self.controller then
         self:UpdateControllerFromEntity()
         self.controller:Move( Vector(0, -1, 0), self:GetMovePhysicsMask())    
@@ -1700,6 +1687,8 @@ end
 // Returns boolean indicating if we're at least the passed in distance from the ground.
 function Player:GetIsCloseToGround(distanceToGround)
 
+    PROFILE("Player:GetIsCloseToGround")
+
     if self.controller == nil then
         return false
     end
@@ -1846,20 +1835,22 @@ function Player:UpdateScoreboard(input)
 end
 
 function Player:UpdateShowMap(input)
+
     PROFILE("Player:UpdateShowMap")
+    
     if Client then
-        self:ShowMap(bit.band(input.commands, Move.ShowMap) ~= 0)
+        self:ShowMap(bit.band(input.commands, Move.ShowMap) ~= 0, true)
     end
+    
 end
 
 function Player:UpdateMoveAnimation()
+
     PROFILE("Player:UpdateMoveAnimation")
     
     local groundSpeed = self:GetVelocity():GetLengthXZ()
-    if (groundSpeed > .1) then
-
+    if groundSpeed > .1 then
         self:SetAnimationWithBlending(Player.kAnimRun)
-        
     end
     
 end
@@ -2083,6 +2074,11 @@ function Player:HandleAttacks(input)
     self.primaryAttackLastFrame = (bit.band(input.commands, Move.PrimaryAttack) ~= 0)
     self.secondaryAttackLastFrame = (bit.band(input.commands, Move.SecondaryAttack) ~= 0)
     
+    // Have idle sound respond
+    if Client and (self.primaryAttackLastFrame or self.secondaryAttackLastFrame) then
+        self:SetIdleSoundInactive()
+    end
+    
 end
 
 // Look at keys hold down and return integer representing the direction we're going 
@@ -2236,10 +2232,6 @@ function Player:HandleButtons(input)
     if bit.band(input.commands, Move.Reload) ~= 0 then
         self:Reload()
     end
-
-    if bit.band(input.commands, Move.Drop) ~= 0 and self.Drop then
-        self:Drop()
-    end
     
     if bit.band(input.commands, Move.Taunt) ~= 0 then
         self:Taunt()
@@ -2377,7 +2369,7 @@ function Player:OnAnimationComplete(animName)
 end
 
 function Player:GetTauntSound()
-    return Player.kInvalidSound
+    return nil
 end
 
 function Player:GetTauntAnimation()
@@ -2387,13 +2379,23 @@ end
 function Player:Taunt()
 
     if (self:GetAnimation() ~= Player.kAnimTaunt and self:GetIsOnGround()) then
-    
-        // Play taunt animation and sound
-        self:SetAnimAndMode(self:GetTauntAnimation(), kPlayerMode.Taunt)
-        
-        Shared.PlaySound(self, self:GetTauntSound())
 
-        //self:SetDesiredCameraDistance( ConditionalValue(self.desiredCameraDistance > 0, 0, 5) )
+        // Only allow taunt every so often
+        if self.timeOfLastTaunt == nil or (Shared.GetTime() > (self.timeOfLastTaunt + 7)) then
+    
+            // Play taunt animation and sound
+            /*self:SetAnimAndMode(self:GetTauntAnimation(), kPlayerMode.Taunt)*/
+            
+            local tauntSound = self:GetTauntSound()
+            if tauntSound then
+                Shared.PlaySound(self, tauntSound)
+            end
+            
+            /*self:SetDesiredCameraDistance( ConditionalValue(self.desiredCameraDistance > 0, 0, 3) )*/
+            
+            self.timeOfLastTaunt = Shared.GetTime()
+            
+        end
         
     end
     
@@ -2503,7 +2505,13 @@ function Player:GetHotkeyGroups()
 end
 
 function Player:GetVisibleWaypoint()
-    return self.finalWaypoint
+
+    local currentOrder = self:GetCurrentOrder()
+    if currentOrder then
+        return currentOrder:GetLocation()
+    end
+    return nil
+    
 end
 
 // Player is incapacitated briefly
@@ -2558,6 +2566,17 @@ function Player:OnSighted(sighted)
             weapon:SetRelevancy(sighted)
         end
     end
+end
+
+function Player:GetGameStarted()
+    return self.gameStarted
+end
+
+function Player:Drop(weapon, ignoreDropTimeLimit)
+    return false
+end
+
+function Player:OnDetectedChange(state)
 end
 
 Shared.LinkClassToMap("Player", Player.kMapName, Player.networkVars )

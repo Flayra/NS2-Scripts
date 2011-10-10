@@ -6,6 +6,9 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+local kUnrootSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/unroot")
+local kRootedSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/root")
+local kWalkingSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/walk")
 
 function Whip:OnConstructionComplete()
 
@@ -141,6 +144,8 @@ function Whip:UpdateMode(deltaTime)
             // If we are moving we need to remove out current location from the Pathing mesh
             self:RemoveFromMesh()
             
+            StartSoundEffectOnEntity(kUnrootSound, self)
+            
         elseif self.desiredMode == Whip.kMode.Moving and (self.mode == Whip.kMode.UnrootedStationary) then
         
             self:SetMode(Whip.kMode.StartMoving)
@@ -150,6 +155,9 @@ function Whip:UpdateMode(deltaTime)
             self:SetMode(Whip.kMode.Rooting)
             // We are being set back to a stationry position and so we need to add ourselves back to the mesh
             self:AddToMesh()
+            
+            StartSoundEffectOnEntity(kRootedSound, self)
+            
         end
         
     end
@@ -187,7 +195,7 @@ function Whip:UpdateOrders(deltaTime)
             self:TriggerEffects("whip_moving")
     
             self:MoveToTarget(PhysicsMask.AIMovement, currentOrder:GetLocation(), Whip.kMoveSpeed, deltaTime)
-            if(self:IsTargetReached(currentOrder:GetLocation(), kEpsilon)) then
+            if(self:IsTargetReached(currentOrder:GetLocation(), 0.5)) then
                 self:CompletedCurrentOrder()
             end
             
@@ -282,6 +290,25 @@ function Whip:SetMode(mode)
         self.mode = mode
         self.modeAnimation = self:GetAnimation()
         
+        if self.mode == Whip.kMode.StartMoving then
+        
+            if not self.movingSound then
+            
+                self.movingSound = Server.CreateEntity(SoundEffect.kMapName)
+                self.movingSound:SetParent(self)
+                self.movingSound:SetAsset(kWalkingSound)
+                
+            end
+            self.movingSound:Start()
+            
+        elseif self.mode ~= Whip.kMode.Moving then
+        
+            if self.movingSound then
+                self.movingSound:Stop()
+            end
+            
+        end
+        
     end
     
 end
@@ -293,21 +320,6 @@ function Whip:UpdateRootState()
         self:SetDesiredMode(Whip.kMode.UnrootedStationary)
     end
     
-end
-
-function Whip:OnUpdate(deltaTime)
-
-    PROFILE("Whip:OnUpdate")
-
-    Structure.OnUpdate(self, deltaTime)
-    
-    self:UpdateRootState()
-    
-    // Handle sentry state changes
-    self:UpdateMode(deltaTime)
-    
-    self:UpdateOrders(deltaTime)
-
 end
 
 function Whip:OnAnimationComplete(animName)
@@ -418,6 +430,16 @@ function Whip:PerformActivation(techId, position, normal, commander)
 end
 
 function Whip:OnDestroy()
-    Structure.OnDestroy(self)    
-    self:ClearInfestation()    
+
+    Structure.OnDestroy(self)
+    
+    self:ClearInfestation()
+    
+    if self.movingSound then
+    
+        Server.DestroyEntity(self.movingSound)
+        self.movingSound = nil
+        
+    end
+    
 end

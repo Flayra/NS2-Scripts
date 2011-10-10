@@ -12,35 +12,35 @@ Marine.kBuyMenuTexture = "ui/marine_buymenu.dds"
 Marine.kBuyMenuUpgradesTexture = "ui/marine_buymenu_upgrades.dds"
 Marine.kBuyMenuiconsTexture = "ui/marine_buy_icons.dds"
 
+// These should be removed once the Marine buy menu is not Flash anymore.
+Client.BindFlashTexture("marine_buymenu", Marine.kBuyMenuTexture)
+Client.BindFlashTexture("marine_buymenu_upgrades", Marine.kBuyMenuUpgradesTexture)
+Client.BindFlashTexture("marine_buy_icons", Marine.kBuyMenuiconsTexture)
+
 function Marine:OnInitLocalClient()
 
     Player.OnInitLocalClient(self)
     
     if self:GetTeamNumber() ~= kTeamReadyRoom then
 
-        // For armory menu
-        Client.BindFlashTexture("marine_buymenu", Marine.kBuyMenuTexture)
-        Client.BindFlashTexture("marine_buymenu_upgrades", Marine.kBuyMenuUpgradesTexture)
-        Client.BindFlashTexture("marine_buy_icons", Marine.kBuyMenuiconsTexture)
-        
         if self.marineHUD == nil then
-            self.marineHUD = GetGUIManager():CreateGUIScriptSingle("GUIMarineHUD")
+            self.marineHUD = GetGUIManager():CreateGUIScript("GUIMarineHUD")
         end
         
         if self.waypoints == nil then
-            self.waypoints = GetGUIManager():CreateGUIScriptSingle("GUIWaypoints")
+            self.waypoints = GetGUIManager():CreateGUIScript("GUIWaypoints")
         end
         
         if self.pickups == nil then
-            self.pickups = GetGUIManager():CreateGUIScriptSingle("GUIPickups")
+            self.pickups = GetGUIManager():CreateGUIScript("GUIPickups")
         end
         
         if self.guiOrders == nil then
-            self.guiOrders = GetGUIManager():CreateGUIScriptSingle("GUIOrders")
+            self.guiOrders = GetGUIManager():CreateGUIScript("GUIOrders")
         end
         
         if self.guiSquad == nil then
-            self.guiSquad = GetGUIManager():CreateGUIScriptSingle("GUISquad")
+            self.guiSquad = GetGUIManager():CreateGUIScript("GUISquad")
         end
         
         if self.guiDistressBeacon == nil then
@@ -49,42 +49,6 @@ function Marine:OnInitLocalClient()
         
     end
     
-end
-
-function Marine:OnDestroyClient()
-
-    Player.OnDestroyClient(self)
-
-    if self.marineHUD then
-        self.marineHUD = nil
-        GetGUIManager():DestroyGUIScriptSingle("GUIMarineHUD")
-    end
-    
-    if self.waypoints then
-        self.waypoints = nil
-        GetGUIManager():DestroyGUIScriptSingle("GUIWaypoints")
-    end
-    
-    if self.pickups then
-        self.pickups = nil
-        GetGUIManager():DestroyGUIScriptSingle("GUIPickups")
-    end
-    
-    if self.guiOrders then
-        self.guiOrders = nil
-        GetGUIManager():DestroyGUIScriptSingle("GUIOrders")
-    end
-    
-    if self.guiSquad then
-        self.guiSquad = nil
-        GetGUIManager():DestroyGUIScriptSingle("GUISquad")
-    end
-    
-    if self.guiDistressBeacon then
-        GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
-        self.guiDistressBeacon = nil
-    end
-
 end
 
 function Marine:UpdateClientEffects(deltaTime, isLocal)

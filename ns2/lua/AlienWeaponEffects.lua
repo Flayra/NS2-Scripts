@@ -32,18 +32,14 @@ kAlienWeaponEffects =
         },
         generalHitSounds = 
         {
-            //{sound = "sound/ns2.fev/alien/common/spike_hit_marine", world_space = true, doer = "HydraSpike", classname = "Marine", done = true},
-            //{sound = "sound/ns2.fev/alien/common/spike_hit_marine", world_space = true, doer = "Spike", classname = "Marine", done = true},
             {sound = "sound/ns2.fev/alien/skulk/bite_hit_marine", doer = "BiteLeap", world_space = true, classname = "Marine", done = true},
             {sound = "sound/ns2.fev/alien/skulk/bite_hit_%s", doer = "BiteLeap", world_space = true, done = true},
             {sound = "sound/ns2.fev/alien/skulk/parasite_hit", doer = "Parasite", done = true},
             {sound = "sound/ns2.fev/alien/gorge/spit_hit", doer = "Spit", done = true},
             {sound = "sound/ns2.fev/alien/gorge/bilebomb_hit", doer = "Bomb", done = true},
-            //{sound = "sound/ns2.fev/materials/%s/spike_ricochet", doer = "Spike", done = true},
-            //{sound = "sound/ns2.fev/materials/%s/spike_ricochet", doer = "Spikes", done = true},
-            //{sound = "sound/ns2.fev/materials/%s/spikes_ricochet", doer = "HydraSpike", done = true},
             {sound = "sound/ns2.fev/materials/%s/scrape", doer = "SwipeBlink", done = true},
             {sound = "sound/ns2.fev/materials/%s/scrape", doer = "StabBlink", done = true},
+            {sound = "sound/ns2.fev/alien/onos/gore_hit_%s", doer = "Gore", done = true},            
         }
     },
 
@@ -81,7 +77,7 @@ kAlienWeaponEffects =
             {viewmodel_animation = {{1, "stab_idle"}, {.1, "stab_idle2"}}, classname = "StabBlink", done = true},
             
             // Onos
-            {viewmodel_animation = {{1, "gore_idle"}/*, {.1, "gore_idle2"}, {.5, "gore_idle3"}*/}, classname = "Gore", done = true},
+            {viewmodel_animation = {{1, "idle"}}, classname = "Gore", done = true},
             
         },
         
@@ -468,6 +464,25 @@ kAlienWeaponEffects =
         },
 
     }, 
+    
+    // Onos
+    gore_attack =
+    {
+        goreAttackEffects = {
+            {viewmodel_animation =  { {1, "gore_attack"}, {1, "gore_attack2"}, {1, "gore_attack3"}, {1, "gore_attack4"}, }, force = true},
+            {overlay_animation = { {1, "gore_left"}, {1, "gore_right"}}, force = true},
+            {sound = "sound/ns2.fev/alien/onos/gore"},
+        },
+    },
+    
+    // Onos door smash
+    onos_door_hit =
+    {
+        onosDoorHitEffects =
+        {
+            {cinematic = "cinematics/alien/onos/door_hit.cinematic"},
+        },
+    },    
     
     // Alien vision mode effects
     alien_vision_on = 

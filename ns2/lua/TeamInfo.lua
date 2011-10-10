@@ -72,10 +72,9 @@ function TeamInfo:UpdateRelevancy()
 	local mask = 0
 	
 	if self.teamNumber == kTeam1Index then
-		mask = bit.bor(mask, kRelevantToTeam1)
-	end
-	if self.teamNumber == kTeam2Index then
-		mask = bit.bor(mask, kRelevantToTeam2)
+		mask = kRelevantToTeam1
+	elseif self.teamNumber == kTeam2Index then
+		mask = kRelevantToTeam2
 	end
 		
 	self:SetExcludeRelevancyMask(mask)

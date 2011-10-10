@@ -225,6 +225,17 @@ function InfantryPortal:SpawnPlayer()
 
 end
 
+// How long to wait until this IP can queue another player?
+function InfantryPortal:GetDelayUntilNextQueue()
+
+    if self.queuedPlayerId then
+        return self:GetAnimationLength(InfantryPortal.kAnimSpinStart) - (Shared.GetTime() - self.timeSpinUpStarted)
+    end
+    
+    return 0
+    
+end
+
 // Takes the queued player from this IP and placed them back in the
 // respawn queue to be spawned elsewhere.
 function InfantryPortal:RequeuePlayer()
@@ -348,8 +359,6 @@ function InfantryPortal:GetCanIdle()
 end
 
 function InfantryPortal:SetPowerOn()
-    Structure.SetPowerOn(self)
-
     if (self.queuedPlayerId ~= nil) then    
         local queuedPlayer = Shared.GetEntity(self.queuedPlayerId)        
         if queuedPlayer then        
@@ -357,14 +366,17 @@ function InfantryPortal:SetPowerOn()
             self:StartSpinning()            
         end        
     end
+    
+    return Structure.SetPowerOn(self)
 end
 
 function InfantryPortal:SetPowerOff()
-    Structure.SetPowerOff(self)
-    
+        
     // Put the player back in queue if there was one hoping to spawn at this IP.
     self:StopSpinning()        
     self:RequeuePlayer()
+    
+    return Structure.SetPowerOff(self)
 end
 
 function InfantryPortal:GetDamagedAlertId()

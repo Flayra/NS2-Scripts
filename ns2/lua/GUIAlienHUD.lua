@@ -342,11 +342,17 @@ function GUIAlienHUD:UpdateHealthBall(deltaTime)
     
     local armorBarPercentageGoal = PlayerUI_GetPlayerArmor() / PlayerUI_GetPlayerMaxArmor()
     self.armorBarPercentage = Slerp(self.armorBarPercentage, armorBarPercentageGoal, deltaTime * GUIAlienHUD.kBarMoveRate)
+    self.healthBall:SetPercentage(self.healthBarPercentage)
 
     // It's probably better to do a math.ceil for display health instead of floor, but NS1 did it this way
-    // and I want to make sure the values are exactly the same to avoid confusion right now
-    self.healthBall:SetPercentage(self.healthBarPercentage)
-    self.healthText:SetText(tostring(math.floor(PlayerUI_GetPlayerHealth())))
+    // and I want to make sure the values are exactly the same to avoid confusion right now. When you are 
+    // barely alive though, show 1 health.
+    local health = PlayerUI_GetPlayerHealth()
+    local displayHealth = math.floor(health)
+    if health > 0 and displayHealth == 0 then
+        displayHealth = 1
+    end    
+    self.healthText:SetText(tostring(displayHealth))
     self.healthBall:Update(deltaTime)
     
     self.armorBall:SetPercentage(self.armorBarPercentage)

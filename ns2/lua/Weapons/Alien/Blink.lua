@@ -18,15 +18,13 @@ Script.Load("lua/Weapons/Alien/Ability.lua")
 class 'Blink' (Ability)
 Blink.kMapName = "blink"
 
-Blink.kBlinkSound = PrecacheAsset("sound/ns2.fev/alien/fade/blink")
-
 // Blink
-Blink.kSecondaryAttackDelay = 0
-Blink.kStartEtherealForce = 15
-Blink.kStartBlinkEnergyCost = .1    // Separate out initial blink cost from continous cost to promote fewer, more significant blinks
+local kSecondaryAttackDelay = 0
+local kStartEtherealForce = 15
+local kStartBlinkEnergyCost = 10    // Separate out initial blink cost from continous cost to promote fewer, more significant blinks
 
 // The amount of time that must pass before the player can enter the ether again.
-Blink.kMinEnterEtherealTime = 0.5
+Blink.kMinEnterEtherealTime = 1.0
 
 Blink.networkVars =
 {
@@ -61,7 +59,7 @@ function Blink:GetHasSecondary(player)
 end
 
 function Blink:GetSecondaryAttackDelay()
-    return Blink.kSecondaryAttackDelay
+    return kSecondaryAttackDelay
 end
 
 function Blink:GetSecondaryAttackRequiresPress()
@@ -108,15 +106,24 @@ function Blink:PerformPrimaryAttack(player)
     return true
 end
 
+function Blink:GetSecondaryEnergyCost(player)
+    return kStartBlinkEnergyCost
+end
+
 function Blink:OnSecondaryAttack(player)
 
-    if not self.etherealStartTime or Shared.GetTime() - self.etherealStartTime >= Blink.kMinEnterEtherealTime then
+    if not self.etherealStartTime or Shared.GetTime() - self.etherealStartTime >= Blink.kMinEnterEtherealTime and player:GetEnergy() > kStartBlinkEnergyCost then
     
         // Enter "ether" fast movement mode, but don't keep going ethereal when button still held down after
         // running out of energy
         if not self.blinkButtonDown then
+        
             self:SetEthereal(player, true)
+            
+            self.timeBlinkStarted = Shared.GetTime()
+            
             self.blinkButtonDown = true
+            
         end
         
     end
@@ -176,16 +183,16 @@ function Blink:SetEthereal(player, state)
         
             // If desired velocity is quite opposite of our current velocity, don't
             local velocity = player:GetVelocity() 
-            local newVelocity = initialBoostDirection * Blink.kStartEtherealForce            
+            local newVelocity = initialBoostDirection * kStartEtherealForce            
             player:SetVelocity(newVelocity)
             
             // Deduct blink start energy amount.
-            player:DeductAbilityEnergy(Blink.kStartBlinkEnergyCost)
+            player:DeductAbilityEnergy(kStartBlinkEnergyCost)
 
         else
         
             // Mute current velocity when coming out of blink
-            player:SetVelocity( player:GetVelocity() * .3 )
+            player:SetVelocity( player:GetVelocity() * .2 )
             
         end
         
@@ -198,14 +205,20 @@ function Blink:OnProcessMove(player, input)
     if self:GetIsActive() and self.ethereal then
     
         // Decrease energy while in blink mode
-        local energyCost = input.time * kBlinkEnergyCost
-        
-        // No energy cost in Darwin mode
-        if player and player:GetDarwinMode() then
-            energyCost = 0
-        end
+        // Don't deduct energy for blink for a short time to make sure that when we blink
+        // we always get at least a short blink out of it
+        if Shared.GetTime() > (self.timeBlinkStarted + .15) then
 
-        player:DeductAbilityEnergy(energyCost)
+            local energyCost = input.time * kBlinkEnergyCost
+            
+            // No energy cost in Darwin mode
+            if player and player:GetDarwinMode() then
+                energyCost = 0
+            end
+
+            player:DeductAbilityEnergy(energyCost)
+            
+        end
         
     end
     

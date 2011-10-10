@@ -20,10 +20,12 @@ function PowerPoint:OnKill(damage, attacker, doer, point, direction)
         
         self:SetModel(PowerPoint.kOffModelName)
         
-        self:StopDamagedSound()        
+        self:StopDamagedSound()
+        
+        self:PlaySound(PowerPoint.kDestroyedSound)
+        self:PlaySound(PowerPoint.kDestroyedPowerDownSound)
                        
         self:SetIsPowerSource(false)
-        self:DetermineTeamNumber()
         
         self:SetLightMode(kLightMode.NoPower)                
         
@@ -44,8 +46,6 @@ end
 function PowerPoint:OnLoad()
 
     Structure.OnLoad(self)
-    
-    self:DetermineTeamNumber()
     
     self:SetNextThink(.1)
     
@@ -87,7 +87,7 @@ function PowerPoint:OnConstructionComplete()
     self:SetLightMode(kLightMode.Normal)
             
     self:SetIsPowerSource(true)
-    self:DetermineTeamNumber()
+
 end
 
 // Can be repaired by friendly players
@@ -145,7 +145,6 @@ function PowerPoint:OnWeld(entity, elapsedTime)
     if not self:GetIsPowered() and self:GetHealthScalar() == 1 then
     
         self:SetIsPowerSource(true)
-        self:DetermineTeamNumber()
         
         self:SetLightMode(kLightMode.Normal)
         
@@ -207,54 +206,6 @@ function PowerPoint:OnTakeDamage(damage, attacker, doer, point)
     
     self:AddAttackTime(0.9)
     
-end
-
-// Use nearby structures to determine which one we should be powering. Counts number of
-// structures for each team and returns the max. If tied, returns world team (power point
-// will work for both teams). This will support the future possibility of marine vs. marine.
-function PowerPoint:DetermineTeamNumber()
-
-    local structures = EntityListToTable(Shared.GetEntitiesWithClassname("Structure"))
-    
-    table.removevalue(structures, self)
-    
-    
-    
-    local teamNumber = kTeamReadyRoom
-    
-    local team1Number = 0
-    local team2Number = 0
-    
-    for index, structure in ipairs(structures) do
-    
-        local team = structure:GetTeam()
-        if team.GetTeamType then
-        
-            local teamType = team:GetTeamType()
-            if teamType == kMarineTeamType then
-                        
-                local teamNumber = structure:GetTeamNumber()
-                
-                if teamNumber == kTeam1Index then
-                    team1Number = team1Number + 1
-                elseif teamNumber == kTeam2Index then
-                    team2Number = team2Number + 1
-                end
-                
-            end
-            
-        end
-        
-    end
-    
-    if team1Number > team2Number then
-        teamNumber = kTeam1Index
-    elseif team2Number > team1Number then
-        teamNumber = kTeam2Index
-    end
-    
-    self:SetTeamNumber(teamNumber)
-
 end
 
 function PowerPoint:GetSendDeathMessageOverride()

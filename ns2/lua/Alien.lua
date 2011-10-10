@@ -71,6 +71,7 @@ PrepareClassForMixin(Alien, PhantomMixin)
 function Alien:OnCreate()
     
     Player.OnCreate(self)
+    
     self.energizeLevel = 0
     
     // Only used on the local client.
@@ -80,6 +81,31 @@ function Alien:OnCreate()
     
     self.twoHives = false
     self.threeHives = false
+
+end
+
+function Alien:OnDestroy()
+
+    Player.OnDestroy(self)
+    
+    if Client then
+    
+        if self.alienHUD then
+            GetGUIManager():DestroyGUIScript(self.alienHUD)
+            self.alienHUD = nil
+        end
+        
+        if self.hiveBlips then
+            GetGUIManager():DestroyGUIScript(self.hiveBlips)
+            self.hiveBlips = nil
+        end
+        
+        if self.buyMenu then
+            GetGUIManager():DestroyGUIScript(self.buyMenu)
+            self.buyMenu = nil
+        end
+        
+    end
 
 end
 
@@ -97,7 +123,6 @@ function Alien:OnInit()
     self.maxArmor = self.armor
 
 end
-
 function Alien:GetHasTwoHives()
     return self.twoHives
 end
@@ -117,7 +142,11 @@ function Alien:GetEnergy()
 end
 
 function Alien:GetIsCloakable()
-    return true
+    return not self:GetIsDetected()
+end
+
+function Alien:GetCanCamouflage()
+    return not self:GetIsDetected()
 end
 
 function Alien:DeductAbilityEnergy(energyCost)
@@ -204,6 +233,40 @@ end
 // next to your current weapon and force all abilities to draw.
 function Alien:GetInactiveVisible()
     return Shared.GetTime() < self:GetTimeOfLastWeaponSwitch() + kDisplayWeaponTime
+end
+
+function Alien:Drop(weapon, ignoreDropTimeLimit)
+
+    // Aliens don't drop weapons, delete instead
+    local activeWeapon = self:GetActiveWeapon()
+    
+    if not weapon then
+        weapon = activeWeapon
+    end
+    
+    if weapon ~= nil then
+        if weapon == activeWeapon then
+            self:SelectNextWeapon()
+        end
+        
+        weapon:OnPrimaryAttackEnd(self)
+        
+        // Remove from player's inventory
+        if Server then
+            self:RemoveWeapon(weapon)
+        end
+            
+        // Make sure we're ready to deploy new weapon so we switch to it properly
+        self:ClearActivity()
+            
+        DestroyEntity(weapon)
+        
+        return true
+        
+    end
+    
+    return false    
+    
 end
 
 function Alien:OnUpdate(deltaTime)
@@ -365,5 +428,15 @@ function Alien:GetPlayerStatusDesc()
     return status
 
 end
+
+function Alien:OnDetectedChange(state)
+
+    if not state then
+        self:TriggerUncloak()
+        self:TriggerUncamouflage()
+    end
+    
+end
+
 
 Shared.LinkClassToMap( "Alien", Alien.kMapName, Alien.networkVars )

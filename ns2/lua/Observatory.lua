@@ -8,6 +8,7 @@
 
 Script.Load("lua/Structure.lua")
 Script.Load("lua/RagdollMixin.lua")
+Script.Load("lua/DetectorMixin.lua")
 
 class 'Observatory' (Structure)
 
@@ -16,15 +17,17 @@ Observatory.kMapName = "observatory"
 Observatory.kModelName = PrecacheAsset("models/marine/observatory/observatory.model")
 
 local kScanSound = PrecacheAsset("sound/ns2.fev/marine/structures/observatory_scan")
-local kDistressBeaconSound = PrecacheAsset("sound/ns2.fev/marine/common/distress_beacon")
+
 local kDistressBeaconSoundDistance = 100
-local kPlayerDistressBeaconSound = PrecacheAsset("sound/ns2.fev/marine/common/distress_beacon_marine")
+local kDistressBeaconSoundMarine = PrecacheAsset("sound/ns2.fev/marine/common/distress_beacon_marine")
+local kDistressBeaconSoundAlien = PrecacheAsset("sound/ns2.fev/marine/common/distress_beacon_alien")
 
 local kObservatoryTechButtons = { kTechId.Scan, kTechId.PhaseTech, kTechId.DistressBeacon, kTechId.None, 
                                   kTechId.None, kTechId.None, kTechId.None, kTechId.None }
 
 Observatory.kDistressBeaconTime = kDistressBeaconTime
 Observatory.kDistressBeaconRange = kDistressBeaconRange
+Observatory.kDetectionRange = 22 // From NS1 
 
 function Observatory:OnCreate()
 
@@ -32,16 +35,20 @@ function Observatory:OnCreate()
     
     if Server then
     
-        self.distressBeaconSoundEffect = Server.CreateEntity(SoundEffect.kMapName)
-        self.distressBeaconSoundEffect:SetParent(self)
-        self.distressBeaconSoundEffect:SetAsset(kDistressBeaconSound)
-        self.distressBeaconSoundEffect:SetRelevancyDistance(kDistressBeaconSoundDistance)
-        
-        self.playerDistressSounds = { }
+        self.distressBeaconSoundMarine = Server.CreateEntity(SoundEffect.kMapName)
+        self.distressBeaconSoundMarine:SetAsset(kDistressBeaconSoundMarine)
+        self.distressBeaconSoundMarine:SetRelevancyDistance(kDistressBeaconSoundDistance)
+        self.distressBeaconSoundMarine:SetExcludeRelevancyMask(kRelevantToTeam1)
+
+        self.distressBeaconSoundAlien = Server.CreateEntity(SoundEffect.kMapName)
+        self.distressBeaconSoundAlien:SetAsset(kDistressBeaconSoundAlien)
+        self.distressBeaconSoundAlien:SetRelevancyDistance(kDistressBeaconSoundDistance)
+        self.distressBeaconSoundAlien:SetExcludeRelevancyMask(kRelevantToTeam2)
         
     end
     
     InitMixin(self, RagdollMixin)
+    InitMixin(self, DetectorMixin)
 
 end
 
@@ -51,10 +58,11 @@ function Observatory:OnDestroy()
     
     if Server then
     
-        Server.DestroyEntity(self.distressBeaconSoundEffect)
-        self.distressBeaconSoundEffect = nil
+        Server.DestroyEntity(self.distressBeaconSoundMarine)
+        self.distressBeaconSoundMarine = nil
         
-        self:DestroyDistressSounds()
+        Server.DestroyEntity(self.distressBeaconSoundAlien)
+        self.distressBeaconSoundAlien = nil
     
     end
 
@@ -78,6 +86,16 @@ function Observatory:GetTechButtons(techId)
     
 end
 
+function Observatory:GetDetectionRange()
+
+    if self:GetIsActive() then
+        return Observatory.kDetectionRange
+    end
+    
+    return 0
+    
+end
+
 function Observatory:GetRequiresPower()
     return true
 end
@@ -91,55 +109,18 @@ function Observatory:TriggerScan(position)
     
 end
 
-function Observatory:CreateDistressSound(player)
-
-    local playerDistressSound = Server.CreateEntity(SoundEffect.kMapName)
-    playerDistressSound:SetParent(player)
-    
-    // Only this player can hear this distress sound.
-    playerDistressSound:SetPropagate(Entity.Propagate_Callback)
-    function playerDistressSound:OnGetIsRelevant(relPlayer)
-        return playerDistressSound:GetParent() == player
-    end
-    
-    playerDistressSound:SetAsset(kPlayerDistressBeaconSound)
-    playerDistressSound:Start()
-    
-    table.insert(self.playerDistressSounds, playerDistressSound)
-
-end
-
-function Observatory:DestroyDistressSounds()
-
-    for i, distressSound in ipairs(self.playerDistressSounds) do
-        Server.DestroyEntity(distressSound)
-    end
-    self.playerDistressSounds = { }
-
-end
-
 function Observatory:TriggerDistressBeacon()
 
     local success = false
     
     if not self:GetIsBeaconing() then
 
-        local beaconPlayerIds = { }
-        // Trigger private sound effect for marines far from beacon, so they can hear it positionally at a distance
-        for index, player in ipairs(self:GetPlayersToBeacon()) do
+        self.distressBeaconSoundMarine:Start()
+        self.distressBeaconSoundAlien:Start()
         
-            table.insert(beaconPlayerIds, player:GetId())
-            self:CreateDistressSound(player)
-            
-        end
-        
-        // Play effects at beacon so enemies and Comm can hear it.
-        // The beaconing players should NOT hear it.
-        self.distressBeaconSoundEffect:SetPropagate(Entity.Propagate_Callback)
-        function self.distressBeaconSoundEffect:OnGetIsRelevant(relPlayer)
-            return table.find(beaconPlayerIds, relPlayer:GetId()) == nil
-        end
-        self.distressBeaconSoundEffect:Start()
+        local origin = self:GetOrigin()
+        self.distressBeaconSoundMarine:SetOrigin(origin)
+        self.distressBeaconSoundAlien:SetOrigin(origin)
         
         // Beam all faraway players back in a few seconds!
         self.distressBeaconTime = Shared.GetTime() + Observatory.kDistressBeaconTime
@@ -155,9 +136,8 @@ end
 function Observatory:CancelDistressBeacon()
 
     self.distressBeaconTime = nil
-    self.distressBeaconSoundEffect:Stop()
-    
-    self:DestroyDistressSounds()
+    self.distressBeaconSoundMarine:Stop()
+    self.distressBeaconSoundAlien:Stop()
 
 end
 
@@ -189,13 +169,12 @@ end
 
 function Observatory:PerformDistressBeacon()
 
-    self.distressBeaconSoundEffect:Stop()
+    self.distressBeaconSoundMarine:Stop()
+    self.distressBeaconSoundAlien:Stop()
 
     for index, player in ipairs(self:GetPlayersToBeacon()) do
         self:RespawnPlayer(player)
     end
-    
-    self:DestroyDistressSounds()
     
     // Play mega-spawn sound
     self:TriggerEffects("distress_beacon_complete")    
@@ -233,17 +212,14 @@ function Observatory:RespawnPlayer(player)
     
 end
 
-function Observatory:OnPoweredChange(newPoweredState)
-
-    Structure.OnPoweredChange(self, newPoweredState)
+function Observatory:SetPowerOff()    
     
     // Cancel distress beacon on power down
-    if not newPoweredState and self:GetIsBeaconing() then
-    
-        self:CancelDistressBeacon()
-        
+    if self:GetIsBeaconing() then    
+        self:CancelDistressBeacon()        
     end
     
+    return Structure.SetPowerOff(self)
 end
 
 function Observatory:OnUpdate(deltaTime)
@@ -286,7 +262,7 @@ function Observatory:PerformActivation(techId, position, normal, commander)
 end
 
 function Observatory:GetIsBeaconing()
-    return (self.distressBeaconTime ~= nil)
+    return self.distressBeaconTime ~= nil
 end
 
 function Observatory:OnKill(damage, killer, doer, point, direction)
@@ -297,6 +273,10 @@ function Observatory:OnKill(damage, killer, doer, point, direction)
     
     Structure.OnKill(self, damage, killer, doer, point, direction)
     
+end
+
+function Observatory:OverrideVisionRadius()
+    return Observatory.kDetectionRange
 end
 
 Shared.LinkClassToMap("Observatory", Observatory.kMapName, {})
@@ -315,4 +295,5 @@ if Server then
     end
     
     Event.Hook("Console_distress", OnConsoleDistress)
+    
 end

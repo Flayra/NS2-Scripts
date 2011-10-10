@@ -82,83 +82,47 @@ function Hive:GetNumDesiredEggs()
     return Hive.kHiveNumEggs
 end
 
+local function CastEggToGround(origin, pointToCheck, capsuleHeight, capsuleRadius, hive)
+
+    local kBigUpVector = Vector(0, 1000, 0)
+    trace = Shared.TraceCapsule(pointToCheck, pointToCheck - kBigUpVector,
+                                capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(hive))
+        
+    if trace.fraction ~= 1 then
+        return trace.endPoint
+    end
+    
+    return nil
+
+end
+
 // Find random spot near hive that we could put an egg. Allow spawn points that are on the other side of walls
 // but pathable. Returns point on ground.
 function Hive:FindPotentialEggSpawn(origin, minRange, maxRange)
 
     PROFILE("Hive:FindPotentialEggSpawn")
 
-    local kBigUpVector = Vector(0, 1000, 0)
     local extents = LookupTechData(kTechId.Egg, kTechDataMaxExtents)
     local capsuleHeight, capsuleRadius = GetTraceCapsuleFromExtents(extents)
 
     // Find random spot within range, using random orientation (0 to -45 degrees)
     local randomRange = minRange + math.random() * (maxRange - minRange)
     local randomRadians = math.random() * math.pi * 2
-    local randomVerticalRadians = Math.Radians(- math.random() * 45) 
-    local randomPoint = Vector( origin.x + randomRange * math.cos(randomRadians), 
-                                origin.y + randomRange * math.sin(randomVerticalRadians), 
-                                origin.z + randomRange * math.sin(randomRadians))
-    local pointToUse = nil                        
-    local isBlocked = Pathing.IsBlocked(self:GetOrigin(), randomPoint)
-    if (not isBlocked) then
-        pointToUse = randomPoint                            
-    end
-
-    // Trace random point to ceiling and then floor, to see if it's inside the world. 
-   
-    local trace = Shared.TraceCapsule(  randomPoint, randomPoint + kBigUpVector, 
-                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
-                                        
-    if trace.fraction < 1 and pointToUse == nil then
+    local randomVerticalRadians = Math.Radians(- math.random() * 45)
+    local randomPoint = Vector(origin.x + randomRange * math.cos(randomRadians),
+                               origin.y + randomRange * math.sin(randomVerticalRadians),
+                               origin.z + randomRange * math.sin(randomRadians))
     
-        // Trace capsule from ceiling point to ground, making sure we're not on something like a player or structure
-        trace = Shared.TraceCapsule(    trace.endPoint, trace.endPoint - kBigUpVector, 
-                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
-        local success = false
-        if trace.fraction < 1 and (trace.entity == nil or not trace.entity:isa("ScriptActor")) then
-        
-            success = true
-            pointToUse = trace.endPoint
-            
-        end
-        
-    end
-    
-    // Otherwise trace from origin to random point and use the first collision point
-    if not pointToUse then
-    
-        trace = Shared.TraceCapsule(    origin, randomPoint, 
-                                        capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
-        
-        if (trace.entity == nil or not trace.entity:isa("ScriptActor")) then                                
-        
-            pointToUse = trace.endPoint
-
-            // Drop point down to ground if we didn't hit anything
-            if trace.fraction == 1 then
-            
-                trace = Shared.TraceCapsule(    pointToUse, pointToUse - kBigUpVector, 
-                                                capsuleRadius, capsuleHeight, PhysicsMask.FilterAll, EntityFilterOne(self))
-            
-                if trace.fraction ~= 1 then
-                
-                    pointToUse = trace.endPoint
-                    
-                end
-                
-            end
-            
-        end
-        
-    end
-    
+    local pointToUse = CastEggToGround(origin, randomPoint, capsuleHeight, capsuleRadius, self)
     if pointToUse then
     
-        return pointToUse - Vector(0, capsuleHeight/2 + capsuleRadius, 0)
+        local hasPathToPoint = Pathing.GetPathPoints(self:GetOrigin(), pointToUse, { })
+        if hasPathToPoint then
+            return pointToUse - Vector(0, capsuleHeight/2 + capsuleRadius, 0)
+        end
         
     end
-        
+    
     return nil
     
 end
@@ -170,7 +134,7 @@ function Hive:CalculateRandomEggSpawn()
     // Pick random spot on ground within range
     for i = 0, 20 do
     
-        local possibleSpawn= self:FindPotentialEggSpawn(self:GetModelOrigin(), Hive.kEggMinRange, Hive.kEggMaxRange)
+        local possibleSpawn = self:FindPotentialEggSpawn(self:GetModelOrigin(), Hive.kEggMinRange, Hive.kEggMaxRange)
         if possibleSpawn then
 
             // See if it's a valid egg spot
@@ -247,7 +211,7 @@ function Hive:GenerateEggSpawns()
 
     PROFILE("Hive:GenerateEggSpawns")
     
-    self.eggSpawnPoints = {}
+    self.eggSpawnPoints = { }
     
     // Pre-generate many spawns
     for index = 1, 75 do
@@ -255,9 +219,7 @@ function Hive:GenerateEggSpawns()
         local spawnPoint = self:CalculateRandomEggSpawn()
         
         if spawnPoint ~= nil then
-        
             table.insert(self.eggSpawnPoints, spawnPoint)
-            
         end
         
     end
@@ -274,10 +236,8 @@ function Hive:GetCanSpawnEgg()
     
     if self:GetIsBuilt() then
     
-        if (Shared.GetTime() > (self.timeOfLastEgg + self:GetEggSpawnTime())) then
-        
+        if Shared.GetTime() > (self.timeOfLastEgg + self:GetEggSpawnTime()) then
             canSpawnEgg = true
-            
         end
         
     end
@@ -285,26 +245,6 @@ function Hive:GetCanSpawnEgg()
     return canSpawnEgg
     
 end
-
-/*
-function Hive:SpawnEggs()
-
-    local numEggsSpawned = 0
-    
-    while ((self:GetNumEggs() < self:GetNumDesiredEggs())) do
-    
-        if self:SpawnEgg() ~= nil then
-            numEggsSpawned = numEggsSpawned + 1
-        else
-            break
-        end
-        
-    end
-    
-    return numEggsSpawned
-    
-end
-*/
 
 // Create pheromone marker
 function Hive:OverrideTechTreeAction(techNode, position, orientation, commander, trace)
@@ -330,7 +270,6 @@ end
 
 // Spawn initial eggs and infestation
 function Hive:SpawnInitial()
-    //self:SpawnEggs()
     self:SpawnInitialInfestation()
 end
 
@@ -341,9 +280,7 @@ function Hive:UpdateEggs()
 
     // Count number of eggs nearby and see if we need to create more, but only every so often
     if self:GetCanSpawnEgg() and (self:GetNumEggs() < self:GetNumDesiredEggs()) then
-    
         createdEgg = (self:SpawnEgg() ~= nil)
-        
     end 
 
     // So we don't create a new egg instantly when an egg is killed (still takes build time)
@@ -396,21 +333,24 @@ function Hive:OnTakeDamage(damage, attacker, doer, point)
 
     CommandStructure.OnTakeDamage(self, damage, attacker, doer, point)
     
-    if(self:GetIsAlive()) then
+    local time = Shared.GetTime()
+    if self:GetIsAlive() and self.lastHiveFlinchEffectTime == nil or (time > (self.lastHiveFlinchEffectTime + 1)) then
 
         // Play freaky sound for team mates
         local team = self:GetTeam()
         team:PlayPrivateTeamSound(Hive.kWoundAlienSound, self:GetModelOrigin())
         
         // ...and a different sound for enemies
-        local enemyTeamNumber = GetEnemyTeamNumber(team:GetTeamNumber())    
+        local enemyTeamNumber = GetEnemyTeamNumber(team:GetTeamNumber())
         local enemyTeam = GetGamerules():GetTeam(enemyTeamNumber)
         if enemyTeam ~= nil then
             enemyTeam:PlayPrivateTeamSound(Hive.kWoundSound, self:GetModelOrigin())
         end
         
-        // Trigger alert for Commander 
+        // Trigger alert for Commander
         team:TriggerAlert(kTechId.AlienAlertHiveUnderAttack, self)
+        
+        self.lastHiveFlinchEffectTime = time
         
     end
     

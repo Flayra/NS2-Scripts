@@ -80,8 +80,6 @@ end
 function PlayingTeam:OnCreate()
 
     Team.OnCreate(self)
-    
-    self.structures = {}
       
 end
 
@@ -91,8 +89,6 @@ function PlayingTeam:OnInit()
     
     self:InitTechTree()
     self.timeOfLastTechTreeUpdate = nil
-    
-    table.clear(self.structures)
     
     self.lastPlayedTeamAlertName = nil
     self.timeOfLastPlayedTeamAlert = nil
@@ -397,7 +393,7 @@ end
 function PlayingTeam:SpawnCommandStructure(teamLocation)
     
     // Look for nearest empty tech point to use instead
-    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), self:GetTeamType(), true)
+    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), true)
     
     if(nearestTechPoint ~= nil) then
     
@@ -427,9 +423,14 @@ end
  * Transform player to appropriate team respawn class and respawn them at an appropriate spot for the team.
  * Pass nil origin/angles to have spawn entity chosen.
  */
-function PlayingTeam:ReplaceRespawnPlayer(player, origin, angles)
+function PlayingTeam:ReplaceRespawnPlayer(player, origin, angles, mapName)
+    local spawnMapName = self.respawnEntity
+    
+    if (mapName ~= nil) then
+        spawnMapName = mapName
+    end
 
-    local newPlayer = player:Replace(self.respawnEntity, self:GetTeamNumber(), false, origin)
+    local newPlayer = player:Replace(spawnMapName, self:GetTeamNumber(), false, origin)
     
     self:RespawnPlayer(newPlayer, origin, angles)
     
@@ -494,22 +495,6 @@ function PlayingTeam:RespawnPlayer(player, origin, angles)
 
 end
 
-function PlayingTeam:StructureCreated(entity)
-
-    if(entity:isa("Structure")) then
-        table.insertunique(self.structures, entity:GetId())
-    end
-    
-end
-
-function PlayingTeam:StructureDestroyed(entity)
-
-    if(entity:isa("Structure")) then
-        table.removevalue(self.structures, entity:GetId())
-    end
-
-end
-
 function PlayingTeam:TechAdded(entity)
 
     // Tell tech tree to recompute availability next think
@@ -530,14 +515,6 @@ end
 function PlayingTeam:Update(timePassed)
 
     PROFILE("PlayingTeam:Update")
-
-    // Update structure research/energy
-    for index, structureId in ipairs(self.structures) do    
-          local structure = Shared.GetEntity(structureId)
-          if (structure ~= nil) then            
-            structure:UpdateStructure(timePassed)                
-          end            
-    end
 
     // Give new players starting resources. Mark players as "having played" the game (so they don't get starting res if 
     // they join a team again, etc.)    
@@ -574,6 +551,8 @@ end
 
 function PlayingTeam:ProcessGeneralHelp(player)
 
+    PROFILE("PlayingTeam:ProcessGeneralHelp")
+    
     if((GetGamerules():GetGameState() == kGameState.NotStarted) and player:AddTooltipOnce("GAME_WONT_START_TOOLTIP")) then
         return true
     elseif(GetGamerules():GetGameStarted() and player:AddTooltipOnce("GAME_STARTED_TOOLTIP")) then
@@ -594,95 +573,6 @@ function PlayingTeam:ProcessGeneralHelp(player)
     
 end
 
-// Look for nearby entities that generate help messages
-function PlayingTeam:ProcessEntityHelp(player)
-    
-    // Look for entities to give help about
-    local entities = GetEntitiesWithinRangeInView("ScriptActor", 4, player)
-    
-    local message = nil
-    
-    for index, entity in ipairs(entities) do
-    
-        local enemy = GetEnemyTeamNumber(player:GetTeamNumber()) == entity:GetTeamNumber()
-        
-        if entity:isa("PowerPoint") and entity:ProcessEntityHelp(player) then
-            return true
-        elseif not enemy and entity:isa("Structure") and not entity:GetIsBuilt() and player:isa("Marine") then
-            message = "HELP_BUILD_TOOLTIP"
-        elseif entity:isa("Door") then
-
-            if entity:GetState() == Door.kState.Locked then
-            
-                if player:isa("Marine") then                    
-                    message = "DOOR_LOCKED_MARINE_TOOLTIP"
-                else
-                    message = "DOOR_LOCKED_GENERAL_TOOLTIP"
-                end
-                
-            else
-                message = "DOOR_UNLOCKED_TOOLTIP"
-            end
-            
-        elseif entity:isa("Armory") and entity:GetIsBuilt() then             
-            message = "BUILT_ARMORY_TOOLTIP"
-        elseif entity:isa("Hive") then        
-            if enemy then
-                message = "ENEMY_HIVE_TOOLTIP"                
-            elseif not enemy and entity:GetIsOccupied() then
-                message = "FRIENDLY_OCCUPIED_HIVE_TOOLTIP"
-            elseif not enemy and not entity:GetIsOccupied() then
-                message = "FRIENDLY_UNOCCUPIED_HIVE_TOOLTIP"
-            end            
-        elseif entity:isa("CommandStation") then
-
-            local commander = entity:GetCommander()                               
-            if not enemy and commander then
-               message = string.format("%s %s", "INSIDE_COMMAND_STATION_TOOLTIP" , commander:GetName())
-            elseif not enemy and not entity:GetIsOccupied() then
-                message = "FRIENDLY_UNOCCUPIED_COMMAND_STATION_TOOLTIP"
-            end
-            
-        elseif entity:isa("InfantryPortal") then
-        
-            if enemy then
-                message = "ENEMY_IP_TOOLTIP"
-            elseif not enemy then
-                message = "FRIENDLY_IP_TOOLTIP"
-            end
-            
-        elseif entity:isa("Extractor") then
-            if enemy then
-                message = "ENEMY_EXTRACTOR_TOOLTIP"
-            elseif not enemy then
-                message = "FRIENDLY_EXTRACTOR_TOOLTIP"
-            end
-        elseif entity:isa("Harvester") then
-            if enemy then
-                message = "ENEMY_HARVESTER_TOOLTIP"
-            elseif not enemy then
-                message = "FRIENDLY_HARVESTER_TOOLTIP"
-            end
-        elseif entity:isa("Egg") then
-            if enemy then
-                message = "ENEMY_EGG_TOOLTIP"
-            elseif not enemy then
-                message = "FRIENDLY_EGG_TOOLTIP"
-            end
-        end
-        
-        if (message ~= nil) then
-            if (player:AddLocalizedTooltip(message, true)) then
-              return true
-            end            
-            message = nil
-        end
-    end
-    
-    return false
-    
-end
-
 function PlayingTeam:UpdateHelp()
 
     PROFILE("PlayingTeam:UpdateHelp")
@@ -692,23 +582,17 @@ function PlayingTeam:UpdateHelp()
         function ProcessPlayerHelp(player)
         
             // Only do this before the game has started
-            if((GetGamerules():GetGameState() == kGameState.NotStarted) and player:AddTooltipOnce("GAME_NOT_STARTED_TOOLTIP")) then
+            if (GetGamerules():GetGameState() == kGameState.NotStarted) and player:AddTooltipOnce("GAME_NOT_STARTED_TOOLTIP") then
                 return true
             // Only process other help after game has started
-            elseif(GetGamerules():GetGameStarted()) then
+            elseif GetGamerules():GetGameStarted() then
             
                 if player:AddTooltipOnce("GAME_STARTED_TOOLTIP") then
                     return true
                 else
         
-                    if(not self:ProcessGeneralHelp(player)) then
-                    
-                        if not self:ProcessEntityHelp(player) then
-                        
-                            player:UpdateHelp()
-                            
-                        end
-                        
+                    if not self:ProcessGeneralHelp(player) then
+                        player:UpdateHelp()
                     end
                     
                 end

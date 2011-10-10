@@ -43,7 +43,9 @@ local function MapBlipMixinOnUpdateServer()
         local entity = Shared.GetEntity(entityId)
         local mapBlip = entity and entity.mapBlipId and Shared.GetEntity(entity.mapBlipId)
         
-        if mapBlip then
+        // NOTE: There is an edge case bug somewhere causing a script error here without the
+        // mapBlip.Update check. We need to fix this soon.
+        if mapBlip and mapBlip.Update then
             mapBlip:Update()
         end
         
@@ -148,8 +150,13 @@ AddFunctionContract(MapBlipMixin._GetMapBlipTypeAndTeam, { Arguments = { "Entity
 function MapBlipMixin:_CreateMapBlip(blipType, blipTeam)
 
     local mapBlip = Server.CreateEntity(MapBlip.kMapName)
-    mapBlip:SetOwner(self:GetId(), blipType, blipTeam)
-    self.mapBlipId = mapBlip:GetId()
+    // This may fail if there are too many entities.
+    if mapBlip then
+    
+        mapBlip:SetOwner(self:GetId(), blipType, blipTeam)
+        self.mapBlipId = mapBlip:GetId()
+        
+    end
     
 end
 AddFunctionContract(MapBlipMixin._CreateMapBlip, { Arguments = { "Entity", "number", "number" }, Returns = { } })

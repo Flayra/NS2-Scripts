@@ -569,7 +569,7 @@
       <parameter name="option_agent_height" type="real" label="Agent Height" default="2.00"/>
       <parameter name="option_agent_radius" type="real" label="Agent Radius" default="0.6"/>
       <parameter name="option_agent_max_climb" type="real" label="Agent Max Climb" default="0.90"/>
-      <parameter name="option_agent_max_slope" type="real" label="Agent Mac Slope" default="45.0"/>
+      <parameter name="option_agent_max_slope" type="real" label="Agent Max Slope" default="45.0"/>
       <parameter name="option_region_min_size" type="real" label="Region Min Size" default="8"/>
       <parameter name="option_region_merge_size" type="real" label="Region Merge Size" default="20"/>
       <parameter name="option_edge_max_len" type="real" label="Edge Max Len" default="12.0"/>

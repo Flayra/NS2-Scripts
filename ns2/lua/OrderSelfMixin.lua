@@ -83,18 +83,26 @@ function OrderSelfMixin:_FindPlayerOrdersToCopy(friendlyPlayersNearby)
     local closestPlayer = nil
     local closestPlayerDist = Math.infinity
     for i, player in ipairs(friendlyPlayersNearby) do
+    
         if player:GetHasOrder() then
+        
             local playerDist = (player:GetOrigin() - self:GetOrigin()):GetLengthSquared()
             if playerDist < closestPlayerDist then
+            
                 closestPlayer = player
                 closestPlayerDist = playerDist
+                
             end
+            
         end
+        
     end
     
     if closestPlayer then
+    
         local playerOrder = closestPlayer:GetCurrentOrder()
         return kTechId.None ~= self:GiveOrder(playerOrder:GetType(), playerOrder:GetParam(), playerOrder:GetLocation(), playerOrder:GetOrientation())
+        
     end
     
     return false
@@ -159,7 +167,10 @@ AddFunctionContract(OrderSelfMixin._FindAttackOrder, { Arguments = { "Entity", "
 
 function OrderSelfMixin:_UpdateOrderSelf()
 
-    if not self:GetHasOrder() then
+    // Dead things should not get orders. If there is no "Live" mixin,
+    // it is not dead.
+    local alive = not HasMixin(self, "Live") or self:GetIsAlive()
+    if alive and not self:GetHasOrder() then
     
         local friendlyStructuresNearby = GetEntitiesForTeamWithinRange("Structure", self:GetTeamNumber(), self:GetOrigin(), kFindStructureRange)
         local enemyStructuresNearby = GetEntitiesForTeamWithinRange("Structure", GetEnemyTeamNumber(self:GetTeamNumber()), self:GetOrigin(), kFindStructureRange)

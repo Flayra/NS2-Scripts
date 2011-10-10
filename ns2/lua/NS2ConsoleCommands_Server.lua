@@ -12,21 +12,41 @@
 Script.Load("lua/ScenarioHandler_Commands.lua")
 
 function JoinTeamOne(player)
-    // Team balance
-    if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or Shared.GetCheatsEnabled() then
-        return GetGamerules():JoinTeam(player, kTeam1Index, force)
-    elseif (player:GetTeamNumber() ~= 1) then
-        player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
+
+    if player:GetTeamNumber() == kTeamReadyRoom then
+    
+        // Team balance
+        if GetGamerules():GetCanJoinTeamNumber(kTeam1Index) or Shared.GetCheatsEnabled() then
+        
+            return GetGamerules():JoinTeam(player, kTeam1Index)        
+            
+        elseif (player:GetTeamNumber() ~= 1) then
+        
+            player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
+            
+        end
+        
     end
     
     return false
+    
 end
 
 function JoinTeamTwo(player)
-    if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or Shared.GetCheatsEnabled() then
-        return GetGamerules():JoinTeam(player, kTeam2Index)
-    elseif (player:GetTeamNumber() ~= 2) then        
-        player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
+
+    // Must not be on a playing team to join new team
+    if player:GetTeamNumber() == kTeamReadyRoom then
+    
+        if GetGamerules():GetCanJoinTeamNumber(kTeam2Index) or Shared.GetCheatsEnabled() then
+        
+            return GetGamerules():JoinTeam(player, kTeam2Index)        
+            
+        elseif (player:GetTeamNumber() ~= 2) then        
+        
+            player:AddTooltipOncePer("TOO_MANY_PLAYERS", 5)
+            
+        end
+        
     end
     
     return false
@@ -181,8 +201,10 @@ function OnCommandEnts(client, className)
         local weaponCount = Shared.GetEntitiesWithClassname("Weapon"):GetSize()
         local playerCount = Shared.GetEntitiesWithClassname("Player"):GetSize()
         local structureCount = Shared.GetEntitiesWithClassname("Structure"):GetSize()
-        local playersOnPlayingTeams = GetGamerules():GetTeam1():GetNumPlayers() + GetGamerules():GetTeam2():GetNumPlayers()
-        local commandStationsOnTeams = GetGamerules():GetTeam1():GetNumCommandStructures() + GetGamerules():GetTeam2():GetNumCommandStructures()
+        local team1 = GetGamerules():GetTeam1()
+        local team2 = GetGamerules():GetTeam2()
+        local playersOnPlayingTeams = team1:GetNumPlayers() + team2:GetNumPlayers()
+        local commandStationsOnTeams = team1:GetNumCommandStructures() + team2:GetNumCommandStructures()
         local blipCount = Shared.GetEntitiesWithClassname("Blip"):GetSize()
         local infestCount = Shared.GetEntitiesWithClassname("Infestation"):GetSize()
 
@@ -190,8 +212,16 @@ function OnCommandEnts(client, className)
             local numClassEnts = Shared.GetEntitiesWithClassname(className):GetSize()
             Shared.Message(Pluralize(numClassEnts, className))
         else
-            Shared.Message(string.format("%d entities (%s, %d playing, %s, %s, %s, %s, %d command structures on teams).", 
-                                                    entityCount, Pluralize(playerCount, "player"), playersOnPlayingTeams, Pluralize(weaponCount, "weapon"), Pluralize(structureCount, "structure"), Pluralize(blipCount, "blip"), Pluralize(infestCount, "infest"), commandStationsOnTeams))
+        
+            local formatString = "%d entities (%s, %d playing, %s, %s, %s, %s, %d command structures on teams)."
+            Shared.Message( string.format(formatString, 
+                            entityCount, 
+                            Pluralize(playerCount, "player"), playersOnPlayingTeams, 
+                            Pluralize(weaponCount, "weapon"), 
+                            Pluralize(structureCount, "structure"), 
+                            Pluralize(blipCount, "blip"), 
+                            Pluralize(infestCount, "infest"), 
+                            commandStationsOnTeams))
         end
     end
     
@@ -516,7 +546,8 @@ function OnCommandFlareDrifter(client)
     local player = client:GetControllingPlayer()
     local hives = GetEntitiesForTeam("CommandStructure", GetGamerules():GetTeam2():GetTeamNumber())
     if(table.maxn(hives) > 0) then
-        local drifter = CreateEntity(Drifter.kMapName, hives[1]:GetOrigin() + Vector(-3, 0.5, 0), GetGamerules():GetTeam2():GetTeamNumber())
+        local drifterOrigin = hives[1]:GetOrigin() + Vector(-3, 0.5, 0)
+        local drifter = CreateEntity(Drifter.kMapName, drifterOrigin, GetGamerules():GetTeam2():GetTeamNumber())
         drifter:PerformFlare()
     end
 
@@ -655,7 +686,8 @@ function OnCommandGiveGameEffect(client, gameEffectString, durationString)
         end
         
         player:AddStackableGameEffect(gameEffectString, duration, nil)
-        Print("AddStackableGameEffect(%s, %s) (%d in effect)", gameEffectString, ToString(duration), player:GetStackableGameEffectCount(gameEffectString))
+        Print(  "AddStackableGameEffect(%s, %s) (%d in effect)", 
+                gameEffectString, ToString(duration), player:GetStackableGameEffectCount(gameEffectString))
         
     end
     
@@ -801,7 +833,7 @@ function OnCommandHasTech(client, cmd)
 
             local techId = StringToEnum(kTechId, cmd)
             if techId == nil then
-                Print("Couldn't find tech id \"%s\" (should be something like ShotgunTech or GrenadeLauncher)", ToString(cmd))
+                Print("Couldn't find tech id \"%s\" (should be something like ShotgunTech)", ToString(cmd))
                 return
             end
         
@@ -810,7 +842,8 @@ function OnCommandHasTech(client, cmd)
             
                 local techTree = player:GetTechTree()                
                 if techTree then
-                    Print("Your team %s \"%s\" tech.", ConditionalValue(techTree:GetHasTech(techId), "has", "doesn't have"), cmd)
+                    local hasText = ConditionalValue(techTree:GetHasTech(techId), "has", "doesn't have")
+                    Print("Your team %s \"%s\" tech.", hasText, cmd)
                 end
                 
             end

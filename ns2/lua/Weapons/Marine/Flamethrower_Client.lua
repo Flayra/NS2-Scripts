@@ -6,69 +6,57 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-function Flamethrower:OnDestroy()
-
-    self:SetPilotLightState(false)
-    
-    ClipWeapon.OnDestroy(self)
-    
-end
-
-function Flamethrower:SetPilotLightState(state)
-
-    /*
-    if self.pilotLightState ~= state then
-    
-        // Pilot can't be on when out of fuel
-        if state and self:GetClip() > 0 then
-    
-            self.pilotLightEffect = Client.CreateCinematic(RenderScene.Zone_Default)
-            self.pilotLightEffect:SetCinematic(Flamethrower.kPilotCinematic)            
-            self.pilotLightEffect:SetRepeatStyle(Cinematic.Repeat_Endless)
-
-        elseif not state and self.pilotLightEffect then
-        
-            Client.DestroyCinematic(self.pilotLightEffect)
-            self.pilotLightEffect = nil
-                
-        end
-        
-        self.pilotLightState = state
-        
-        self:SetUpdates(self.pilotLightState)
-        
-    end
-    */
-    
-end
-
-/*
 function Flamethrower:OnUpdate(deltaTime)
 
-    ClipWeapon.OnUpdate(self, deltaTime)
+    Weapon.OnUpdate(self, deltaTime)
 
-    // Set "rotate" parameter so attacking sound get louder or changes when you wave it arround, the way 
-    // a real flame would (think how a flaming torch sounds when you wave it around)
-    local parentPlayer = self:GetParent()   
-    if (parentPlayer == Client.GetLocalPlayer()) and parentPlayer:isa("Marine") and self.loopingWeaponSoundPlaying then
+    // Only update when held in inventory
+    if self.loopingSoundEntId ~= Entity.invalidId and self:GetParent() ~= nil then
     
-        // Weapon swing is -1 to 1
-        local amount = Clamp(math.abs(parentPlayer:GetWeaponSwing())*2, 0, 1)
-        parentPlayer:SetSoundParameter(self:GetFireSoundName(), "rotate", amount, 10)
+        local player = Client.GetLocalPlayer()
+        local viewAngles = player:GetViewAngles()
+        local yaw = viewAngles.yaw
+
+        local soundEnt = Shared.GetEntity(self.loopingSoundEntId)
+        if soundEnt then
+
+            if soundEnt:GetIsPlaying() and self.lastYaw ~= nil then
+            
+                // 180 degree rotation = param of 1
+                local rotateParam = math.abs((yaw - self.lastYaw) / math.pi)
+                
+                // Use the maximum rotation we've set in the past short interval
+                if not self.maxRotate or (rotateParam > self.maxRotate) then
+                
+                    self.maxRotate = rotateParam
+                    self.timeOfMaxRotate = Shared.GetTime()
+                    
+                end
+                
+                if self.timeOfMaxRotate ~= nil and Shared.GetTime() > self.timeOfMaxRotate + .75 then
+                
+                    self.maxRotate = nil
+                    self.timeOfMaxRotate = nil
+                    
+                end
+                
+                if self.maxRotate ~= nil then
+                    rotateParam = math.max(rotateParam, self.maxRotate)
+                end
+                
+                local success = soundEnt:SetParameter("rotate", rotateParam, 1)
+                if success == false then
+                    Print("Tried to use invalid looping flamethrower sound entity id: %s", ToString(self.loopingSoundEntId))
+                end
+                
+            end
+            
+        else
+            Print("Flamethrower:OnUpdate(): Couldn't find sound ent on client")
+        end
+            
+        self.lastYaw = yaw
         
     end
-
-    if self.pilotLightEffect ~= nil and self:GetId() ~= Entity.invalidId then
     
-        ClipWeapon.OnUpdate(self)
-        
-        local viewModel = self:GetParent():GetViewModelEntity()
-        local coords = viewModel:GetAttachPointCoords(Flamethrower.kMuzzleNode)
-        
-        self.pilotLightEffect:SetCoords(coords)        
-            
-    end 
-   
 end
-*/
-

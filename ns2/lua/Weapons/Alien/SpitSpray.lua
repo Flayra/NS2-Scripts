@@ -187,24 +187,6 @@ function SpitSpray:GetHealOrigin(player)
     
 end
 
-function SpitSpray:SprayInfestation(player, coords)
-
-    player:TriggerEffects("start_create_infestation")
-
-    player:SetAnimAndMode(Gorge.kCreateStructure, kPlayerMode.GorgeStructure)    
-
-    local infestation = CreateEntity(Infestation.kMapName, coords.origin, player:GetTeamNumber())
-    
-    infestation:SetMaxRadius(SpitSpray.kInfestationMaxSize)
-    infestation:SetCoords(coords)
-    infestation:SetLifetime(kGorgeInfestationLifetime)
-    infestation:SetRadiusPercent(.1)
-    infestation:SetGrowthRateScalar(3)
-    
-    //player:TriggerEffects("create_infestation")
-
-end
-
 function SpitSpray:PerformSecondaryAttack(player)
 
     self.spitMode = false

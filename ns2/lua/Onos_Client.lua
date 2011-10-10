@@ -2,15 +2,16 @@
 //
 // lua\Onos_Client.lua
 //
-//    Created by:   Charlie Cleveland (charlie@unknownworlds.com) and
-//                  Max McGuire (max@unknownworlds.com)
+//    Created by:   Charlie Cleveland (charlie@unknownworlds.com)
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-function Onos:PlayFootstepSound(sendMessage)
+function Onos:GetIdleSoundName()
+    return Onos.kLocalIdleSound
+end
 
-    Alien.PlayFootstepSound(self, sendMessage)
-    
+function Onos:PlayFootstepShake()
+
     if not Shared.GetIsRunningPrediction() then
     
         // Get all nearby players and shake their screen

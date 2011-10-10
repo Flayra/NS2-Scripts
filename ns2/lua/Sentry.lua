@@ -77,6 +77,15 @@ Sentry.kEyeNode = "fxnode_eye"
 
 Sentry.kMode = enum( {'Unbuilt', 'PoweredDown', 'PoweringUp', 'PoweringDown', 'Scanning', 'SpinningUp', 'Attacking', 'SpinningDown', 'SettingTarget'} )
 
+local kDefaultButtons = { kTechId.Attack, kTechId.None, kTechId.SetTarget, kTechId.None,
+                          kTechId.SentryRefill, kTechId.None, kTechId.None, kTechId.None }
+local kAttackingButtons = { kTechId.None, kTechId.Stop, kTechId.SetTarget, kTechId.None,
+                            kTechId.SentryRefill, kTechId.None, kTechId.None, kTechId.None }
+local kSettingTargetButtons = { kTechId.None, kTechId.None, kTechId.SetTarget, kTechId.None,
+                                kTechId.SentryRefill, kTechId.None, kTechId.None, kTechId.None }
+local kPoweringDownButtons = { kTechId.None, kTechId.None, kTechId.None, kTechId.None,
+                                kTechId.None, kTechId.None, kTechId.None, kTechId.None }
+
 Sentry.networkVars =
 {
 
@@ -175,12 +184,14 @@ end
 
 // Show ammo in commander HUD if active
 function Sentry:GetStatusDescription()
+
     local text, scalar = Structure.GetStatusDescription(self)
     if text == nil then
         text = string.format("%d / %d rounds", self.ammo, Sentry.kMaxAmmo)
         scalar = self.ammo / Sentry.kMaxAmmo
     end
     return text, scalar
+    
 end
 
 /**
@@ -218,12 +229,17 @@ end
 
 function Sentry:GetTechButtons(techId)
 
-    if(techId == kTechId.RootMenu) then 
+    if techId == kTechId.RootMenu then 
 
-        return { 
-            kTechId.Attack, kTechId.Stop, kTechId.SetTarget, kTechId.None,
-            kTechId.SentryRefill, kTechId.None, kTechId.None, kTechId.None 
-            }
+        if self.mode == Sentry.kMode.Attacking then
+            return kAttackingButtons
+        elseif self.mode == Sentry.kMode.SettingTarget then
+            return kSettingTargetButtons
+        elseif self.mode == Sentry.kMode.PoweringDown then
+            return kPoweringDownButtons
+        end
+        return kDefaultButtons
+        
     end
     
     return nil
@@ -231,19 +247,23 @@ function Sentry:GetTechButtons(techId)
 end
 
 function Sentry:GetTechAllowed(techId, techNode, player)
+
     if techId == kTechId.SentryRefill then
         return self.ammo < Sentry.kMaxAmmo
     // Don't allow sentry refilling to be cancelled (add this later if it stays, but Structure:AbortResearch() assumes team resources refund)
+    // NOTE: This also disallows cancelling the recycle for the Sentry.
     elseif techId == kTechId.Cancel then
         return false
     end
+    
     return Structure.GetTechAllowed(self, techId, techNode, player)
+    
 end
 
 function Sentry:UpdateAngles(deltaTime)
     
     // Swing barrel yaw towards target        
-    if (self:GetSentryMode() == Sentry.kMode.Attacking) then
+    if self:GetSentryMode() == Sentry.kMode.Attacking then
     
         if self.targetDirection then
         

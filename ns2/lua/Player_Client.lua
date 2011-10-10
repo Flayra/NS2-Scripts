@@ -91,159 +91,9 @@ function PlayerUI_GetCrosshairValues()
    
 end
 
-function PlayerUI_GetNextWaypointActive()
-
-    local player = Client.GetLocalPlayer()
-    return player ~= nil and player.nextOrderWaypointActive and not player:isa("Commander")
-
-end
-
-/**
- * Gives the UI the screen space coordinates of where to display
- * the next waypoint for when players have an order location
- */
-function PlayerUI_GetNextWaypointInScreenspace()
-
-    local player = Client.GetLocalPlayer()
-    
-    local playerEyePos = Vector(player:GetCameraViewCoords().origin)
-    local playerForwardNorm = Vector(player:GetCameraViewCoords().zAxis)
-    
-    // This method needs to use the previous updates player info
-    if(player.lastPlayerEyePos == nil) then
-        player.lastPlayerEyePos = Vector(playerEyePos)
-        player.lastPlayerForwardNorm = Vector(playerForwardNorm)
-    end
-    
-    local screenPos = Client.WorldToScreen(player.nextOrderWaypoint)
-    
-    local isInScreenSpace = false
-    local nextWPDir = player.nextOrderWaypoint - player.lastPlayerEyePos
-    local normToEntityVec = GetNormalizedVectorXZ(nextWPDir)
-    local normViewVec = GetNormalizedVectorXZ(player.lastPlayerForwardNorm)
-    local dotProduct = Math.DotProduct(normToEntityVec, normViewVec)
-    
-    // Distance is used for scaling
-    local nextWPDist = nextWPDir:GetLength()
-    local nextWPMaxDist = 25
-    local nextWPScale = math.max(0.5, 1 - (nextWPDist / nextWPMaxDist))
-    
-    if(player.nextWPInScreenSpace == nil) then
-    
-        player.nextWPInScreenSpace = true
-        player.nextWPDoingTrans = false
-        player.nextWPLastVal = { }
-        
-        for i = 1, 5 do 
-            player.nextWPLastVal[i] = 0
-        end
-        
-        player.nextWPCurrWP = Vector(player.nextOrderWaypoint)
-        
-    end
-    
-    // If the waypoint has changed, do a smooth transition
-    if(player.nextWPCurrWP ~= player.nextOrderWaypoint) then
-    
-        player.nextWPDoingTrans = true
-        VectorCopy(player.nextOrderWaypoint, player.nextWPCurrWP)
-        
-    end
-    
-    local returnTable = nil
-
-    // If offscreen, fallback on compass method
-    local minWidthBuff = Client.GetScreenWidth() * 0.1
-    local minHeightBuff = Client.GetScreenHeight() * 0.1
-    local maxWidthBuff = Client.GetScreenWidth() * 0.9
-    local maxHeightBuff = Client.GetScreenHeight() * 0.9
-    if(screenPos.x < minWidthBuff or screenPos.x > maxWidthBuff or
-    
-       screenPos.y < minHeightBuff or screenPos.y > maxHeightBuff or dotProduct < 0) then
-       
-        if(player.nextWPInScreenSpace) then
-        
-            player.nextWPDoingTrans = true
-            
-        end
-        player.nextWPInScreenSpace = false
-
-        local eyeForwardPos = player.lastPlayerEyePos + (player.lastPlayerForwardNorm * 5)
-        local eyeForwardToWP = player.nextOrderWaypoint - eyeForwardPos
-        eyeForwardToWP:Normalize()
-        local eyeForwardToWPScreen = Client.WorldToScreen(eyeForwardPos + eyeForwardToWP)
-        local middleOfScreen = Vector(Client.GetScreenWidth() / 2, Client.GetScreenHeight() / 2, 0)
-        local screenSpaceDir = eyeForwardToWPScreen - middleOfScreen
-        screenSpaceDir:Normalize()
-        local finalScreenPos = middleOfScreen + Vector(screenSpaceDir.x * (Client.GetScreenWidth() / 2), screenSpaceDir.y * (Client.GetScreenHeight() / 2), 0)
-        // Clamp to edge of screen with buffer
-        finalScreenPos.x = Clamp(finalScreenPos.x, minWidthBuff, maxWidthBuff)
-        finalScreenPos.y = Clamp(finalScreenPos.y, minHeightBuff, maxHeightBuff)
-        returnTable = { finalScreenPos.x, finalScreenPos.y, 3.14, nextWPScale, nextWPDist }
-        
-    else
-    
-        isInScreenSpace = true
-        if(not player.nextWPInScreenSpace) then
-        
-            player.nextWPDoingTrans = true
-            
-        end
-        player.nextWPInScreenSpace = true
-        
-        local bounceY = screenPos.y + (math.sin(Shared.GetTime() * 3) * (30 * nextWPScale))
-        returnTable = { screenPos.x, bounceY, 3.14, nextWPScale, nextWPDist }
-        
-    end
-    
-    if(player.nextWPDoingTrans) then
-    
-        local replaceTable = { }
-        local allEqual = true
-        for i = 1, 5 do
-        
-            replaceTable[i] = Slerp(player.nextWPLastVal[i], returnTable[i], 50) 
-            allEqual = allEqual and replaceTable[i] == returnTable[i]
-            
-        end
-        
-        if(allEqual) then
-        
-            player.nextWPDoingTrans = false
-            
-        end
-        
-        returnTable = replaceTable
-        
-    end
-    
-    for i = 1, 5 do
-    
-        player.nextWPLastVal[i] = returnTable[i]
-        
-    end
-    
-    // If the next waypoint is also the final waypoint and is in screen space,
-    // setting the distance to negative will hide it since the distance is
-    // also displayed on the final waypoint
-    local nextIsFinal = player:GetVisibleWaypoint() == player.nextOrderWaypoint
-    if nextIsFinal and isInScreenSpace then
-    
-        returnTable[5] = -1
-    
-    end
-    
-    // Save current for next update
-    VectorCopy(playerEyePos, player.lastPlayerEyePos)
-    VectorCopy(playerForwardNorm, player.lastPlayerForwardNorm)
-    
-    return returnTable
-
-end
-
 function PlayerUI_GetOrderInfo()
 
-    local orderInfo = {}
+    local orderInfo = { }
     
     // Hard-coded for testing
     local player = Client.GetLocalPlayer()
@@ -261,60 +111,166 @@ function PlayerUI_GetOrderInfo()
     end
     
     return orderInfo
+    
+end
+
+function PlayerUI_GetOrderPath()
+
+    local player = Client.GetLocalPlayer()
+    if player then
+    
+        local currentOrder = player:GetCurrentOrder()
+        if currentOrder then
+        
+            local targetLocation = currentOrder:GetLocation()
+            local points = { }
+            local isReachable = Pathing.GetPathPoints(player:GetOrigin(), targetLocation, points)
+            if isReachable then
+                return points
+            end
+            
+        end
+        
+    end
+    
+    return nil
+
 end
 
 /**
  * Gives the UI the screen space coordinates of where to display
- * the final waypoint for when players have an order location
+ * the final waypoint for when players have an order location.
  */
 function PlayerUI_GetFinalWaypointInScreenspace()
 
     local player = Client.GetLocalPlayer()
+    if not player or not player:GetCurrentOrder() then
+        return nil
+    end
     
-    // Get our own waypoint, or if we're comm, the waypoint of our first selected player
-    local waypoint = Vector(player:GetVisibleWaypoint())
+    local orderTypeName = GetDisplayNameForTechId(player:GetCurrentOrder():GetType(), "<no display name>")
     
-    local returnTable = { }
-    local screenPos = Client.WorldToScreen(waypoint)
-    local finalWPDir = waypoint - player:GetEyePos()
-    local normToEntityVec = GetNormalizedVectorXZ(finalWPDir)
-    local normViewVec = GetNormalizedVectorXZ(player:GetViewAngles():GetCoords().zAxis)
+    local playerEyePos = Vector(player:GetCameraViewCoords().origin)
+    local playerForwardNorm = Vector(player:GetCameraViewCoords().zAxis)
+    
+    // This method needs to use the previous updates player info.
+    if player.lastPlayerEyePos == nil then
+        player.lastPlayerEyePos = Vector(playerEyePos)
+        player.lastPlayerForwardNorm = Vector(playerForwardNorm)
+    end
+    
+    local orderWayPoint = player:GetVisibleWaypoint()
+    local screenPos = Client.WorldToScreen(orderWayPoint)
+    
+    local isInScreenSpace = false
+    local nextWPDir = orderWayPoint - player.lastPlayerEyePos
+    local normToEntityVec = GetNormalizedVectorXZ(nextWPDir)
+    local normViewVec = GetNormalizedVectorXZ(player.lastPlayerForwardNorm)
     local dotProduct = Math.DotProduct(normToEntityVec, normViewVec)
     
     // Distance is used for scaling
-    local finalWPDist = finalWPDir:GetLengthSquared()
-    local finalWPMaxDist = 25 * 25
-    local finalWPScale = math.max(0.3, 1 - (finalWPDist / finalWPMaxDist))
+    local nextWPDist = nextWPDir:GetLength()
+    local nextWPMaxDist = 25
+    local nextWPScale = math.max(0.5, 1 - (nextWPDist / nextWPMaxDist))
     
-    if(screenPos.x < 0 or screenPos.x > Client.GetScreenWidth() or
-       screenPos.y < 0 or screenPos.y > Client.GetScreenHeight() or dotProduct < 0) then
-       
-        // Don't draw if it is behind the player
-        returnTable[1] = false
+    if player.nextWPInScreenSpace == nil then
+    
+        player.nextWPInScreenSpace = true
+        player.nextWPDoingTrans = false
+        player.nextWPLastVal = { }
         
-    else
-    
-        returnTable[1] = true
-        returnTable[2] = screenPos.x
-        local bounceY = screenPos.y + (math.sin(Shared.GetTime() * 3) * (30 * finalWPScale))
-        returnTable[3] = bounceY
-        returnTable[4] = finalWPScale
-        returnTable[5] = GetDisplayNameForTechId(player.orderType, "<no display name>")
-        returnTable[6] = math.sqrt(finalWPDist)
+        for i = 1, 5 do
+            player.nextWPLastVal[i] = 0
+        end
+        
+        player.nextWPCurrWP = Vector(orderWayPoint)
         
     end
     
-    return returnTable
+    // If the waypoint has changed, do a smooth transition
+    if player.nextWPCurrWP ~= orderWayPoint then
     
-end
+        player.nextWPDoingTrans = true
+        VectorCopy(orderWayPoint, player.nextWPCurrWP)
+        
+    end
+    
+    local returnTable = nil
 
-/**
- * Get crosshair texture atlas
- */
-function PlayerUI_GetCrosshairTexture()
+    // If offscreen, fallback on compass method
+    local minWidthBuff = Client.GetScreenWidth() * 0.1
+    local minHeightBuff = Client.GetScreenHeight() * 0.1
+    local maxWidthBuff = Client.GetScreenWidth() * 0.9
+    local maxHeightBuff = Client.GetScreenHeight() * 0.9
+    if screenPos.x < minWidthBuff or screenPos.x > maxWidthBuff or
+       screenPos.y < minHeightBuff or screenPos.y > maxHeightBuff or dotProduct < 0 then
+       
+        if player.nextWPInScreenSpace then
+            player.nextWPDoingTrans = true
+        end
+        player.nextWPInScreenSpace = false
 
-    Client.BindFlashTexture("weapon_crosshair", "ui/crosshairs.dds")
-    return "weapon_crosshair"
+        local eyeForwardPos = player.lastPlayerEyePos + (player.lastPlayerForwardNorm * 5)
+        local eyeForwardToWP = orderWayPoint - eyeForwardPos
+        eyeForwardToWP:Normalize()
+        local eyeForwardToWPScreen = Client.WorldToScreen(eyeForwardPos + eyeForwardToWP)
+        local middleOfScreen = Vector(Client.GetScreenWidth() / 2, Client.GetScreenHeight() / 2, 0)
+        local screenSpaceDir = eyeForwardToWPScreen - middleOfScreen
+        screenSpaceDir:Normalize()
+        local finalScreenPos = middleOfScreen + Vector(screenSpaceDir.x * (Client.GetScreenWidth() / 2), screenSpaceDir.y * (Client.GetScreenHeight() / 2), 0)
+        // Clamp to edge of screen with buffer
+        finalScreenPos.x = Clamp(finalScreenPos.x, minWidthBuff, maxWidthBuff)
+        finalScreenPos.y = Clamp(finalScreenPos.y, minHeightBuff, maxHeightBuff)
+        returnTable = { finalScreenPos.x, finalScreenPos.y, nextWPScale, orderTypeName, nextWPDist }
+        
+    else
+    
+        isInScreenSpace = true
+        if not player.nextWPInScreenSpace then
+        
+            player.nextWPDoingTrans = true
+            
+        end
+        player.nextWPInScreenSpace = true
+        
+        local bounceY = screenPos.y + (math.sin(Shared.GetTime() * 3) * (30 * nextWPScale))
+        returnTable = { screenPos.x, bounceY, nextWPScale, orderTypeName, nextWPDist }
+        
+    end
+    
+    if player.nextWPDoingTrans then
+    
+        local replaceTable = { }
+        local allEqual = true
+        for i = 1, 5 do
+        
+            if type(returnTable[i]) == "number" then
+            
+                replaceTable[i] = Slerp(player.nextWPLastVal[i], returnTable[i], 50) 
+                allEqual = allEqual and replaceTable[i] == returnTable[i]
+            else
+                replaceTable[i] = returnTable[i]
+            end
+            
+        end
+        
+        if allEqual then
+            player.nextWPDoingTrans = false
+        end
+        
+        returnTable = replaceTable
+        
+    end
+    
+    for i = 1, 5 do
+        player.nextWPLastVal[i] = returnTable[i]
+    end
+    
+    // Save current for next update
+    VectorCopy(playerEyePos, player.lastPlayerEyePos)
+    VectorCopy(playerForwardNorm, player.lastPlayerForwardNorm)
+    
+    return returnTable
 
 end
 
@@ -803,6 +759,19 @@ function Player:UpdateScreenEffects(deltaTime)
 
 end
 
+function Player:UpdateIdleSound()
+
+    // Set idle sound parameter if playing
+    if self.idleSoundInstance then
+    
+        // 1 means inactive, 0 means active   
+        local value = ConditionalValue(Shared.GetTime() < self.timeOfIdleActive, 1, 0)
+        self.idleSoundInstance:SetParameter("idle", value, 5)
+        
+    end
+    
+end
+
 // Only called when not running prediction
 function Player:UpdateClientEffects(deltaTime, isLocal)
 
@@ -825,6 +794,7 @@ function Player:UpdateClientEffects(deltaTime, isLocal)
     
     if isLocal then
         self:UpdateScreenEffects(deltaTime)
+        self:UpdateIdleSound()
     end
     
 end
@@ -1023,6 +993,18 @@ function Player:OnInitLocalClient()
     Client.SetEnableFog(true)
     
     self:InitScreenEffects()
+
+    local loopingIdleSound = self:GetIdleSoundName()
+    if loopingIdleSound then
+        
+        local soundIndex = Shared.GetSoundIndex(loopingIdleSound)
+        self.idleSoundInstance = Client.CreateSoundEffect(soundIndex)
+        self.idleSoundInstance:SetParent(self:GetId())
+        self.idleSoundInstance:Start()
+        
+        self.timeOfIdleActive = Shared.GetTime()
+        
+    end
     
 end
 
@@ -1118,6 +1100,10 @@ function Player:OnDestroy()
     self:UpdateDisorientSoundLoop(false)    
     
     self:CloseMenu(kClassFlashIndex)
+
+    if self.idleSoundInstance then
+        Client.DestroySoundEffect(self.idleSoundInstance)    
+    end
     
 end
 
@@ -1246,9 +1232,10 @@ function Player:CloseMenu(flashIndex)
     
 end
 
-function Player:ShowMap(showMap)
+function Player:ShowMap(showMap, showBig, forceReset)
 
     self.minimapScript:ShowMap(showMap)
+    self.minimapScript:SetBackgroundMode((showBig and GUIMinimap.kModeBig) or GUIMinimap.kModeMini, forceReset)
 
 end
 
@@ -1794,4 +1781,12 @@ function Player:GetCustomSelectionText()
             ToString(Scoreboard_GetPlayerData(self:GetClientIndex(), "Kills")),
             ToString(Scoreboard_GetPlayerData(self:GetClientIndex(), "Deaths")),
             ToString(Scoreboard_GetPlayerData(self:GetClientIndex(), "Score")))
+end
+
+function Player:GetIdleSoundName()
+    return nil
+end
+
+function Player:SetIdleSoundInactive()
+    self.timeOfIdleActive = Shared.GetTime() + 3
 end

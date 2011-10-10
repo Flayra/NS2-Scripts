@@ -16,6 +16,11 @@ WeaponOwnerMixin.optionalCallbacks =
     OnWeaponAdded = "Will be called right after a weapon is added with the weapon as the only parameter."
 }
 
+WeaponOwnerMixin.expectedCallbacks =
+{
+    Drop = "Called when new weapon takes current weapon's slot."
+}
+
 function WeaponOwnerMixin.__prepareclass(toClass)
     
     ASSERT(toClass.networkVars ~= nil, "WeaponOwnerMixin expects the class to have network fields")
@@ -110,7 +115,7 @@ function WeaponOwnerMixin:SetActiveWeapon(weaponMapName)
                 previousWeaponName = activeWeapon:GetMapName()
                 
             end
-
+            
             // Set active first so proper anim plays
             self.activeWeaponId = newWeapon:GetId()
             
@@ -265,8 +270,10 @@ function WeaponOwnerMixin:AddWeapon(weapon, setActive)
     // incoming weapon.
     local hasWeapon = self:GetWeaponInHUDSlot(weapon:GetHUDSlot())
     if hasWeapon then
+    
         local success = self:Drop(hasWeapon, true)
         assert(success == true)
+        
     end
     
     assert(self:GetWeaponInHUDSlot(weapon:GetHUDSlot()) == nil)
@@ -300,8 +307,10 @@ function WeaponOwnerMixin:RemoveWeapon(weapon)
     weapon:SetParent(nil)
     
     if removingActive then
+    
         self.activeWeaponId = Entity.invalidId
         self:SelectNextWeaponInDirection(1)
+        
     end
     
 end

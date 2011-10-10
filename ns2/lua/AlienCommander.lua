@@ -33,33 +33,37 @@ function AlienCommander:GetOrderConfirmedEffect()
     return AlienCommander.kOrderClickedEffect
 end
 
-if(Client) then
-function AlienCommander:SetupHud()
+if Client then
 
-    Commander.SetupHud(self)
-    
-end
+    function AlienCommander:SetupHud()
 
-function AlienCommander:OnInitLocalClient()
+        Commander.SetupHud(self)
+        
+    end
 
-    Commander.OnInitLocalClient(self)
-    
-    if self.hiveBlips == nil then
-        self.hiveBlips = GetGUIManager():CreateGUIScript("GUIHiveBlips")
+    function AlienCommander:OnInitLocalClient()
+
+        Commander.OnInitLocalClient(self)
+        
+        if self.hiveBlips == nil then
+            self.hiveBlips = GetGUIManager():CreateGUIScript("GUIHiveBlips")
+        end
+
     end
 
 end
 
-function AlienCommander:OnDestroyClient()
+function AlienCommander:OnDestroy()
     
-    if self.hiveBlips then
+    if Client and self.hiveBlips then
+    
         GetGUIManager():DestroyGUIScript(self.hiveBlips)
         self.hiveBlips = nil
+        
     end
     
-    Commander.OnDestroyClient(self)
+    Commander.OnDestroy(self)
 
-end
 end
 
 function AlienCommander:SetSelectionCircleMaterial(entity)

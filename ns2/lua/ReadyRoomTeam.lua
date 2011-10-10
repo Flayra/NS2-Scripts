@@ -47,7 +47,6 @@ function ReadyRoomTeam:GetRespawnMapName(player)
         mapName = ReadyRoomPlayer.kMapName
         
     end
-    Print("ready room Name %s", ToString(mapName))
     return mapName
 
 end

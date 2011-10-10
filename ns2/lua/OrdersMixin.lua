@@ -30,7 +30,8 @@ function OrdersMixin.__prepareclass(toClass)
     {
         ignoreOrders    = "boolean",
         orderPosition   = "vector",
-        orderType       = "enum kTechId"
+        orderType       = "enum kTechId",
+        currentOrderId  = "entityid"
     }
     
     for k, v in pairs(addNetworkFields) do
@@ -46,6 +47,8 @@ function OrdersMixin:__initmixin()
     self.orderPosition = Vector(0, 0, 0)
     
     self.orderType = kTechId.None
+    
+    self.currentOrderId = Entity.invalidId
     
     // Current orders. List of order entity ids.
     self.orders = { }
@@ -64,7 +67,7 @@ end
 AddFunctionContract(OrdersMixin.TransferOrders, { Arguments = { "Entity", "Entity" }, Returns = { } })
 
 function OrdersMixin:GetHasOrder()
-    return self:GetCurrentOrder() ~= nil
+    return self:GetNumOrders() > 0
 end
 AddFunctionContract(OrdersMixin.GetHasOrder, { Arguments = { "Entity" }, Returns = { "boolean" } })
 
@@ -231,15 +234,10 @@ AddFunctionContract(OrdersMixin._SetOrder, { Arguments = { "Entity", "Order", "b
 
 function OrdersMixin:GetCurrentOrder()
 
-    local currentOrder = nil
-    
-    if self.orders and table.maxn(self.orders) > 0 then
-        local orderId = self.orders[1] 
-        currentOrder = Shared.GetEntity(orderId)
-        ASSERT(currentOrder ~= nil)
+    if self.currentOrderId ~= Entity.invalidId then
+        return Shared.GetEntity(self.currentOrderId)
     end
-
-    return currentOrder
+    return nil
     
 end
 AddFunctionContract(OrdersMixin.GetCurrentOrder, { Arguments = { "Entity" }, Returns = { { "Order", "nil" } } })
@@ -280,14 +278,17 @@ function OrdersMixin:_OrderChanged()
     
     if self:GetHasOrder() then
     
-        local order = self:GetCurrentOrder()
+        self.currentOrderId = self.orders[1]
+        local order = Shared.GetEntity(self.currentOrderId)
         local orderLocation = order:GetLocation()
         self.orderPosition = nil
         if orderLocation then
             self.orderPosition = Vector(orderLocation)
         end
         self.orderType = order:GetType()
-        
+    
+    else
+        self.currentOrderId = Entity.invalidId
     end
     
     if self.OnOrderChanged then
@@ -412,20 +413,7 @@ end
 
 // Note: This needs to be tested.
 function OrdersMixin:PerformAction(techNode, position)
-
-    local results = { self:OnPerformAction(techNode, position) }
-    
-    // Return true if any of the callbacks returned true.
-    for i, result in pairs(results) do
-    
-        if result then
-            return true
-        end
-        
-    end
-    
-    return false
-    
+    self:OnPerformAction(techNode, position)
 end
 
 /**
@@ -437,9 +425,6 @@ function OrdersMixin:OnPerformAction(techNode, position)
 
     if techNode:GetTechId() == kTechId.Stop then
         self:ClearOrders()
-        return true
     end
-    
-    return false
     
 end

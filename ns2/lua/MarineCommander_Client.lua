@@ -22,21 +22,6 @@ function MarineCommander:OnInitLocalClient()
     
 end
 
-function MarineCommander:OnDestroyClient()
-
-    Commander.OnDestroyClient(self)
-    
-    if(self.DestroySquadSelectionScreenEffects ~= nil) then
-        self:DestroySquadSelectionScreenEffects()
-    end
-    
-    if self.guiDistressBeacon then
-        GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
-        self.guiDistressBeacon = nil
-    end
-
-end
-
 // Called commander clicks squad element
 function MarineCommander:ClientSelectSquad(index)
 

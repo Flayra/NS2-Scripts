@@ -135,15 +135,25 @@ function InitMixin(classInstance, theMixin, optionalMixinData)
                         // Then insert the new Mixin function.
                         table.insert(allFunctionsTable, v)
                         
+                        // Return values are ignored.
                         local function _CallAllFunctions(ignoreSelf, ...)
-                            local allReturns = { }
+                        
+                            local returnValues = nil
                             for i, callFunc in ipairs(allFunctionsTable) do
-                                local returnResults = { callFunc(classInstance, unpack(arg)) }
-                                for i = #returnResults, 1, -1 do
-                                    table.insert(allReturns, 1, returnResults[i])
+                            
+                                if returnValues then
+                                    callFunc(classInstance, unpack(arg))
+                                else
+                                    returnValues = { callFunc(classInstance, unpack(arg)) }
                                 end
+                                
                             end
-                            return unpack(allReturns)
+                            if returnValues then
+                                return unpack(returnValues)
+                            else
+                                return nil
+                            end
+                            
                         end
                         classInstance[k .. "__functions"] = allFunctionsTable
                         classInstance[k] = _CallAllFunctions

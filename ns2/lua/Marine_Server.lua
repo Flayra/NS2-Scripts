@@ -103,8 +103,9 @@ function Marine:OnKill(damage, attacker, doer, point, direction)
         self:GetTeam():TriggerAlert(kTechId.MarineAlertSoldierLost, self)
     end
     
-    // Remember squad we were in on death so we can beam back to them
+    // Remember our squad and position on death so we can beam back to them
     self.lastSquad = self:GetSquad()
+    self.originOnDeath = self:GetOrigin()
     
 end
 
@@ -185,4 +186,8 @@ end
 
 function Marine:SetTimeOfLastPhase(time)
     self.timeOfLastPhase = time
+end
+
+function Marine:GetOriginOnDeath()
+    return self.originOnDeath
 end

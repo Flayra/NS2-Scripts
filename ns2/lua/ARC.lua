@@ -32,7 +32,6 @@ class 'ARC' (ScriptActor)
 ARC.kMapName = "arc"
 
 ARC.kModelName = PrecacheAsset("models/marine/arc/arc.model")
-ARC.kIdleSound = PrecacheAsset("sound/ns2.fev/marine/structures/arc/idle")
 
 // Animations
 ARC.kMoveParam              = "move_speed"
@@ -84,7 +83,6 @@ PrepareClassForMixin(ARC, GameEffectsMixin)
 PrepareClassForMixin(ARC, FuryMixin)
 PrepareClassForMixin(ARC, FlinchMixin)
 PrepareClassForMixin(ARC, OrdersMixin)
-PrepareClassForMixin(ARC, FireMixin)
 PrepareClassForMixin(ARC, SelectableMixin)
 
 function ARC:OnCreate()
@@ -253,18 +251,14 @@ function ARC:OnOverrideDoorInteraction(inEntity)
     return true, 4
 end
 
-function ARC:GetCanIdle()
-  if ((self.desiredMode == ARC.kMode.Deployed) and self:GetIsAlive()) then    
-    return false
-  end
-  
+function ARC:GetCanIdle() 
   return true
 end 
 
 function ARC:GetEffectParams(tableParams)
 
     ScriptActor.GetEffectParams(self, tableParams)    
-    tableParams[kEffectFilterDeployed] = (self.mode == ARC.kMode.Deployed)
+    tableParams[kEffectFilterDeployed] = self:GetInAttackMode() or (self.desiredMode == ARC.kMode.Deployed)
     
 end
 

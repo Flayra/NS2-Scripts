@@ -379,6 +379,11 @@ function AlienBuy_GetCurrentAlien()
     
 end
 
+function AlienBuy_GetHasGameStarted()
+     local player = Client.GetLocalPlayer()
+     return player.gameStarted
+end
+
 function AlienBuy_OnMouseOver()
 
     Shared.PlaySound(nil, kAlienBuyMenuSounds.Hover)

@@ -24,6 +24,10 @@ FlinchMixin.kAnimFlinch = "flinch"
 // Takes this much time to reduce flinch completely.
 FlinchMixin.kFlinchIntensityReduceRate = .4
 
+local function _UpdateFlinchPoseParams(self)
+    self:SetPoseParam("intensity", self.flinchIntensity)
+end
+
 function FlinchMixin.__prepareclass(toClass)
     
     ASSERT(toClass.networkVars ~= nil, "FlinchMixin expects the class to have network fields")
@@ -95,18 +99,13 @@ function FlinchMixin:OnUpdate(deltaTime)
         self:StopOverlayAnimation(FlinchMixin.kAnimFlinch)
     end
     
-    self:_UpdateFlinchPoseParams()
+    _UpdateFlinchPoseParams(self)
 
 end
 AddFunctionContract(FlinchMixin.OnUpdate, { Arguments = { "Entity", "number" }, Returns = { } })
 
 function FlinchMixin:OnSynchronized()
     PROFILE("FlinchMixin:OnSynchronized")
-    self:_UpdateFlinchPoseParams()
+    _UpdateFlinchPoseParams(self)
 end
 AddFunctionContract(FlinchMixin.OnSynchronized, { Arguments = { "Entity" }, Returns = { } })
-
-function FlinchMixin:_UpdateFlinchPoseParams()
-    self:SetPoseParam("intensity", self.flinchIntensity)
-end
-AddFunctionContract(FlinchMixin._UpdateFlinchPoseParams, { Arguments = { "Entity" }, Returns = { } })

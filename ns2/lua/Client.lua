@@ -271,14 +271,16 @@ function ParsePropStatic(groupName, values)
         physicsModel:SetGroup(PhysicsGroup.CommanderPropsGroup)
     end
     
+    
+    
     // Only create Pathing objects if we are told too
-    /*if (values.pathInclude ~= nil) then
+    if (values.pathInclude ~= nil) then
       if (values.pathInclude == true)then
         Pathing.CreatePathingObject(values.model, coords)
       end
-    end*/
+    end
     
-    Pathing.CreatePathingObject(values.model, coords)
+   // Pathing.CreatePathingObject(values.model, coords)
     // Insert into list of props - {renderModel, physicsModel} pairs
     table.insert(Client.propList, {renderModel, physicsModel})
 
@@ -350,6 +352,106 @@ function UpdatePowerPointLights()
     
 end
 
+local lastUpdateHelpTime = Shared.GetTime()
+local function UpdateHelp(player)
+    
+    PROFILE("UpdateHelp")
+    
+    local currentTime = Shared.GetTime()
+    if currentTime - lastUpdateHelpTime > 3 then
+    
+        lastUpdateHelpTime = currentTime
+        
+        // Look for entities to give help about
+        local entities = GetEntitiesWithinRangeInView("ScriptActor", 4, player)
+        
+        local message = nil
+        
+        for index, entity in ipairs(entities) do
+        
+            local enemy = GetEnemyTeamNumber(player:GetTeamNumber()) == entity:GetTeamNumber()
+            
+            if entity:isa("PowerPoint") and entity:ProcessEntityHelp(player) then
+                return
+            elseif not enemy and entity:isa("Structure") and not entity:GetIsBuilt() and player:isa("Marine") then
+                message = "HELP_BUILD_TOOLTIP"
+            elseif entity:isa("Door") then
+
+                if entity:GetState() == Door.kState.Locked then
+                
+                    if player:isa("Marine") then                    
+                        message = "DOOR_LOCKED_MARINE_TOOLTIP"
+                    else
+                        message = "DOOR_LOCKED_GENERAL_TOOLTIP"
+                    end
+                    
+                else
+                    message = "DOOR_UNLOCKED_TOOLTIP"
+                end
+                
+            elseif entity:isa("Armory") and entity:GetIsBuilt() then             
+                message = "BUILT_ARMORY_TOOLTIP"
+            elseif entity:isa("Hive") then
+            
+                if enemy then
+                    message = "ENEMY_HIVE_TOOLTIP"                
+                elseif not enemy and entity:GetIsOccupied() then
+                    message = "FRIENDLY_OCCUPIED_HIVE_TOOLTIP"
+                elseif not enemy and not entity:GetIsOccupied() then
+                    message = "FRIENDLY_UNOCCUPIED_HIVE_TOOLTIP"
+                end
+
+            elseif entity:isa("CommandStation") then
+
+                if not enemy and entity:GetIsOccupied() then
+                   message = "INSIDE_COMMAND_STATION_TOOLTIP"
+                elseif not enemy and not entity:GetIsOccupied() then
+                    message = "FRIENDLY_UNOCCUPIED_COMMAND_STATION_TOOLTIP"
+                end
+                
+            elseif entity:isa("InfantryPortal") then
+            
+                if enemy then
+                    message = "ENEMY_IP_TOOLTIP"
+                elseif not enemy then
+                    message = "FRIENDLY_IP_TOOLTIP"
+                end
+                
+            elseif entity:isa("Extractor") then
+                if enemy then
+                    message = "ENEMY_EXTRACTOR_TOOLTIP"
+                elseif not enemy then
+                    message = "FRIENDLY_EXTRACTOR_TOOLTIP"
+                end
+            elseif entity:isa("Harvester") then
+                if enemy then
+                    message = "ENEMY_HARVESTER_TOOLTIP"
+                elseif not enemy then
+                    message = "FRIENDLY_HARVESTER_TOOLTIP"
+                end
+            elseif entity:isa("Egg") then
+                if enemy then
+                    message = "ENEMY_EGG_TOOLTIP"
+                elseif not enemy then
+                    message = "FRIENDLY_EGG_TOOLTIP"
+                end
+            end
+            
+            if message ~= nil then
+            
+                if player:AddLocalizedTooltip(message, true) then
+                    return
+                end            
+                message = nil
+                
+            end
+            
+        end
+        
+    end
+
+end
+
 function OnUpdateClient(deltaTime)
 
     PROFILE("OnUpdateClient")
@@ -366,6 +468,8 @@ function OnUpdateClient(deltaTime)
         UpdateParticles(deltaTime)
         
         UpdateTracers(deltaTime)
+        
+        UpdateHelp(player)
         
         if Client.GetConnectionProblems() then
             player:AddTooltipOncePer("CONNECTION_PROBLEMS_TOOLTIP", 5)

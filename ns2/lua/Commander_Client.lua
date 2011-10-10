@@ -437,10 +437,8 @@ function Commander:UpdateGhostGuides()
             else
  
                 // Otherwise, draw only the free attach entities for this build tech (this is the common case)
-                for index, ent in ipairs(GetFreeAttachEntsForTechId(techId)) do
-                
-                    self:AddGhostGuide(Vector(ent:GetOrigin()), Commander.kStructureSnapRadius)
-                    
+                for index, ent in ipairs(GetFreeAttachEntsForTechId(techId)) do                    
+                    self:AddGhostGuide(Vector(ent:GetOrigin()), Commander.kStructureSnapRadius)                    
                 end
 
             end
@@ -642,29 +640,34 @@ function CommanderUI_TargetedAction(index, x, y, button)
     local player = Client.GetLocalPlayer()
     local normalizedPickRay = CreatePickRay(player, x, y)
     
-    if button == 1 then
+    // Don't execute targeted action if we're still on top of the UI    
+    if not player.cursorOverUI then
     
-        // Send order target to where ghost structure is, in case it was snapped to an attach point
-        if player.ghostStructureValid then
-
-            local ghostOrigin = player.ghostStructure:GetCoords().origin
-            local ghostScreenPos = Client.WorldToScreen(ghostOrigin)
-            
-            local pickRay = CreatePickRay(player, ghostScreenPos.x, ghostScreenPos.y)
-            VectorCopy(pickRay, normalizedPickRay)
-            
-        end
-
-        // Don't destroy ghost when they first place the sentry - allow commander to specify orientation
-        if not LookupTechData(techId, kTechDataSpecifyOrientation, false) or player.specifyingOrientation then
-
-            player:SendTargetedAction(techId, normalizedPickRay)
-            player:SetCurrentTech(kTechId.None)
-            
-        end
+        if button == 1 then
         
-        // Don't allow selection until next mouse up
-        player.mouseButtonUpSinceAction[button] = false
+            // Send order target to where ghost structure is, in case it was snapped to an attach point
+            if player.ghostStructureValid then
+
+                local ghostOrigin = player.ghostStructure:GetCoords().origin
+                local ghostScreenPos = Client.WorldToScreen(ghostOrigin)
+                
+                local pickRay = CreatePickRay(player, ghostScreenPos.x, ghostScreenPos.y)
+                VectorCopy(pickRay, normalizedPickRay)
+                
+            end
+
+            // Don't destroy ghost when they first place the sentry - allow commander to specify orientation
+            if not LookupTechData(techId, kTechDataSpecifyOrientation, false) or player.specifyingOrientation then
+
+                player:SendTargetedAction(techId, normalizedPickRay)
+                player:SetCurrentTech(kTechId.None)
+                
+            end
+            
+            // Don't allow selection until next mouse up
+            player.mouseButtonUpSinceAction[button] = false
+            
+        end
         
     end
     
@@ -800,6 +803,12 @@ function Commander:OnInitLocalClient()
 
     Player.OnInitLocalClient(self)
     
+    self.selectionCircles = { }
+    self.sentryArcs = { }
+    self.ghostGuides = { }
+    self.alertBlips = { }
+    self.alertMessages = { }
+    
     self:SetupHud()
     
     // Turn off skybox rendering when commanding
@@ -819,16 +828,6 @@ function Commander:OnInitLocalClient()
     
     // Set our location so we are viewing the command structure we're in
     self:SetStartPosition() 
-    
-    self.selectionCircles = {}
-    
-    self.sentryArcs = {}
-    
-    self.ghostGuides = {}
-    
-    self.alertBlips = {}
-    
-    self.alertMessages = {}
 
     if self.guiOrders == nil then
         self.guiOrders = GetGUIManager():CreateGUIScriptSingle("GUIOrders")
@@ -1130,6 +1129,36 @@ function Commander:SendTargetedActionWorld(techId, worldCoords, orientation)
     
 end
 
+local function GetIsStructureExitValid(origin, direction, range)
+
+    local valid = true
+
+    // Make sure we don't hit a wall or other entity
+    local trace = Shared.TraceRay(origin, origin + direction * range, PhysicsMask.CommanderSelect, nil)
+    
+    if trace.fraction ~= 1 then
+        valid = false
+    else
+    
+        // Now check to make sure end point isn't close to an attach point
+        local ents = GetEntitiesWithinRange("ScriptActor", origin + direction * 2, 2)
+        for index, entity in ipairs(ents) do
+        
+            if GetIsAttachment(entity:GetClassName()) then
+                valid = false
+                break
+            end
+            
+        end
+        
+    end
+    
+    //DebugLineSuccess(origin, trace.endPoint, .2, valid)
+
+    return valid
+    
+end
+
 function Commander:UpdateOrientationAngle(x, y)
 
     if(self.specifyingOrientation) then
@@ -1154,6 +1183,20 @@ function Commander:UpdateOrientationAngle(x, y)
                 self.sentryRangeRenderModel:SetIsVisible(true)
             end
             
+            // Don't let robotics factory orient into wall (which makes MACs and ARCs create outside the world)
+            local valid = true
+            if self.currentTechId == kTechId.RoboticsFactory then           
+            
+                valid = GetIsStructureExitValid(self.specifyingOrientationPosition, GetNormalizedVector(vecDiff), 5)                
+                
+            elseif self.currentTechId == kTechId.PhaseGate  then
+            
+                valid = GetIsStructureExitValid(self.specifyingOrientationPosition, GetNormalizedVector(vecDiff), 1.5)                
+                
+            end
+            
+            self.ghostStructureValid = valid
+            self.orientationRenderModel:SetIsVisible(valid)
             self.orientationAngle = GetYawFromVector(normToMouse)
             
         end
@@ -1501,24 +1544,29 @@ function Commander:ClientOnMouseRelease(mouseButton, x, y)
                         if((self.currentTechId == kTechId.CommandStation) or (self.currentTechId == kTechId.Hive)) then
                             orientationAngle = 0
                         end
-                                
-                        if LookupTechData(self.currentTechId, kTechDataSpecifyOrientation, false) then
-            
-                            // Send world coords of sentry placement instead of normalized pick ray.
-                            // Because the player may have moved since dropping the sentry and orienting it.
-                            self:SendTargetedActionWorld(self.currentTechId, self.specifyingOrientationPosition, orientationAngle)
-                            
-                        else                        
                         
-                            local pickVec = ConditionalValue(self.specifyingOrientation, self.specifyingOrientationPickVec, normalizedPickRay)
-                            self:SendTargetedOrientedAction(self.currentTechId, pickVec, orientationAngle)
+                        // Don't execute action if we're still on top of the UI    
+                        if not self.cursorOverUI then    
+                        
+                            if LookupTechData(self.currentTechId, kTechDataSpecifyOrientation, false) then
+                
+                                // Send world coords of sentry placement instead of normalized pick ray.
+                                // Because the player may have moved since dropping the sentry and orienting it.
+                                self:SendTargetedActionWorld(self.currentTechId, self.specifyingOrientationPosition, orientationAngle)
+                                
+                            else                        
+                            
+                                local pickVec = ConditionalValue(self.specifyingOrientation, self.specifyingOrientationPickVec, normalizedPickRay)
+                                self:SendTargetedOrientedAction(self.currentTechId, pickVec, orientationAngle)
+                                
+                            end
+     
+                            self:SetCurrentTech(kTechId.None)
+                            
+                            displayConfirmationEffect = true
                             
                         end
- 
-                        self:SetCurrentTech(kTechId.None)
                         
-                        displayConfirmationEffect = true
-
                     end
                     
                     self.specifyingOrientation = false

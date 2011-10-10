@@ -25,8 +25,8 @@ Armory.kBuyMenuFlash = "ui/marine_buy.swf"
 Armory.kBuyMenuTexture = "ui/marine_buymenu.dds"
 Armory.kBuyMenuUpgradesTexture = "ui/marine_buymenu_upgrades.dds"
 Armory.kThinkTime = .3
-Armory.kHealAmount = 20
-Armory.kResupplyInterval = .9
+Armory.kHealAmount = 25
+Armory.kResupplyInterval = .8
 
 // Players can use menu and be supplied by armor inside this range
 Armory.kResupplyUseRange = 2.5

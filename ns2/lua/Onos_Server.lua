@@ -12,9 +12,30 @@ function Onos:InitWeapons()
     Alien.InitWeapons(self)
 
     self:GiveItem(Gore.kMapName)
-    self:GiveItem(BoneShield.kMapName)
-    self:GiveItem(Stomp.kMapName)
+    
+    if self:GetHasUpgrade(kTechId.BoneShield) then
+        self:GiveItem(BoneShield.kMapName)
+    end
+    
+    if self:GetHasUpgrade(kTechId.Stomp) then
+        self:GiveItem(Stomp.kMapName)
+    end
 
     self:SetActiveWeapon(Gore.kMapName)
     
 end
+
+function Onos:OnGiveUpgrade(techId)
+
+    if techId == kTechId.BoneShield then
+    
+        self:GiveItem(BoneShield.kMapName)
+        
+    elseif techId == kTechId.Stomp then
+    
+        self:GiveItem(Stomp.kMapName)
+
+    end
+    
+end
+

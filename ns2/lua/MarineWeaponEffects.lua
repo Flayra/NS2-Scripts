@@ -331,7 +331,6 @@ kMarineWeaponEffects =
         flamethrowerAttackEffects = 
         {
             // Sound effect
-            {looping_sound = "sound/ns2.fev/marine/flamethrower/attack_loop"},
             {looping_sound = "sound/ns2.fev/marine/flamethrower/attack_start"},
             {viewmodel_animation = {{.5, "attack"}, {.5, "attack2"}}, force = true},
         },
@@ -341,11 +340,18 @@ kMarineWeaponEffects =
     {
         flamethrowerAttackEndCinematics = 
         {
-            {stop_sound = "sound/ns2.fev/marine/flamethrower/attack_loop"},
             {stop_sound = "sound/ns2.fev/marine/flamethrower/attack_start"},
             {sound = "sound/ns2.fev/marine/flamethrower/attack_end"},
             {viewmodel_animation = "attack_end"}
         },
+    },
+    
+    flamethrower_pilot =
+    {
+        flamethrowerPilotEffects =
+        {
+            {viewmodel_cinematic = "cinematics/marine/flamethrower/pilot.cinematic", attach_point = "fxnode_flamethrowermuzzle", empty = false},
+        }
     },
     
     flamethrower_holster =
@@ -355,6 +361,7 @@ kMarineWeaponEffects =
             {stop_viewmodel_cinematic = "cinematics/marine/flamethrower/flame_1p.cinematic"},
             {stop_cinematic = "cinematics/marine/flamethrower/flame.cinematic"},
             {stop_viewmodel_cinematic = "cinematics/marine/flamethrower/flameout.cinematic"},
+            {stop_viewmodel_cinematic = "cinematics/marine/flamethrower/pilot.cinematic"},
         },
     },
 

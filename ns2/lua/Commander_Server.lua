@@ -50,35 +50,6 @@ function Commander:CopyPlayerDataFrom(player)
     
 end
 
-// Returns nearest unattached entity of specified classtype within radius of position (nil otherwise)
-function GetUnattachedEntityWithinRadius(attachclass, position, radius)
-
-    local nearestDistance = 0
-    local nearestEntity = nil
-    
-    for index, current in ientitylist(Shared.GetEntitiesWithClassname(attachclass)) do
-    
-        local currentOrigin = Vector(current:GetOrigin())
-        
-        if(current:GetAttached() == nil) then
-            
-            local distance = (position - currentOrigin):GetLength()
-            
-            if ( (distance <= radius) and ( (nearestEntity == nil) or ( distance < nearestDistance) ) ) then
-                
-                nearestEntity = current
-                nearestDistance = distance
-                
-            end
-        
-        end
-    
-    end
-    
-    return nearestEntity
-    
-end
-
 /**
  * Commanders cannot take damage.
  */
@@ -272,14 +243,6 @@ function Commander:ProcessTechTreeActionForEntity(techNode, position, normal, pi
     
 end
 
-function Commander:PerformCommanderTrace(normPickVec)
-
-    local startPoint = self:GetOrigin()
-    local trace = Shared.TraceRay(startPoint, startPoint + normPickVec * 1000, PhysicsMask.AllButPCs, EntityFilterOne(self))
-    return trace
-    
-end
-
 // Send techId of action and normalized pick vector. Issues order to selected units to the world position represented by
 // the pick vector, or to the entity that it hits.
 function Commander:OrderEntities(orderTechId, trace, orientation)
@@ -376,8 +339,8 @@ function Commander:ProcessTechTreeAction(techId, pickVec, orientation, worldCoor
     
     // Make sure tech is available
     local techNode = self:GetTechTree():GetTechNode(techId)
-    if(techNode ~= nil and techNode.available) then
-
+    if techNode ~= nil and techNode.available then
+        
         // Trace along pick vector to find world position of action
         local targetPosition = Vector(0, 0, 0)
         local targetNormal = Vector(0, 1, 0)
@@ -386,7 +349,7 @@ function Commander:ProcessTechTreeAction(techId, pickVec, orientation, worldCoor
         
             trace = GetCommanderPickTarget(self, pickVec, worldCoordsSpecified, techNode:GetIsBuild())
             
-            if(trace ~= nil) then
+            if trace ~= nil then
                 VectorCopy(trace.endPoint, targetPosition)
                 VectorCopy(trace.normal, targetNormal)
             end
@@ -394,14 +357,10 @@ function Commander:ProcessTechTreeAction(techId, pickVec, orientation, worldCoor
         end
     
         // If techNode is a menu, remember it so we can validate actions
-        if(techNode:GetIsMenu()) then
-        
+        if techNode:GetIsMenu() then
             self.currentMenu = techId
-            
-        elseif(techNode:GetIsOrder()) then
-    
+        elseif techNode:GetIsOrder() then
             self:OrderEntities(techId, trace, orientation)
-            
         else        
            
             // For every selected entity, process this desired action. For some actions (research), only
@@ -414,11 +373,11 @@ function Commander:ProcessTechTreeAction(techId, pickVec, orientation, worldCoor
                 actionSuccess, keepProcessing = self:ProcessTechTreeActionForEntity(techNode, targetPosition, targetNormal, pickVec, orientation, selectedEntity, trace)
                 
                 // Successful if just one of our entities handled action
-                if(actionSuccess) then
+                if actionSuccess then
                     success = true
                 end
                 
-                if(not keepProcessing) then
+                if not keepProcessing then
                 
                     break
                     

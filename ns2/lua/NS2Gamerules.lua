@@ -32,6 +32,7 @@ if(Server) then
 Script.Load("lua/PlayingTeam.lua")
 Script.Load("lua/ReadyRoomTeam.lua")
 Script.Load("lua/SpectatingTeam.lua")
+Script.Load("lua/GameViz.lua")
 
 NS2Gamerules.kMarineStartSound   = PrecacheAsset("sound/ns2.fev/marine/voiceovers/game_start")
 NS2Gamerules.kAlienStartSound    = PrecacheAsset("sound/ns2.fev/alien/voiceovers/game_start")
@@ -67,6 +68,7 @@ function NS2Gamerules:SetGameState(state)
         self.team2:SetFrozenState(frozenState)
         
         if self.gameState == kGameState.Started then
+            PostGameViz("Game started")
             self.gameStartTime = Shared.GetTime()
         end
 
@@ -281,13 +283,18 @@ local function PostKillStat(targetEntity, attacker, doer)
     urlString = urlString .. "&target_lifetime=" .. string.format("%.2f", Shared.GetTime() - targetEntity:GetCreationTime())
     
     Shared.GetWebpage(urlString, function (data) end)
-
+    
 end
+
+
 
 // Called whenever an entity is killed. Killer could be the same as targetEntity. Called before entity is destroyed.
 function NS2Gamerules:OnKill(targetEntity, damage, attacker, doer, point, direction)
 
     PostKillStat(targetEntity, attacker, doer)
+    
+    // Also output to log if we're recording the game for playback in the game visualizer
+    PostGameViz(string.format("%s killed %s", SafeClassName(doer), SafeClassName(targetEntity)), targetEntity)
     
     self.team1:OnKill(targetEntity, damage, attacker, doer, point, direction)
     self.team2:OnKill(targetEntity, damage, attacker, doer, point, direction)
@@ -353,7 +360,7 @@ function NS2Gamerules:GetUpgradedDamage(attacker, doer, damage, damageType)
         end
         
         // Alien melee upgrades
-        if doer:isa("BiteLeap") or doer:isa("SwipeBlink") or doer:isa("Gore") then
+        if doer and (doer:isa("BiteLeap") or doer:isa("SwipeBlink") or doer:isa("Gore")) then
         
             if(GetHasTech(attacker, kTechId.Melee3Tech, true)) then
             
@@ -754,9 +761,11 @@ function NS2Gamerules:EndGame(winningTeam)
         if(winningTeam == self.team1) then
             self:SetGameState(kGameState.Team2Won)
             losingTeam = self.team2            
+            PostGameViz("Alien win")
         else
             self:SetGameState(kGameState.Team1Won)
             losingTeam = self.team1            
+            PostGameViz("Marine win")
         end
         
         self.losingTeam = losingTeam
@@ -856,11 +865,15 @@ function NS2Gamerules:GetCanJoinTeamNumber(teamNumber)
 
 end
 
+function NS2Gamerules:GetCanSpawnImmediately()
+    return not self:GetGameStarted() or Shared.GetCheatsEnabled() or (Shared.GetTime() < (self.gameStartTime + NS2Gamerules.kFreeSpawnTime))
+end
+
 /**
  * Returns two return codes: success and the player on the new team. This player could be a new
  * player (the default respawn type for that team) or it will be the original player if the team 
- * wasn't changed (false, original player returned). Pass force = true for second parameter
- * to make player change team no matter what and to respawn immediately.
+ * wasn't changed (false, original player returned). Pass force = true to make player change team 
+ * no matter what and to respawn immediately.
  */
 function NS2Gamerules:JoinTeam(player, newTeamNumber, force)
 
@@ -873,7 +886,7 @@ function NS2Gamerules:JoinTeam(player, newTeamNumber, force)
         local oldTeam = self:GetTeam(player:GetTeamNumber())
 
         // Spawn immediately if going to ready room, game hasn't started, cheats on, or game started recently
-        if (newTeamNumber == kTeamReadyRoom) or not self:GetGameStarted() or Shared.GetCheatsEnabled() or (Shared.GetTime() < (self.gameStartTime + NS2Gamerules.kFreeSpawnTime) or force ) then
+        if (newTeamNumber == kTeamReadyRoom) or self:GetCanSpawnImmediately() or force then
         
             success, newPlayer = team:ReplaceRespawnPlayer(player, nil, nil)
         

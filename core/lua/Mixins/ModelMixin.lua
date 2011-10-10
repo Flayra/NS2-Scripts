@@ -4,6 +4,11 @@
 //   self:UpdateBoneCoords()
 //   self:UpdateRenderModel()
 
+// Cache frequently used globals for greater efficiency
+local Shared_GetModel           = Shared.GetModel
+local Model_GetPoseParamIndex   = Model.GetPoseParamIndex
+local PoseParams_Set            = PoseParams.Set
+
 ModelMixin = { }
 ModelMixin.type = "Model"
 
@@ -11,6 +16,23 @@ ModelMixin.type = "Model"
 // the sake of reducing the size of the network field.
 ModelMixin.maxAnimations = 72
 ModelMixin.maxGraphNodes = 511
+
+/**
+ * Returns the index of the named pose parameter on the actor's model. If the
+ * actor doesn't have a model set or the pose parameter doesn't exist, the
+ * method returns -1
+ */
+local function _GetPoseParamIndex(self, name)
+  
+    local model = Shared_GetModel(self.modelIndex)
+    
+    if model ~= nil then
+        return Model_GetPoseParamIndex(model, name)
+    else
+        return -1
+    end
+        
+end
 
 function ModelMixin.__prepareclass(toClass)
 
@@ -129,23 +151,6 @@ function ModelMixin:SetModel(modelName)
     return self.modelIndex ~= prevModelIndex
 
 end
-
-/**
- * Returns the index of the named pose parameter on the actor's model. If the
- * actor doesn't have a model set or the pose parameter doesn't exist, the
- * method returns -1
- */
-function ModelMixin:GetPoseParamIndex(name)
-  
-    local model = Shared.GetModel(self.modelIndex)
-    
-    if (model ~= nil) then
-        return model:GetPoseParamIndex(name)
-    else
-        return -1
-    end
-        
-end
     
 /**
  * Sets a parameter used to compute the final pose of an animation. These are
@@ -156,10 +161,10 @@ end
  */
 function ModelMixin:SetPoseParam(name, value)
     
-    local paramIndex = self:GetPoseParamIndex(name)
+    local paramIndex = _GetPoseParamIndex(self, name)
 
     if paramIndex ~= -1 then
-        self.poseParams:Set(paramIndex, value)
+        PoseParams_Set(self.poseParams, paramIndex, value)
     end
     
 end
@@ -175,7 +180,7 @@ end
 
 function ModelMixin:UpdateAnimationState()
 
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     local graph = Shared.GetAnimationGraph(self.animationGraphIndex)
     local time  = Shared.GetTime()
     
@@ -231,7 +236,7 @@ end
 
 function ModelMixin:UpdateBoneCoords()
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if model ~= nil then
         self.animationState:GetBoneCoords(model, self.poseParams, self.boneCoords)        

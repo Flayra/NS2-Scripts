@@ -50,6 +50,23 @@ local networkVars =
     selectedSquad = "integer (0 to " .. GetMaxSquads() .. ")"
 }
 
+function MarineCommander:OnDestroy()
+
+    Commander.OnDestroy(self)
+    
+    if Client then
+    
+        self:DestroySquadSelectionScreenEffects()
+        
+        if self.guiDistressBeacon then
+            GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
+            self.guiDistressBeacon = nil
+        end
+        
+    end
+
+end
+
 function MarineCommander:OnInit()
     
     Commander.OnInit(self)
@@ -58,7 +75,7 @@ function MarineCommander:OnInit()
     self.selectedSquad = 0
     
     // Start in build menu (more useful then command station menu)
-    if Client then
+    if Client and Client.GetLocalPlayer() == self then
         self:SetCurrentTech(kTechId.BuildMenu)
     end
     

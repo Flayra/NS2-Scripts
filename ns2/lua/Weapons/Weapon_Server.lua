@@ -120,20 +120,6 @@ function Weapon:GetCanBeUsed(player)
     return self.weaponWorldState == true and player:isa("Marine")
 end
 
-function Weapon:OnUse(player, elapsedTime, useAttachPoint, usePoint)
-
-    // Limit how often a weapon may be used by a player.
-    // _lastWeaponUseTime should only be used in this function!
-    if Shared.GetTime() - (player._lastWeaponUseTime or 0) > kWeaponUseTimeLimit then
-    
-        player:AddWeapon(self, true)
-        
-        player._lastWeaponUseTime = Shared.GetTime()
-        
-    end
-
-end
-
 function Weapon:CreateWeaponEffect(player, playerAttachPointName, entityAttachPointName, cinematicName)
     Shared.CreateAttachedEffect(player, cinematicName, self, Coords.GetIdentity(), entityAttachPointName, false, false)    
 end

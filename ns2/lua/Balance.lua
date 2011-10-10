@@ -221,7 +221,7 @@ kAxeDamageType = kDamageType.Structural
 kAxeFireDelay = 0.6
 
 
-kGrenadeLauncherGrenadeDamage = 150
+kGrenadeLauncherGrenadeDamage = 130
 kGrenadeLauncherGrenadeDamageType = kDamageType.Structural
 kGrenadeLauncherFireDelay = 0.4
 kGrenadeLauncherClipSize = 7
@@ -347,12 +347,12 @@ kStabDamage = 160
 kStabDamageType = kDamageType.Puncture
 kStabFireDelay = 1.5
 kStabEnergyCost = 20
-kBlinkEnergyCost = 45
+kBlinkEnergyCost = 35
 
 kGoreDamage = 90
-kGoreDamageType = kDamageType.Normal
-kGoreFireDelay = 0.7
-kGoreEnergyCost = 2
+kGoreDamageType = kDamageType.Structural
+kGoreFireDelay = 0.5
+kGoreEnergyCost = 10
 
 kChargeMaxDamage = 4
 kChargeMinDamage = 1
@@ -379,8 +379,8 @@ kMelee3DamageScalar = 1.3
 
 // SPAWN TIMES
 kMarineRespawnTime = 10
-kAlienPlayerSpawnTime = 90
-kAlienEggMinSpawnTime = 8
+kAlienPlayerSpawnTime = 60
+kAlienEggMinSpawnTime = 10
 kAlienEggMaxSpawnTime = 30
 
 // BUILD/RESEARCH TIMES

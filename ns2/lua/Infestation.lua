@@ -30,6 +30,8 @@ Infestation.kThinkTime = 3
 
 if Server then
     Script.Load("lua/Infestation_Server.lua")
+elseif Client then    
+    Script.Load("lua/Infestation_Client.lua")
 end
 
 Infestation.networkVars = 
@@ -79,14 +81,16 @@ function Infestation:OnCreate()
     self.thinkTime = Infestation.kThinkTime + 0.001 * self:GetId() % 100
     
     if Client then
+    
         self.decal = Client.CreateRenderDecal()
         self.decal:SetMaterial("materials/infestation/infestation_decal.material")
-    else 
+        
+    else
         self.lastUpdateThinkTime = 0
-		
     end
     
-    self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)    
+    self:SetPhysicsGroup(PhysicsGroup.InfestationGroup)
+    
 end
 
 function Infestation:SetGrowthRateScalar(scalar)
@@ -98,8 +102,11 @@ function Infestation:OnDestroy()
     ScriptActor.OnDestroy(self)
 
     if Client then
+    
         Client.DestroyRenderDecal(self.decal)
+        self:DestroyClientGeometry()
         self.decal = nil
+        
     else
         Server.infestationMap:RemoveInfestation(self)
     end
@@ -112,11 +119,17 @@ function Infestation:OnInit()
     
     self:SetAnimation("scale")
 
-    if Server then    
+    if Server then
         self:TriggerEffects("spawn")
     end
     
-    self:SetNextThink(0.01)        
+    if Client then
+        // Must create geometry after the origin has been set before OnInit is called.
+        self:CreateClientGeometry()
+    end
+    
+    self:SetNextThink(0.01)
+    
 end
 
 function Infestation:GetRadius()
@@ -124,7 +137,7 @@ function Infestation:GetRadius()
 end
 
 function Infestation:SetMaxRadius(radius)
-    self.maxRadius = radius        
+    self.maxRadius = radius
 end
 
 function Infestation:GetMaxRadius()
@@ -141,23 +154,27 @@ function Infestation:GetTechId()
 end
 
 function Infestation:OnThink()
+
     PROFILE("Infestation:OnThink")
 
     local now = Shared.GetTime()
 
     local deltaTime = now - self.lastThinkTime
     
-     if Server then
+    if Server then
         self:UpdateInfestation(deltaTime)
     end
        
     if self.radius ~= self.maxRadius then
+    
         // Why is OnUpdate called here? This is strange.
         ScriptActor.OnUpdate(self, deltaTime)
         self:SetNextThink(0.01) // update on every tick while we are changing the radius
         self.lastThinkTime = now 
-        self:SetPathingFlags(Pathing.PolyFlag_Infestation)     
+        self:SetPathingFlags(Pathing.PolyFlag_Infestation)
+
     else
+    
         ScriptActor.OnThink(self)
         // avoid clumping and vary the thinkTime individually for each infestation patch (with 0-100ms)
         self.lastThinkTime = self.lastThinkTime + self.thinkTime
@@ -165,11 +182,14 @@ function Infestation:OnThink()
         local nextThinkTime = self.lastThinkTime + self.thinkTime
         
         self:SetNextThink(nextThinkTime - now)
+        
     end   
 
     if self.lastRadius ~= self.radius then
+    
         self:SetPoseParam("scale", self.radius * 2)
         self.lastRadius = self.radius
+        
     end
 
 end

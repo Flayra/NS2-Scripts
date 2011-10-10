@@ -93,6 +93,8 @@ end
 
 function GetEntitiesWithinRange(className, origin, range)
 
+    PROFILE("GetEntitiesWithinRange")
+    
     ASSERT(type(className) == "string")
     ASSERT(origin ~= nil)
     ASSERT(type(range) == "number")
@@ -168,6 +170,8 @@ end
 
 function GetEntitiesWithinRangeInView(className, range, player)
 
+    PROFILE("GetEntitiesWithinRangeInView")
+    
     ASSERT(type(className) == "string")
     ASSERT(type(range) == "number")
     ASSERT(player ~= nil)

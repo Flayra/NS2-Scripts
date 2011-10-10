@@ -16,15 +16,10 @@ function CommandStation:OnCreate()
     
 end
 
-function CommandStation:OnPoweredChange(newPoweredState)
-
-    CommandStructure.OnPoweredChange(self, newPoweredState)
+function CommandStation:SetPowerOff()        
+    self:Logout()
     
-    // Logout active commander on power down
-    if not newPoweredState then
-        self:Logout()
-    end
-    
+    return Structure.SetPowerOff(self)
 end
 
 function CommandStation:GetTeamType()
@@ -37,7 +32,7 @@ end
 
 function CommandStation:GetIsPlayerInside(player)
     local vecDiff = (player:GetModelOrigin() - self:GetModelOrigin())
-    return vecDiff:GetLength() < self:GetExtents():GetLength()
+    return vecDiff:GetLength() < self:GetExtents():GetLength() * 1.7
 end
 
 function CommandStation:GetIsPlayerValidForCommander(player)
@@ -47,6 +42,9 @@ end
 function CommandStation:KillPlayersInside()
 
     // Now kill any other players that are still inside the command station so they're not stuck!
+    // Draw debug box if players are players on inside aren't dying or players on the outside are
+    //DebugBox(self:GetModelOrigin(), self:GetModelOrigin(), self:GetExtents() * 1.7, 8, 1, 1, 1, 1)
+    
     for index, player in ientitylist(Shared.GetEntitiesWithClassname("Player")) do
     
         if not player:isa("Commander") and not player:isa("Spectator") then

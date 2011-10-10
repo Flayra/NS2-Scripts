@@ -227,6 +227,13 @@ end
 // techNode could be nil for activations that aren't added to tech tree.
 function ScriptActor:GetTechAllowed(techId, techNode, player)
 
+    // $AS FIXME: Should this be here ? if the game has not started yet
+    // then we do not allow for any tech this is to prevent stuff from 
+    // getting build before it should
+    if (not player:GetGameStarted()) then
+        return false
+    end
+    
     if(techNode == nil) then
         return false
     end

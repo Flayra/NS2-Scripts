@@ -139,7 +139,7 @@ end
 // array of totalPower, minPower, xoff, yoff, visibility (boolean), hud slot
 function GetActiveAbilityData(secondary)
 
-    local data = {}
+    local data = { }
     
     local player = Client.GetLocalPlayer()
     
@@ -149,10 +149,8 @@ function GetActiveAbilityData(secondary)
         
         if ability ~= nil and ability:isa("Ability") then
         
-            if ( (not secondary) or ( secondary and ability:GetHasSecondary(player))) then
-            
+            if not secondary or secondary and ability:GetHasSecondary(player) then
                 data = ability:GetInterfaceData(secondary, false)
-                
             end
             
         end
@@ -295,23 +293,6 @@ function Alien:OnInitLocalClient()
 
     end
     
-end
-
-function Alien:OnDestroyClient()
-    
-    if self.alienHUD then
-        GetGUIManager():DestroyGUIScript(self.alienHUD)
-        self.alienHUD = nil
-    end
-    if self.hiveBlips then
-        GetGUIManager():DestroyGUIScript(self.hiveBlips)
-        self.hiveBlips = nil
-    end
-    if self.buyMenu then
-        GetGUIManager():DestroyGUIScript(self.buyMenu)
-        self.buyMenu = nil
-    end
-
 end
 
 function Alien:UpdateClientEffects(deltaTime, isLocal)

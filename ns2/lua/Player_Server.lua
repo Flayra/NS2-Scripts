@@ -183,8 +183,8 @@ function Player:AwardResForKill(target)
         
         //self:GetTeam():SetTeamResources(self:GetTeam():GetTeamResources() + kKillTeamReward)
         
-        // Play sound for player and also our commanders
-        self:GetTeam():TriggerEffects("res_received")
+        // Play sound for player.
+        self:TriggerEffects("res_received")
         
     end
     
@@ -325,8 +325,6 @@ function Player:OnUpdate(deltaTime)
 
     self:UpdateOrder()
     
-    self:UpdateOrderWaypoint()
-    
     self:_UpdateChangeToSpectator()
 
     /*local viewModel = self:GetViewModelEntity()
@@ -449,6 +447,7 @@ function Player:CopyPlayerDataFrom(player)
     
     // Include here so it propagates through Spectator
     self.lastSquad = player.lastSquad
+    self.originOnDeath = player.originOnDeath
     
     // From LOSMixin.
     self.sighted = player.sighted
@@ -468,19 +467,6 @@ function Player:CopyPlayerDataFrom(player)
     self.upgrade2 = player.upgrade2
     self.upgrade3 = player.upgrade3
     self.upgrade4 = player.upgrade4
-    
-    // Copy waypoint
-    if player.nextOrderWaypoint and self.nextOrderWaypoint then
-        self.nextOrderWaypoint = player.nextOrderWaypoint
-    end
-    
-    if player.finalWaypoint and self.finalWaypoint then
-        self.finalWaypoint = player.finalWaypoint
-    end
-    
-    self.nextOrderWaypointActive = player.nextOrderWaypointActive
-    
-    self.waypointType = player.waypointType
     
     player:TransferOrders(self)
     
@@ -571,6 +557,11 @@ function Player:Replace(mapName, newTeamNumber, preserveWeapons, atOrigin)
     if Server.GetIsDlcAuthorized(owner, kSpecialEditionProductId) then
         player:MakeSpecialEdition()
     end
+    
+    // Log player spawning
+    if teamNumber ~= 0 then
+        PostGameViz(string.format("%s spawned", SafeClassName(self)), self)
+    end
 
     return player
 
@@ -657,15 +648,21 @@ function Player:GiveItem(itemMapName)
     
 end
 
-// Destroys all child weapons and view model.
+// Destroys all child entities of this player.
 function Player:DestroyChildren()
 
     // Remove all weapons first.
     self:DestroyWeapons()
     
-    // Then remove all other children.
-    local function DestroyChild(entity) DestroyEntity(entity) end
-    ForEachChildOfType(self, nil, DestroyChild)
+    // Remove all other children.
+    local allChildren = { }
+    for i, child in ientitychildren(self, "Entity") do
+        table.insert(allChildren, child)
+    end
+    
+    for i, child in ipairs(allChildren) do
+        DestroyEntity(child)
+    end
     
     self.viewModelId = Entity.invalidId
 
@@ -793,31 +790,6 @@ function Player:GetTechTree()
     end
     
     return techTree
-
-end
-
-function Player:UpdateOrderWaypoint()
-
-    PROFILE("Player:UpdateOrderWaypoint")
-
-    local currentOrder = self:GetCurrentOrder()
-    
-    if(currentOrder ~= nil) then
-    
-        local targetLoc = Vector(currentOrder:GetLocation())
-        self.nextOrderWaypoint = Server.GetNextWaypoint(PhysicsMask.AIMovement, self, GetWaypointGroupName(self), targetLoc)
-        self.finalWaypoint = Vector(targetLoc)
-        self.nextOrderWaypointActive = true
-        self.waypointType = currentOrder:GetType()
-        
-    else
-    
-        self.nextOrderWaypoint = nil
-        self.finalWaypoint = nil
-        self.nextOrderWaypointActive = false
-        self.waypointType = kTechId.None
-        
-    end
 
 end
 

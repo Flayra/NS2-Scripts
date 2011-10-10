@@ -12,7 +12,7 @@ class 'PrototypeLab' (Structure)
 
 PrototypeLab.kMapName = "prototypelab"
 
-PrototypeLab.kModelName = PrecacheAsset("models/marine/prototype_module/prototype_module.model")
+PrototypeLab.kModelName = PrecacheAsset("models/marine/prototype_lab/prototype_lab.model")
 
 function PrototypeLab:OnCreate()
 
@@ -32,15 +32,10 @@ end
 
 function PrototypeLab:GetTechButtons(techId)
 
-    if(techId == kTechId.RootMenu) then
-    
-        return  {   kTechId.None, kTechId.None, kTechId.None, kTechId.None, 
-                    kTechId.None, kTechId.None, kTechId.None, kTechId.None }
-
-    elseif techId == kTechId.kTechId.PrototypeLabUpgradesMenu then
+    if techId == kTechId.RootMenu then
     
         return {   kTechId.JetpackTech, kTechId.JetpackFuelTech, kTechId.JetpackArmorTech, kTechId.None,
-                   kTechId.ExosuitTech, kTechId.ExoskeletonLockdownTech, kTechId.ExoskeletonUpgradeTech, kTechId.RootMenu }
+                   kTechId.ExoskeletonTech, kTechId.ExoskeletonLockdownTech, kTechId.ExoskeletonUpgradeTech, kTechId.None }
         
     end
     

@@ -16,9 +16,8 @@ kPlayerEffectData =
             // when animation plays and conserves bandwidth
             {sound = "sound/ns2.fev/alien/skulk/jump", classname = "Skulk", done = true},
             {sound = "sound/ns2.fev/alien/gorge/jump", classname = "Gorge", done = true},
-            //{private_sound = "sound/ns2.fev/alien/lerk/jump", classname = "Lerk", done = true},
             {sound = "sound/ns2.fev/alien/fade/jump", classname = "Fade", done = true},
-            //{private_sound = "sound/ns2.fev/alien/onos/jump", classname = "Onos", done = true},
+            {sound = "sound/ns2.fev/alien/onos/jump", classname = "Onos", done = true},
             {sound = "sound/ns2.fev/marine/common/jump", classname = "Marine", done = true},                        
         },
     },

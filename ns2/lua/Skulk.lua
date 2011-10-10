@@ -21,6 +21,7 @@ Skulk.kModelName = PrecacheAsset("models/alien/skulk/skulk.model")
 Skulk.kViewModelName = PrecacheAsset("models/alien/skulk/skulk_view.model")
 
 Skulk.kIdleSound = PrecacheAsset("sound/ns2.fev/alien/skulk/idle")
+Skulk.kTauntSound = PrecacheAsset("sound/ns2.fev/alien/skulk/taunt")
 
 if Server then
     Script.Load("lua/Skulk_Server.lua", true)
@@ -87,9 +88,6 @@ function Skulk:OnInit()
     
     Alien.OnInit(self)
     
-    // Idle always plays and has a speed param updated below
-    Shared.PlaySound(self, Skulk.kIdleSound)
-    
     self.wallWalking = false
     self.wallWalkingNormalCurrent = Vector.yAxis
     self.wallWalkingNormalGoal    = Vector.yAxis
@@ -102,14 +100,6 @@ function Skulk:OnInit()
     self.leaping = false
     self.leapingAnimationPlaying = false
 
-end
-
-function Skulk:OnDestroy()
-
-    Alien.OnDestroy(self)
-    
-    Shared.StopSound(self, Skulk.kIdleSound)
-    
 end
 
 function Skulk:GetBaseArmor()
@@ -339,6 +329,8 @@ function Skulk:PreUpdateMove(input, runningPrediction)
 end
 
 function Skulk:UpdatePosition(velocity, time)
+
+    PROFILE("Skulk:UpdatePosition")
 
     // Fallback on default behavior when on the ground.
     if self:GetIsOnGround() then
@@ -743,6 +735,10 @@ function Skulk:GetIsKnockbackAllowed()
 
     return not self:GetIsOnGround() and not self:GetIsWallWalking()
 
+end
+
+function Skulk:GetTauntSound()
+    return Skulk.kTauntSound
 end
 
 Shared.LinkClassToMap( "Skulk", Skulk.kMapName, Skulk.networkVars )

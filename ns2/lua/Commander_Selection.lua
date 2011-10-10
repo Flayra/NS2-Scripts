@@ -612,6 +612,10 @@ function Commander:UpdateSelection(deltaTime)
         
     end
     
+    if #self.selectedEntities == 0 then
+        self:InternalSetSelection({ }, false)
+    end
+    
     // Recompute our sub-group
     self.selectedSubGroupEntityIds = self:GetSelectedSubGroup()
 

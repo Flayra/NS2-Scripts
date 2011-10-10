@@ -40,7 +40,7 @@ function CommandStructure:FindAndMakeAttachment()
     // Attach self to nearest tech point
     local position = Vector(self:GetOrigin())
     
-    local nearestTechPoint = GetNearestTechPoint(position, self:GetTeamType(), true)
+    local nearestTechPoint = GetNearestTechPoint(position, true)
     if(nearestTechPoint ~= nil) then
     
         nearestTechPoint:SetAttached(self)
@@ -128,17 +128,17 @@ end
 function CommandStructure:LoginPlayer(player)
 
     local commanderStartOrigin = Vector(player:GetOrigin())
-            
+    
     // Create Commander player
-    local commanderPlayer = player:Replace( self:GetCommanderClassName(), player:GetTeamNumber(), true, commanderStartOrigin)
+    local commanderPlayer = player:Replace(self:GetCommanderClassName(), player:GetTeamNumber(), true, commanderStartOrigin)
     
     // Set all child entities and view model invisible
-    function SetInvisible(weapon) 
-        weapon:SetIsVisible(false)
+    function SetInvisible(childEntity) 
+        childEntity:SetIsVisible(false)
     end
     commanderPlayer:ForEachChild(SetInvisible)
     
-    if (commanderPlayer:GetViewModelEntity()) then
+    if commanderPlayer:GetViewModelEntity() then
         commanderPlayer:GetViewModelEntity():SetModel("")
     end
     
@@ -146,7 +146,7 @@ function CommandStructure:LoginPlayer(player)
     commanderPlayer:ClearGameEffects()    
     
     // Make this structure the first hotgroup if we don't have any yet
-    if(commanderPlayer:GetNumHotkeyGroups() == 0) then
+    if commanderPlayer:GetNumHotkeyGroups() == 0 then
                     
         commanderPlayer:SetSelection( {self:GetId()} )
         commanderPlayer:CreateHotkeyGroup(1)

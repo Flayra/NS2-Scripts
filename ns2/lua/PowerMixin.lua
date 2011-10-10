@@ -50,6 +50,16 @@ function PowerMixin:OnInit()
       
 end
 
+function PowerMixin:OnDestroy()
+        // On the server we register this object to care about these two power events which they will 
+    // get callbacks for.
+    if Server and self:GetRequiresPower() then
+        GetPowerManager():UnRegisterPowerEvent(self, PowerManager.kPowerOffEvent)
+        GetPowerManager():UnRegisterPowerEvent(self, PowerManager.kPowerOnEvent)
+    end
+
+end
+
 function PowerMixin:UpdatePowerState()
     if Server then
         if (self.GetUpdatePower and self:GetUpdatePower()) then
@@ -83,20 +93,36 @@ function PowerMixin:SetIsPowerSource(source)
     end
 end
 
+function PowerMixin:OnConstructionComplete()    
+    if (self:GetRequiresPower()) then
+        self:UpdatePowerState()
+    end        
+end
+
 function PowerMixin:GetIsPowerSource()
     return self.powerSource
 end
 
 function PowerMixin:OnPowerOnEvent(event)
-    self:SetPowerState(true)    
-    if (self.SetPowerOn and (not self:GetIsPowered()) then
-        self:SetPowerOn()
+    local setPower = true
+   
+    if (self.SetPowerOn and (not self:GetIsPowered())) then
+        setPower = self:SetPowerOn()
     end
+    
+    if setPower then
+        self:SetPowerState(true)
+    end    
 end
 
 function PowerMixin:OnPowerOffEvent(event)
-    self:SetPowerState(false)
+    local setPower = true
+    
     if (self.SetPowerOff and self:GetIsPowered()) then
-        self:SetPowerOff()
+       setPower = self:SetPowerOff()
     end
+    
+    if setPower then
+       self:SetPowerState(false)
+    end    
 end

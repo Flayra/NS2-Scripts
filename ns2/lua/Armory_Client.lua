@@ -228,7 +228,7 @@ function Armory:OnUse(player, elapsedTime, useAttachPoint, usePoint)
     local isLocalPlayer = (Client.GetLocalPlayer() == player)
     local isMouseVisble = Client.GetMouseVisible()
     
-    if self:GetIsBuilt() and self:GetIsActive() then
+    if self:GetIsBuilt() and self:GetIsActive() and not Shared.GetIsRunningPrediction() then
 
         if not isMouseVisible and (isPlayerAlive and isLocalPlayer) then    
         

@@ -13,16 +13,7 @@ function Spectator:OnInitLocalClient()
     if self.guiDistressBeacon == nil then
         self.guiDistressBeacon = GetGUIManager():CreateGUIScript("GUIDistressBeacon")
     end
-
-end
-
-function Spectator:OnDestroyClient()
-
-    Player.OnDestroyClient(self)
     
-    if self.guiDistressBeacon then
-        GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
-        self.guiDistressBeacon = nil
-    end
+    self:ShowMap(false, false)
 
 end

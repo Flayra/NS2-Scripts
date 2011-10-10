@@ -27,23 +27,11 @@ function ScriptActor:OnSynchronized()
 end
 
 function ScriptActor:OnDestroy()
-
-    // Only call OnDestroyClient() for entities that are on the Client
-    // Note: It isn't possible to check if this entity is the local player
-    // at this point because there are cases where the local player entity
-    // has changed before OnDestroy() is called
-    if(Client) then
-        self:OnDestroyClient()
-    end
     
     self:DestroyAttachedEffects()
 
     BlendedActor.OnDestroy(self)
     
-end
-
-// Called on the Client only, after children OnDestroy() functions.
-function ScriptActor:OnDestroyClient()
 end
 
 function ScriptActor:DestroyAttachedEffects()

@@ -856,31 +856,38 @@ function GUIAlienBuyMenu:_UpdateEvolveButton()
     local researched, researchProgress, researching = self:_GetAlienTypeResearchInfo(GUIAlienBuyMenu.kAlienTypes[self.selectedAlienType].Index)
     local selectedUpgradesCost = self:_GetSelectedUpgradesCost()
     local evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonTextureCoordinates
-    local evolveText = "Select upgrades"
+    local hasGameStarted = AlienBuy_GetHasGameStarted()
+    local evolveText = "Game has not started"
     local evolveCost = nil
     
-    // If the current alien is selected with no upgrades, cannot evolve.
-    if self.selectedAlienType == AlienBuy_GetCurrentAlien() and selectedUpgradesCost == 0 then
-        evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
-    // If researching, cannot evolve.
-    elseif researching then
-        evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
-        evolveText = "Researching..."
-    // If cannot afford selected alien type and/or upgrades, cannot evolve.
-    elseif not self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType) then
-        evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
-        evolveText = "Need "
-        evolveCost = AlienBuy_GetAlienCost(self.selectedAlienType) + selectedUpgradesCost
-    // Evolution is possible! Darwin would be proud.
-    else
-        local totalCost = selectedUpgradesCost
-        // Cannot buy the current alien.
-        if self.selectedAlienType ~= AlienBuy_GetCurrentAlien() then
-            totalCost = totalCost + AlienBuy_GetAlienCost(self.selectedAlienType)
+    // only change the text if the game has started
+    if (hasGameStarted) then
+        evolveText = "Select upgrades"        
+    
+        // If the current alien is selected with no upgrades, cannot evolve.
+        if self.selectedAlienType == AlienBuy_GetCurrentAlien() and selectedUpgradesCost == 0 then
+            evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
+        // If researching, cannot evolve.
+        elseif researching then
+            evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
+            evolveText = "Researching..."
+        // If cannot afford selected alien type and/or upgrades, cannot evolve.
+        elseif not self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType) then
+            evolveButtonTextureCoords = GUIAlienBuyMenu.kEvolveButtonNeedResourcesTextureCoordinates
+            evolveText = "Need "
+            evolveCost = AlienBuy_GetAlienCost(self.selectedAlienType) + selectedUpgradesCost
+        // Evolution is possible! Darwin would be proud.
+        else
+            local totalCost = selectedUpgradesCost
+            // Cannot buy the current alien.
+            if self.selectedAlienType ~= AlienBuy_GetCurrentAlien() then
+                totalCost = totalCost + AlienBuy_GetAlienCost(self.selectedAlienType)
+            end
+            evolveText = "Evolve for "
+            evolveCost = totalCost
         end
-        evolveText = "Evolve for "
-        evolveCost = totalCost
     end
+    
     self.evolveButtonBackground:SetTexturePixelCoordinates(unpack(evolveButtonTextureCoords))
     self.evolveButtonText:SetText(evolveText)
     self.evolveResourceIcon:SetIsVisible(evolveCost ~= nil)
@@ -893,7 +900,7 @@ function GUIAlienBuyMenu:_UpdateEvolveButton()
     end
     self.evolveButtonText:SetPosition(Vector(-totalEvolveButtonTextWidth / 2, 0, 0))
     
-    local allowedToEvolve = not researching and self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType)
+    local allowedToEvolve = not researching and self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType) and hasGameStarted
     local veinsAlpha = 0
     self.evolveButtonBackground:SetScale(Vector(1, 1, 0))
     if allowedToEvolve then
@@ -1178,7 +1185,7 @@ function GUIAlienBuyMenu:SendKeyEvent(key, down)
         local mouseX, mouseY = Client.GetCursorPosScreen()
         if down then
             // Check if the evolve button was selected.
-            local allowedToEvolve = self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType)
+            local allowedToEvolve = self:_GetCanAffordAlienTypeAndUpgrades(self.selectedAlienType) and AlienBuy_GetHasGameStarted()
             if allowedToEvolve and self:_GetIsMouseOver(self.evolveButtonBackground) then
                 local purchases = { }
                 // Buy the selected alien if we have a different one selected.

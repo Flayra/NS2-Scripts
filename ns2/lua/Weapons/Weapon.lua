@@ -71,6 +71,19 @@ function Weapon:OnDestroy()
 
 end
 
+function Weapon:OnParentChanged(oldParent, newParent)
+
+    ScriptActor.OnParentChanged(self, oldParent, newParent)
+    
+    if oldParent then
+    
+        self:OnPrimaryAttackEnd(oldParent)
+        self:OnSecondaryAttackEnd(oldParent)
+        
+    end
+
+end
+
 function Weapon:GetViewModelName()
     return ""
 end
@@ -416,14 +429,17 @@ function Weapon:SetRelevancy(sighted)
     if sighted then
         mask = bit.bor(mask, kRelevantToTeam1Commander, kRelevantToTeam2Commander)
     else
+    
         if self:GetTeamNumber() == 1 then
             mask = bit.bor(mask, kRelevantToTeam1Commander)
         elseif self:GetTeamNumber() == 2 then
             mask = bit.bor(mask, kRelevantToTeam2Commander)
         end
-    end  
-  
-    self:SetExcludeRelevancyMask( mask )
+        
+    end
+    
+    self:SetExcludeRelevancyMask(mask)
+    
 end
 
 Shared.LinkClassToMap("Weapon", Weapon.kMapName, networkVars)

@@ -76,7 +76,7 @@ function GetBuildAttachRequirementsMet(techId, position, teamNumber, snapRadius)
         // so one must be very close by (.5)
         legalBuild = false
         
-        attachEntity = GetAttachEntity(techId, position, snapRadius)
+        attachEntity = GetNearestFreeAttachEntity(techId, position, snapRadius, teamNumber)
         if attachEntity then            
         
             legalBuild = true
@@ -149,6 +149,7 @@ function GetBuildNoCollision(techId, position, attachEntity, ignoreEntity)
       // $AS FIXME: This is totally lame in how I should have to do this :/
       local noBuild = Pathing.GetIsFlagSet(position, extents, Pathing.PolyFlag_NoBuild)
       local walk = Pathing.GetIsFlagSet(position, extents, Pathing.PolyFlag_Walk)
+      // TODO: This should check trace.fraction as well
       if (not noBuild and walk) then
         result = true
       end
@@ -328,11 +329,32 @@ function GetIsBuildLegal(techId, position, snapRadius, player, ignoreEntity)
                 legalBuild = method(techId, legalPosition, trace.normal, player)
             end 
         end
+        
+        // TODO: Also check that we're not buliding in front of a structure "exit" (robotics factory, phase gate)
                
     end
     
     return legalBuild, legalPosition, attachEntity, errorString
 
+end
+
+// Make sure point isn't blocking attachment entities
+function GetPointBlocksAttachEntities(origin)
+
+    local nozzles = GetEntitiesWithinRange("ResourcePoint", origin, 1.5)
+    if table.count(nozzles) == 0 then
+    
+        local techPoints = GetEntitiesWithinRange("TechPoint", origin, 3.2)
+        if table.count(techPoints) == 0 then
+        
+            return false
+            
+        end
+        
+    end
+    
+    return true
+    
 end
 
 /**
@@ -539,9 +561,7 @@ function GetFreeAttachEntsForTechId(techId)
         for index, ent in ientitylist(Shared.GetEntitiesWithClassname(attachClass)) do
         
             if ent ~= nil and ent:GetAttached() == nil then
-            
                 table.insert(freeEnts, ent)
-                
             end
             
         end
@@ -552,7 +572,7 @@ function GetFreeAttachEntsForTechId(techId)
     
 end
 
-function GetNearestFreeAttachEntity(techId, origin, range)
+function GetNearestFreeAttachEntity(techId, origin, range, teamNumber)
 
     local nearest = nil
     local nearestDist = nil
@@ -697,7 +717,7 @@ function DropToFloor(point)
 
 end
 
-function GetNearestTechPoint(origin, teamType, availableOnly)
+function GetNearestTechPoint(origin, availableOnly)
 
     // Look for nearest empty tech point to use instead
     local nearestTechPoint = nil
@@ -706,8 +726,8 @@ function GetNearestTechPoint(origin, teamType, availableOnly)
     for index, techPoint in ientitylist(Shared.GetEntitiesWithClassname("TechPoint")) do
     
         // Only use unoccupied tech points that are neutral or marked for use with our team
-        local techPointTeamNumber = techPoint:GetTeamNumber()
-        if( ((not availableOnly) or (techPoint:GetAttached() == nil)) and ((techPointTeamNumber == kTeamReadyRoom) or (teamType == techPointTeamNumber)) ) then
+        local techPointTeamNumber = techPoint:GetTeamNumber()        
+        if( (not availableOnly) or (techPoint:GetAttached() == nil) ) then
     
             local distance = (techPoint:GetOrigin() - origin):GetLength()
             if(nearestTechPoint == nil or distance < nearestTechPointDistance) then
@@ -729,6 +749,8 @@ end
 local toEntity = Vector()
 function GetCanSeeEntity(seeingEntity, targetEntity)
 
+    PROFILE("GetCanSeeEntity")
+    
     local seen = false
     
     // See if line is in our view cone
@@ -866,9 +888,7 @@ function GetLightsForPowerPoint(powerPoint)
             end
             
         end
-    
-    else
-        Print("GetLightsForPowerPoint(powerPoint): Couldn't find location entity named %s", ToString(locationName))
+        
     end
     
     return lightList
@@ -1495,5 +1515,147 @@ function GetInfestationVerticalSize(entity)
     end
     
     return infestationVerticalSize
+    
+end
+
+function BuildClassToGrid()
+
+    local ClassToGrid = { }
+
+    ClassToGrid["TechPoint"] = { 1, 1 }
+    ClassToGrid["ResourcePoint"] = { 2, 1 }
+    ClassToGrid["Door"] = { 3, 1 }
+    ClassToGrid["DoorLocked"] = { 4, 1 }
+    ClassToGrid["DoorWelded"] = { 5, 1 }
+    ClassToGrid["Grenade"] = { 6, 1 }
+    ClassToGrid["PowerPoint"] = { 7, 1 }
+
+    ClassToGrid["ReadyRoomPlayer"] = { 1, 2 }
+    ClassToGrid["Marine"] = { 1, 2 }
+    ClassToGrid["Heavy"] = { 2, 2 }
+    ClassToGrid["Jetpack"] = { 3, 2 }
+    ClassToGrid["MAC"] = { 4, 2 }
+    ClassToGrid["CommandStationOccupied"] = { 5, 2 }
+    ClassToGrid["CommandStationL2Occupied"] = { 6, 2 }
+    ClassToGrid["CommandStationL3Occupied"] = { 7, 2 }
+    ClassToGrid["Death"] = { 8, 2 }
+
+    ClassToGrid["Skulk"] = { 1, 3 }
+    ClassToGrid["Gorge"] = { 2, 3 }
+    ClassToGrid["Lerk"] = { 3, 3 }
+    ClassToGrid["Fade"] = { 4, 3 }
+    ClassToGrid["Onos"] = { 5, 3 }
+    ClassToGrid["Drifter"] = { 6, 3 }
+    ClassToGrid["HiveOccupied"] = { 7, 3 }
+    ClassToGrid["Kill"] = { 8, 3 }
+
+    ClassToGrid["CommandStation"] = { 1, 4 }
+    ClassToGrid["CommandStationL2"] = { 2, 4 }
+    ClassToGrid["CommandStationL3"] = { 3, 4 }
+    ClassToGrid["Extractor"] = { 4, 4 }
+    ClassToGrid["Sentry"] = { 5, 4 }
+    ClassToGrid["ARC"] = { 6, 4 }
+    ClassToGrid["ARCDeployed"] = { 7, 4 }
+
+    ClassToGrid["InfantryPortal"] = { 1, 5 }
+    ClassToGrid["Armory"] = { 2, 5 }
+    ClassToGrid["AdvancedArmory"] = { 3, 5 }
+    ClassToGrid["AdvancedArmoryModule"] = { 4, 5 }
+    ClassToGrid["Observatory"] = { 6, 5 }
+
+    ClassToGrid["HiveBuilding"] = { 1, 6 }
+    ClassToGrid["Hive"] = { 2, 6 }
+    ClassToGrid["Harvester"] = { 5, 6 }
+    ClassToGrid["Hydra"] = { 6, 6 }
+    ClassToGrid["Egg"] = { 7, 6 }
+
+    ClassToGrid["Crag"] = { 1, 7 }
+    ClassToGrid["MatureCrag"] = { 2, 7 }
+    ClassToGrid["Whip"] = { 3, 7 }
+    ClassToGrid["MatureWhip"] = { 4, 7 }
+
+    ClassToGrid["WaypointMove"] = { 1, 8 }
+    ClassToGrid["WaypointDefend"] = { 2, 8 }
+    ClassToGrid["PlayerFOV"] = { 4, 8 }
+    
+    return ClassToGrid
+    
+end
+
+/**
+ * Returns Column and Row to find the minimap icon for the passed in class.
+ */
+function GetSpriteGridByClass(class, classToGrid)
+
+    // This really shouldn't happen but lets return something just in case.
+    if not classToGrid[class] then
+        return 8, 1
+    end
+    
+    return unpack(classToGrid[class])
+    
+end
+AddFunctionContract(GetSpriteGridByClass, { Arguments = { "string", "array" }, Returns = { "number", "number" } })
+
+function getNearestActiveStructure(structureList, entity)
+
+    local nearestStructure = nil
+    local nearestDist = nil
+    
+    for index, structure in ipairs(structureList) do
+    
+        if structure:GetIsActive() then
+        
+            local dist = (structure:GetOrigin() - entity:GetOrigin()):GetLength()
+            
+            if(nearestStructure == nil or (dist < nearestDist)) then
+            
+                nearestStructure = structure
+                nearestDist = dist
+                
+            end
+            
+        end
+        
+    end
+    
+    return nearestStructure
+    
+end        
+
+function GetMarineToRespawnForIP(infantryPortalList, marineList, ip)
+
+    local index = nil
+    local marine = nil
+    
+    if ip ~= nil and ip:GetIsActive() then
+    
+        function sortByDeadLongest(p1, p2)
+            return p1:GetRespawnQueueEntryTime() > p2:GetRespawnQueueEntryTime()
+        end
+        
+        // Get list of marines and order them by how long they've been dead
+        table.sort(marineList, sortByDeadLongest)
+        
+        // Go through list of marines, choosing that one to spawn, unless:
+        local numMarines = table.count(marineList)
+        
+        for index, marine in ipairs(marineList) do
+        
+            // If marine has an IP closer to where he died that he could respawn at without waiting more than 5 extra seconds, use that instead
+            local nearestIp = getNearestActiveStructure(infantryPortalList, marine)
+            if (nearestIp ~= ip) and nearestIp:GetDelayUntilNextQueue() < (ip:GetDelayUntilNextQueue() + 6) then
+            
+                // Continue to the next marine
+                
+            else
+                return marine
+            end
+            
+        end
+        
+    end
+    
+    return marine
     
 end

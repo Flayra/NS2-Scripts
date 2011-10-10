@@ -88,6 +88,12 @@ function PowerManager:RegisterPowerEvent(entity, event)
     table.insertunique(self.powerEvents[event], entity:GetId())
 end
 
+function PowerManager:UnRegisterPowerEvent(entity, event)    
+    if (self.powerEvents[event] ~= nil) then
+        table.removevalue(self.powerEvents[event], entity:GetId())       
+    end            
+end
+
 function PowerManager:GetIsLocationPowered(entity, sendEvent)
     //$AS TODO: Use powerGrid instead of this horrible search method that makes me sad
     local foundPower = false

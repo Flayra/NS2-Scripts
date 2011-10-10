@@ -11,6 +11,7 @@
 
 Script.Load("lua/Mixins/GroundMoveMixin.lua")
 Script.Load("lua/Mixins/CameraHolderMixin.lua")
+Script.Load("lua/Alien.lua")
 
 class 'Embryo' (Alien)
 
@@ -30,6 +31,21 @@ Embryo.networkVars =
 
 PrepareClassForMixin(Embryo, GroundMoveMixin)
 PrepareClassForMixin(Embryo, CameraHolderMixin)
+
+function Embryo:OnDestroy()
+
+    Alien.OnDestroy(self)
+    
+    if Client then
+    
+        if self.embryoHUD then
+            GetGUIManager():DestroyGUIScript(self.embryoHUD)
+            self.embryoHUD = nil
+        end
+        
+    end
+    
+end
 
 function Embryo:OnInit()
 
@@ -73,17 +89,6 @@ function Embryo:OnInitLocalClient()
     Alien.OnInitLocalClient(self)
     
     self.embryoHUD = GetGUIManager():CreateGUIScript("GUIEmbryoHUD")
-    
-end
-
-function Embryo:OnDestroyClient()
-
-    Alien.OnDestroyClient(self)
-    
-    if self.embryoHUD then
-        GetGUIManager():DestroyGUIScript(self.embryoHUD)
-        self.embryoHUD = nil
-    end
     
 end
 
@@ -186,6 +191,10 @@ if Server then
             
                 // Replace player with new player
                 local newPlayer = self:Replace(self.gestationClass)
+                
+                // Initialize weapons again, now that upgrades have been transferred (to make sure
+                // bilebomb is given, etc.)
+                newPlayer:InitWeapons()
                 
                 newPlayer:DropToFloor()
                 

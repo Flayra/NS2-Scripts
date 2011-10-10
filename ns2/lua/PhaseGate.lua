@@ -48,6 +48,10 @@ PhaseGate.spawnOffset = Vector(0, 0.1, 0)
 // Can only teleport a player every so often
 PhaseGate.kDepartureRate = .5
 
+PhaseGate.kXExtents = 1.08
+PhaseGate.kYExtents = 1.27
+PhaseGate.kZExtents = 1.04
+
 PhaseGate.networkVars =
 {
     linked              = "boolean",
@@ -101,6 +105,16 @@ function PhaseGate:GetDestLocationId()
     return self.destLocationId
 end
 
+function PhaseGate:GetEffectParams(tableParams)
+
+    Structure.GetEffectParams(self, tableParams)
+
+    // Override active field here to mean "linked"    
+    tableParams[kEffectFilterActive] = self.linked
+        
+end
+
+
 if Server then
 
 /**
@@ -136,25 +150,21 @@ function PhaseGate:Update()
                 
                 local destOrigin = destinationPhaseGate:GetOrigin() + PhaseGate.spawnOffset
                 
-                // Check if destination is clear
-                if player:SpaceClearForEntity(destOrigin) then
+                // Don't bother checking if destination is clear, rely on pushing away entities
+                self:TriggerEffects("phase_gate_player_enter")
                 
-                    self:TriggerEffects("phase_gate_player_enter")
-                    
-                    TransformPlayerCoordsForPhaseGate(player, self:GetCoords(), destinationPhaseGate:GetCoords())
-            
-                    SpawnPlayerAtPoint(player, destOrigin)
-                    
-                    destinationPhaseGate:TriggerEffects("phase_gate_player_exit")
-                    
-                    self.timeOfLastPhase = Shared.GetTime()
-                    
-                    player:SetTimeOfLastPhase(self.timeOfLastPhase)
-                    
-                    break    
+                TransformPlayerCoordsForPhaseGate(player, self:GetCoords(), destinationPhaseGate:GetCoords())
+        
+                SpawnPlayerAtPoint(player, destOrigin)
+                
+                destinationPhaseGate:TriggerEffects("phase_gate_player_exit")
+                
+                self.timeOfLastPhase = Shared.GetTime()
+                
+                player:SetTimeOfLastPhase(self.timeOfLastPhase)
+                
+                break    
 
-                end
-                
             end
             
         end

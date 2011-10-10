@@ -238,16 +238,16 @@ function Sentry:OnAnimationComplete(animName)
         
 end
 
-function Sentry:OnPoweredChange(newPoweredState)
+function Sentry:SetPowerOn()
+    self:SetMode(Sentry.kMode.PoweringUp)
+    
+    return Structure.SetPowerOn(self)
+end
 
-    Structure.OnPoweredChange(self, newPoweredState)
+function Sentry:SetPowerOff()
+    self:SetMode(Sentry.kMode.PoweringDown)  
     
-    if not newPoweredState then
-        self:SetMode(Sentry.kMode.PoweringDown)    
-    else
-        self:SetMode(Sentry.kMode.PoweringUp)
-    end
-    
+    return Structure.SetPowerOff(self)
 end
 
 function Sentry:GetDamagedAlertId()
@@ -261,11 +261,34 @@ function Sentry:UpdateAcquireTarget(deltaTime)
 
     // Don't look for new target if we have one (allows teams to gang up on sentries)
     local currentTarget = self:GetTarget() 
-    if not currentTarget and (currentTime > (self.timeOfLastTargetAcquisition + Sentry.kTargetCheckTime)) then
+    
+    local attackEntValid = false
+    
+    if currentTarget ~= nil then
+        attackEntValid = self.targetSelector:ValidateTarget(currentTarget)
+    end
+    
+    if (not attackEntValid) and (currentTime > (self.timeOfLastTargetAcquisition + Sentry.kTargetCheckTime)) then
     
         targetAcquired = self:SetTarget(self.targetSelector:AcquireTarget())
         self.timeOfLastTargetAcquisition = currentTime
             
+    end
+    
+    // TODO: check if we could prevent the problem somewhere else and make this code obsolete    
+    if self:GetSentryMode() == Sentry.kMode.SpinningUp or self:GetSentryMode() == Sentry.kMode.SpinningDown and attackEntValid then // attackEntValid
+    
+       self:SetDesiredMode(Sentry.kMode.Attacking)
+       self:SetTarget(target)
+       
+    elseif self:GetSentryMode() == Sentry.kMode.Attacking and not attackEntValid then  // attackEntValid
+
+        self:SetDesiredMode(Sentry.kMode.SpinningDown)
+        self:SetMode(Sentry.kMode.SpinningDown)
+        
+        if order then
+            self:ClearOrders()
+        end
     end
     
     return targetAcquired
@@ -287,7 +310,7 @@ function Sentry:UpdateAttackTarget(deltaTime)
         local currentTime = self.timeOfLastUpdate + deltaTime
    
         if (attackEntValid or attackLocationValid) and (self.timeNextAttack == nil or (currentTime > self.timeNextAttack)) then
-        
+               
             local currentAnim = self:GetAnimation()
             local mode = self:GetSentryMode()
             
@@ -302,7 +325,11 @@ function Sentry:UpdateAttackTarget(deltaTime)
                 self.timeNextAttack = currentTime + .1
             end        
 
-        end    
+        end  
+        
+        if not attackEntValid then
+            self:ClearOrders()
+        end
         
     end
    
@@ -318,6 +345,7 @@ function Sentry:UpdateAttack(deltaTime)
 
         // If we have order
         local order = self:GetCurrentOrder()
+
         if order ~= nil and (order:GetType() == kTechId.SetTarget) then
         
             self:UpdateSetTarget()
@@ -497,11 +525,17 @@ end
 function Sentry:OnOrderChanged()
 
     if not self:GetHasOrder() then
-        self:SetDesiredMode(Sentry.kMode.Scanning)
+    
+        if self.mode == Sentry.kMode.Attacking or
+           self.mode == Sentry.kMode.PoweringUp or
+           self.mode == Sentry.kMode.SettingTarget then
+            self:SetDesiredMode(Sentry.kMode.Scanning)
+        end
+        
     else
     
         local orderType = self:GetCurrentOrder():GetType()
-        if orderType == kTechId.Attack then
+        if orderType == kTechId.Attack and self.mode == Sentry.kMode.Scanning then
             self:SetDesiredMode(Sentry.kMode.Attacking)
         elseif orderType == kTechId.Stop then
             self:SetDesiredMode(Sentry.kMode.Scanning)

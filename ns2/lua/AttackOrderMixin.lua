@@ -169,6 +169,10 @@ function AttackOrderMixin:_OrderMeleeAttack(target)
             attacker = self
         end
         
+        if HasMixin(self, "Cloakable") then
+            self:TriggerUncloak()
+        end
+        
         target:TakeDamage(self:GetMeleeAttackDamage(), attacker, self, trace.endPoint, direction)
 
         // Play hit effects - doer, target, origin, surface

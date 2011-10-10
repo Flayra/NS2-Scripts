@@ -60,7 +60,7 @@ end
 
 function MarineTeam:SpawnInitialStructures(teamLocation)
 
-    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), self:GetTeamType(), true)
+    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), true)
     
     //if nearestTechPoint ~= nil then
     //    self:SpawnIP(nearestTechPoint:GetOrigin())

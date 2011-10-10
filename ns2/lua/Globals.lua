@@ -154,7 +154,7 @@ kMaxEntityStringLength = 32
 kMaxAnimationStringLength = 32
 
 // Player modes. When outside the default player mode, input isn't processed from the player
-kPlayerMode = enum( {'Default', 'Taunt', 'Knockback', 'StandUp', 'GorgeStructure', 'GorgeStartArmor', 'GorgeArmor', 'GorgeEndArmor', 'GorgeStartSlide', 'GorgeSliding', 'GorgeEndSlide', 'GorgeDeath', 'FadeBlinkIn', 'FadeBlinkOut', 'FadeStab', 'OnosStartJump'} )
+kPlayerMode = enum( {'Default', 'Taunt', 'Knockback', 'StandUp', 'GorgeStructure', 'GorgeStartArmor', 'GorgeArmor', 'GorgeEndArmor', 'GorgeStartSlide', 'GorgeSliding', 'GorgeEndSlide', 'GorgeDeath', 'FadeBlinkIn', 'FadeBlinkOut', 'FadeStab'} )
 
 // Team alert types
 kAlertType = enum( {'Attack', 'Info', 'Request'} )

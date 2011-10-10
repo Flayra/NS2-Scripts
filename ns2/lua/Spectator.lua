@@ -19,6 +19,8 @@ Spectator.kAcceleration = 100
 Spectator.kDeadSound = PrecacheAsset("sound/ns2.fev/common/dead")
 Spectator.kSpectatorMode = enum( {'FreeLook', 'Following'} )
 
+Spectator.kSpectatorMapMode = enum( {'Invisible', 'Small', 'Big'} )
+
 Spectator.networkVars =
 {
     specMode = "enum Spectator.kSpectatorMode",
@@ -42,6 +44,13 @@ function Spectator:OnCreate()
     
     InitMixin(self, SpectatorMoveMixin)
     InitMixin(self, CameraHolderMixin, { kFov = Player.kFov })
+    
+    if Client then
+    
+        self.mapButtonPressed = false
+        self.mapMode = Spectator.kSpectatorMapMode.Invisible
+        
+    end
 
 end
 
@@ -89,8 +98,16 @@ end
 function Spectator:OnDestroy()
 
     if Client then
+    
         Shared.StopSound(self, Spectator.kDeadSound)
+    
+        if self.guiDistressBeacon then
+            GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
+            self.guiDistressBeacon = nil
+        end
+
     end
+    
     Player.OnDestroy(self)
     
 end
@@ -370,7 +387,45 @@ function Spectator:_HandleSpectatorButtons(input)
     end
     
     self:UpdateScoreboard(input)
-    self:UpdateShowMap(input)
+
+    if Client then
+        self:_UpdateToggleMap(input)
+    end
+
+end
+
+function Spectator:_UpdateToggleMap(input)
+
+    if not Shared.GetIsRunningPrediction() then
+    
+        local buttonPressedNow = bit.band(input.commands, Move.ShowMap) ~= 0
+        if self.mapButtonPressed ~= buttonPressedNow then
+        
+            self.mapButtonPressed = buttonPressedNow
+            if self.mapButtonPressed then
+            
+                if self.mapMode == Spectator.kSpectatorMapMode.Invisible then
+                
+                    self.mapMode = Spectator.kSpectatorMapMode.Small
+                    self:ShowMap(true, false, true)
+                    
+                elseif self.mapMode == Spectator.kSpectatorMapMode.Small then
+                
+                    self.mapMode = Spectator.kSpectatorMapMode.Big
+                    self:ShowMap(true, true, true)
+                    
+                elseif self.mapMode == Spectator.kSpectatorMapMode.Big then
+                
+                    self.mapMode = Spectator.kSpectatorMapMode.Invisible
+                    self:ShowMap(false, false, true)
+                    
+                end
+                
+            end
+            
+        end
+    
+    end
 
 end
 

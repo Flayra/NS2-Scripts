@@ -75,3 +75,114 @@ function ParsePathingSettings(settings)
   SetPathingOption(Pathing.Option_DetailSampleMaxError, settings.option_detail_sample_max_error)
   SetPathingOption(Pathing.Option_TileSize, settings.option_tile_size)  
 end
+
+/**
+ * Adds additional points to the path to ensure that no two points are more than
+ * maxDistance apart.
+ */
+function SplitPathPoints(points, maxDistance, maxPoints)
+    PROFILE("SplitPathPoints") 
+    local numPoints   = #points    
+    local maxPoints   = maxPoints
+    numPoints = math.min(maxPoints, numPoints)    
+    local i = 1
+    while i < numPoints do
+        
+        local point1 = points[i]
+        local point2 = points[i + 1]
+
+        // If the distance between two points is large, add intermediate points
+        
+        local delta    = point2 - point1
+        local distance = delta:GetLength()
+        local numNewPoints = math.floor(distance / maxDistance)
+        local p = 0
+        for j=1,numNewPoints do
+
+            local f = j / numNewPoints
+            local newPoint = point1 + delta * f
+            if (table.find(points, newPoint) == nil) then
+                i = i + 1
+                table.insert( points, i, newPoint )
+                p = p + 1
+            end                     
+        end 
+        i = i + 1    
+        numPoints = numPoints + p        
+    end    
+end
+
+function TraceEndPoint(src, dst, trace, skinWidth)
+
+    local delta    = dst - src
+    local distance = delta:GetLength()
+    local fraction = trace.fraction
+    fraction = Math.Clamp( fraction + (fraction - 1.0) * skinWidth / distance, 0.0, 1.0 )
+    
+    return src + delta * fraction
+
+end
+
+/**
+ * Returns a list of point connecting two points together. If there's no path, returns nil.
+ */
+function GeneratePath(src, dst, doSplit, splitDist, maxSplitPoints)
+    PROFILE("GeneratePath")  
+    local mask = CreateGroupsFilterMask(PhysicsGroup.StructuresGroup, PhysicsGroup.PlayerControllersGroup, PhysicsGroup.PlayerGroup)    
+    local climbAmount   = 0.3   // Distance to "climb" over obstacles each iteration
+    local climbOffset   = Vector(0, climbAmount, 0)
+    local maxIterations = 10    // Maximum number of attempts to trace to the dst
+    
+    local points = { }    
+    
+    // Query the pathing system for the path to the dst
+    // if fails then fallback to the old system
+    local isReachable = Pathing.GetPathPoints(src, dst, points)     
+    
+    if (#(points) ~= 0) then      
+        return points
+    end    
+    
+    for i=1,maxIterations do
+
+        local trace = Shared.TraceRay(src, dst, mask)
+        table.insert( points, src )
+        
+        if trace.fraction == 1 or trace.endPoint:GetDistanceSquared(dst) < (0.25 * 0.25) then
+            table.insert( points, dst )
+            SubdividePathPoints( points, 0.5 )
+            return points
+        elseif trace.fraction == 0 then
+            return nil
+        end
+        
+        local endPoint = TraceEndPoint(src, dst, trace, 0.1)
+        local upPoint  = endPoint + climbOffset
+        
+        // Move up to the hit point and over any obstacles.
+        trace = Shared.TraceRay( endPoint, upPoint, mask )
+        src = TraceEndPoint(endPoint, upPoint, trace, 0.1)
+
+    end
+            
+    return nil
+
+end
+
+function GetPointDistance(points)
+    if (points == nil) then
+      return 0
+    end
+    local numPoints   = #points
+    local distance = 0
+    local i = 1
+    while i < numPoints do
+      if (i > 1) then    
+        distance = distance + (points[i - 1] - points[i]):GetLength()
+      end
+      i = i + 1
+    end
+    
+    distance = math.max(0.0, distance)
+    return distance
+end

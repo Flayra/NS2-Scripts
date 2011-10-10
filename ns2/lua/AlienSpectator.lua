@@ -71,7 +71,6 @@ function AlienSpectator:GetEggId()
     return self.eggId
 end
 
-// more accurate name for that function would be now "SpawnPlayerOnJump()"
 function AlienSpectator:SpawnPlayerOnAttack()
 
     local egg = self:GetHostEgg()
@@ -153,9 +152,9 @@ end
 function AlienSpectator:_HandleSpectatorButtons(input)
 
     //exlude attack and jump get not proccessed
-    local cycleLeft = bit.band(input.commands, Move.PrimaryAttack) ~= 0
+    local cycleLeft = bit.band(input.commands, Move.Jump) ~= 0
     local cycleRight = bit.band(input.commands, Move.SecondaryAttack) ~= 0
-    local hatch = bit.band(input.commands, Move.Jump) ~= 0
+    local hatch = bit.band(input.commands, Move.PrimaryAttack) ~= 0
 
     local time = Shared.GetTime()
     
@@ -182,10 +181,13 @@ function AlienSpectator:_HandleSpectatorButtons(input)
 	                self.timeOfLastInput = Shared.GetTime()
 	                
 	            elseif hatch then
-	            
-	                self:SpawnPlayerOnAttack()
-	                self.timeOfLastInput = Shared.GetTime()
-	            
+	                local hostEgg = self:GetHostEgg()
+	                if (not hostEgg:IsEvolving()) then
+	                    self:AddTooltipOnce("This Egg is currently Evolving")
+	                else
+	                    self:SpawnPlayerOnAttack()
+	                    self.timeOfLastInput = Shared.GetTime()
+	                end	            
 	            end
 	            
 	        end

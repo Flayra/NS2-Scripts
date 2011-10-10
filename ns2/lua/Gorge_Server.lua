@@ -15,11 +15,16 @@ function Gorge:InitWeapons()
     self:GiveItem(HydraAbility.kMapName)
     self:GiveItem(CystAbility.kMapName)
     
+    if self:GetHasUpgrade(kTechId.BileBomb) then
+        self:GiveItem(BileBomb.kMapName)
+    end
+    
     self:SetActiveWeapon(SpitSpray.kMapName)
     
 end
 
 function Gorge:OnGiveUpgrade(techId)
+
     if techId == kTechId.BileBomb then
         self:GiveItem(BileBomb.kMapName)
     end

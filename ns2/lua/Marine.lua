@@ -11,6 +11,7 @@ Script.Load("lua/Mixins/GroundMoveMixin.lua")
 Script.Load("lua/Mixins/CameraHolderMixin.lua")
 Script.Load("lua/OrderSelfMixin.lua")
 Script.Load("lua/DisorientableMixin.lua")
+Script.Load("lua/PickupableWeaponFinderMixin.lua")
 
 class 'Marine' (Player)
 
@@ -34,6 +35,7 @@ Marine.kCatalystSound = PrecacheAsset("sound/ns2.fev/marine/common/catalyst")
 Marine.kSquadSpawnSound = PrecacheAsset("sound/ns2.fev/marine/common/squad_spawn")
 Marine.kChatSound = PrecacheAsset("sound/ns2.fev/marine/common/chat")
 Marine.kSoldierLostAlertSound = PrecacheAsset("sound/ns2.fev/marine/voiceovers/soldier_lost")
+Marine.kTauntSound = PrecacheAsset("sound/ns2.fev/marine/voiceovers/taunt")
 
 Marine.kFlinchEffect = PrecacheAsset("cinematics/marine/hit.cinematic")
 Marine.kFlinchBigEffect = PrecacheAsset("cinematics/marine/hit_big.cinematic")
@@ -75,7 +77,7 @@ Marine.kAirSpeedMultiplier = 3
 Marine.kStowedWeaponWeightScalar = .7
 
 // How fast does our armor get repaired by marines
-Marine.kArmorWeldRate = 12
+Marine.kArmorWeldRate = 18
 Marine.kWeldedEffectsInterval = .5
 
 Marine.networkVars = 
@@ -109,9 +111,6 @@ Marine.networkVars =
     weaponShouldLiftDuration        = "float",
     weaponLiftInactiveTime          = "float",
     nextWeaponLiftCheckTime         = "float",
-
-    waypointOrigin                  = "vector",
-    waypointEntityId                = "entityid",
     
     timeOfLastDrop                  = "float",
     inventoryWeight                 = "compensated float"
@@ -126,13 +125,14 @@ function Marine:OnCreate()
 
     InitMixin(self, GroundMoveMixin, { kGravity = Player.kGravity })
     InitMixin(self, CameraHolderMixin, { kFov = Player.kFov })
+    InitMixin(self, PickupableWeaponFinderMixin)
     
     Player.OnCreate(self)
     
     self.inventoryWeight = 0
     
     if (Client) then
-   
+    
         // Create the flash light
         
         self.flashlight = Client.CreateRenderLight()
@@ -197,8 +197,6 @@ function Marine:OnInit()
     self.sprintingScalar = 0
     self.timeSprintChange = nil
 
-    self.waypointOrigin = Vector(0, 0, 0)
-    self.waypointEntityId = Entity.invalidId
     self.timeOfLastDrop = 0
                     
 end
@@ -227,10 +225,40 @@ function Marine:OnDestroy()
 
     Player.OnDestroy(self)
 
-    if (Client) then
+    if Client then
     
-        if (self.flashlight ~= nil) then
+        if self.flashlight ~= nil then
             Client.DestroyRenderLight(self.flashlight)
+        end
+        
+        if self.marineHUD then
+            GetGUIManager():DestroyGUIScript(self.marineHUD)
+            self.marineHUD = nil
+        end
+        
+        if self.waypoints then
+            GetGUIManager():DestroyGUIScript(self.waypoints)
+            self.waypoints = nil
+        end
+        
+        if self.pickups then
+            GetGUIManager():DestroyGUIScript(self.pickups)
+            self.pickups = nil
+        end
+        
+        if self.guiOrders then
+            GetGUIManager():DestroyGUIScript(self.guiOrders)
+            self.guiOrders = nil
+        end
+        
+        if self.guiSquad then
+            GetGUIManager():DestroyGUIScript(self.guiSquad)
+            self.guiSquad = nil
+        end
+        
+        if self.guiDistressBeacon then
+            GetGUIManager():DestroyGUIScript(self.guiDistressBeacon)
+            self.guiDistressBeacon = nil
         end
         
     end
@@ -315,10 +343,8 @@ function Marine:HandleButtons(input)
 
     PROFILE("Marine:HandleButtons")
     
-    if(not self.sprinting) then
-    
+    if not self.sprinting then
         Player.HandleButtons(self, input)
-    
     else
     
         // Allow show map even when sprinting.
@@ -337,6 +363,17 @@ function Marine:HandleButtons(input)
     end
     
     self:UpdateJetpack(input)
+    
+    if Server and bit.band(input.commands, Move.Drop) ~= 0 then
+    
+        local nearbyDroppedWeapon = self:GetNearbyPickupableWeapon()
+        if nearbyDroppedWeapon then
+            self:AddWeapon(nearbyDroppedWeapon, true)
+        else
+            self:Drop()
+        end
+        
+    end
     
 end
 
@@ -820,23 +857,6 @@ function Marine:UpdateHelp()
     
 end
 
-// Pass entity id or vector of world origin
-function Marine:SetWaypoint(waypoint)
-
-    if destwaypoint:isa("Vector") then
-    
-        self.waypointOrigin = waypoint
-        self.waypointEntityId = Entity.invalidId
-        
-    else
-    
-        self.waypointOrigin = Vector(0, 0, 0)
-        self.waypointEntityId = waypoint
-        
-    end
-    
-end
-
 // Returns the name of the primary weapon
 function Marine:GetPlayerStatusDesc()
 
@@ -976,8 +996,8 @@ function Marine:OnWeaponAdded(weapon)
     Shared.PlayWorldSound(nil, Marine.kGunPickupSound, nil, self:GetOrigin())
 end
 
-// No animations for it yet
-function Marine:Taunt()
+function Marine:GetTauntSound()
+    return Marine.kTauntSound
 end
 
 Shared.LinkClassToMap( "Marine", Marine.kMapName, Marine.networkVars )

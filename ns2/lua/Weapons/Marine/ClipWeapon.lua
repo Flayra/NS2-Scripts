@@ -50,7 +50,7 @@ function ClipWeapon:GetBulletsPerShot()
 end
 
 function ClipWeapon:GetNumStartClips()
-    return 4
+    return 5
 end
 
 function ClipWeapon:GetClipSize()
@@ -189,7 +189,7 @@ function ClipWeapon:GetCanIdle()
     return Weapon.GetCanIdle(self) and not self:GetIsReloading()
 end
 
-function ClipWeapon:GiveAmmo(numClips)
+function ClipWeapon:GiveAmmo(numClips, includeClip)
 
     // Fill reserves, then clip. NS1 just filled reserves but I like the implications of filling the clip too.
     // But don't do it until reserves full.
@@ -207,7 +207,7 @@ function ClipWeapon:GiveAmmo(numClips)
         
     end
     
-    if bulletsToGive > 0 and (self:GetClip() < self:GetClipSize()) then
+    if bulletsToGive > 0 and (self:GetClip() < self:GetClipSize() and includeClip) then
         
         self.clip = self.clip + math.min(bulletsToGive, self:GetClipSize() - self:GetClip())
         success = true        
@@ -218,8 +218,8 @@ function ClipWeapon:GiveAmmo(numClips)
     
 end
 
-function ClipWeapon:GetNeedsAmmo()
-    return (self:GetClip() < self:GetClipSize()) or (self:GetAmmo() < self:GetMaxAmmo())
+function ClipWeapon:GetNeedsAmmo(includeClip)
+    return (includeClip and (self:GetClip() < self:GetClipSize())) or (self:GetAmmo() < self:GetMaxAmmo())
 end
 
 function ClipWeapon:GetWarmupTime()

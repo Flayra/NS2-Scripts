@@ -90,7 +90,7 @@ function LOSMixin:CanSee(entity)
     
     if (entity:isa("Player") and not entity:GetIsAlive()) then
       return false
-    end  
+    end        
     
     // If we are already too far away then we do not want to go any further
     local maxDist = self:GetVisionRadius()
@@ -99,7 +99,12 @@ function LOSMixin:CanSee(entity)
         return false
     end
     
+    
     if dist < LOSMixin.kUnitMinLOSDistance then
+        // If we are the min dist away but are cloaked then we need to return false here. 
+        if (HasMixin(entity, "Cloakable") and entity:GetIsCloaked()) or (HasMixin(entity, "Camouflage") and entity:GetIsCamouflaged()) then    
+            return false
+        end        
         return true
     end
     

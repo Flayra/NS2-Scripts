@@ -112,20 +112,20 @@ function Structure:OnPreUpgradeToTechId(newTechId)
     
 end
 
-function Structure:UpdateStructure(timePassed)
+function Structure:UpdateAutoBuild(deltaTime)
 
-    local shouldUpdate = (self:GetIsBuilt() or self:GetRecycleActive())
+    PROFILE("Structure:UpdateAutoBuild")
+
+    // Only Alien structures auto build.
+    // Update build fraction every tick to be smooth.
+    if not self:GetIsBuilt() and self:GetTeamType() == kAlienTeamType then
     
-    if shouldUpdate then    
-        self:UpdateResearch(timePassed)        
+        // Account for metabolize game effects.
+        local autoBuildTime = GetAlienEvolveResearchTime(deltaTime, self)
+        self:Construct(autoBuildTime)
+    
     end
     
-    if self:GetIsBuilt() then
-        self:UpdateEnergy(timePassed)
-    end
-    
-    self:UpdateRecycle(timePassed)
-
 end
 
 function Structure:AbortResearch(refundCost)
@@ -358,6 +358,10 @@ function Structure:OnInit()
     end
     
     self:SetPhysicsGroup(PhysicsGroup.StructuresGroup)
+    
+    // Log building creation
+    PostGameViz(string.format("%s built", SafeClassName(self)), self)
+    
 end
 
 /**
@@ -430,12 +434,9 @@ end
 function Structure:OnDestroy()
 
     local team = self:GetTeam()
-    if(team ~= nil) then
+    if team ~= nil then
         team:TechRemoved(self)
-        team:StructureDestroyed(self)
     end
-    
-    self:RemoveFromMesh()
     
     ScriptActor.OnDestroy(self)
     
@@ -477,13 +478,21 @@ function Structure:OnConstructionComplete()
         self:GetTeam():TriggerAlert(kTechId.MarineAlertConstructionComplete, self) 
     end
     
-    self:TriggerEffects("construction_complete")   
+    self:TriggerEffects("construction_complete")         
     
-    if (self:GetRequiresPower()) then
-        self:UpdatePowerState()
+    
+    // $AS FIXME: We should move this out of this function 
+    // put this into a mixin somewhere 
+    if (not self:GetRequiresPower()) then
+        local deployAnim = self:GetDeployAnimation()
+        if deployAnim ~= "" then
+            self:SetAnimation(deployAnim)
+        end
+        
+        self:TriggerEffects("deploy")
     end
     
-    if (not self:GetRequiresPower() or self:GetIsPowered()) then
+    if (not self:GetRequiresPower() or self:GetIsPowered()) then            
         local team = self:GetTeam()
         if team then
             team:TechAdded(self)
@@ -497,6 +506,9 @@ function Structure:SetLocationName(name)
 end
 
 function Structure:SetPowerOn()
+    if (not self:GetIsBuilt()) then
+        return false
+    end
     
     if not self.deployed then        
         local deployAnim = self:GetDeployAnimation()
@@ -515,10 +527,15 @@ function Structure:SetPowerOn()
     end
     
     self:OnPoweredTech()
+    
+    return true
 end
 
 function Structure:SetPowerOff()
-
+    if (not self:GetIsBuilt()) then
+        return false
+    end
+    
     local powerDownAnim = self:GetPowerDownAnimation()
     if powerDownAnim ~= "" then
         self:SetAnimation(powerDownAnim)
@@ -527,6 +544,8 @@ function Structure:SetPowerOff()
     self:TriggerEffects("power_down")
     
     self:OnPoweredTech()
+    
+    return true
 end
 
 function Structure:OnPoweredTech() 

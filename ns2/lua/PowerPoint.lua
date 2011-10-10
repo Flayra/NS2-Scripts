@@ -35,6 +35,8 @@ PowerPoint.kOfflineEffect = PrecacheAsset("cinematics/common/powerpoint_offline.
 
 PowerPoint.kTakeDamageSound = PrecacheAsset("sound/ns2.fev/marine/power_node/take_damage")
 PowerPoint.kDamagedSound = PrecacheAsset("sound/ns2.fev/marine/power_node/damaged")
+PowerPoint.kDestroyedSound = PrecacheAsset("sound/ns2.fev/marine/power_node/destroyed")
+PowerPoint.kDestroyedPowerDownSound = PrecacheAsset("sound/ns2.fev/marine/power_node/destroyed_powerdown")
 PowerPoint.kAuxPowerBackupSound = PrecacheAsset("sound/ns2.fev/marine/power_node/backup")
 
 PowerPoint.kHealth = kPowerPointHealth
@@ -84,7 +86,8 @@ function PowerPoint:OnInit()
     
         self.startsBuilt = true
         
-        self:SetTeamNumber(kTeamReadyRoom)
+        // PowerPoints always belong to the Marine team.
+        self:SetTeamNumber(kTeam1Index)
     
         self:SetConstructionComplete()
         

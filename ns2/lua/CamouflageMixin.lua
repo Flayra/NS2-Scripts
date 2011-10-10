@@ -19,6 +19,7 @@ CamouflageMixin.expectedCallbacks = {
     GetVelocity = "Return vector representing velocity.",
     GetIsAlive = "Bool returning alive/dead",
     GetHasUpgrade = "Pass bit mask indicating upgrade, return true/false if entity has it",
+    GetCanCamouflage = "Returns boolean",
 }
 
 function CamouflageMixin.__prepareclass(toClass)
@@ -65,7 +66,7 @@ function CamouflageMixin:_UpdateCamouflage()
     local velocity = self:GetVelocity():GetLength()
     local currentTime = Shared.GetTime()
     
-    if self:GetIsAlive() and self:GetHasUpgrade(kTechId.Camouflage) and velocity <= CamouflageMixin.kVelocityThreshold then
+    if self:GetIsAlive() and self:GetHasUpgrade(kTechId.Camouflage) and velocity <= CamouflageMixin.kVelocityThreshold and self:GetCanCamouflage() then
     
         // Won't set camouflaged if we recently attacked
         if (currentTime > (self.timeLastUncamouflageTriggered + CamouflageMixin.kBreakingDelay)) and (not self.camouflaged) then

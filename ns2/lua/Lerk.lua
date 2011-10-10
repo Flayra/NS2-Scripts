@@ -29,6 +29,7 @@ Lerk.kViewModelName = PrecacheAsset("models/alien/lerk/lerk_view.model")
 
 Lerk.kSpawnSoundName = PrecacheAsset("sound/ns2.fev/alien/lerk/spawn")
 Lerk.kFlapSound = PrecacheAsset("sound/ns2.fev/alien/lerk/flap")
+Lerk.kTauntSound = PrecacheAsset("sound/ns2.fev/alien/lerk/taunt")
 
 Lerk.networkVars =
 {
@@ -428,6 +429,10 @@ function Lerk:UpdateHelp()
     
     return false
     
+end
+
+function Lerk:GetTauntSound()
+    return Lerk.kTauntSound
 end
 
 Shared.LinkClassToMap( "Lerk", Lerk.kMapName, Lerk.networkVars )

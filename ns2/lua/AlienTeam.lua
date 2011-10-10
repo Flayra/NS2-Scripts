@@ -21,6 +21,9 @@ AlienTeam.kOrganicStructureHealRate = 5     // Health per second
 AlienTeam.kInfestationUpdateRate = 2
 AlienTeam.kInfestationHurtInterval = 2
 
+// only update every 2 seconds to not stress the server too much
+AlienTeam.kAlienSpectatorUpdateIntervall = 2
+
 AlienTeam.kSupportingStructureClassNames = {[kTechId.Hive] = {"Hive"} }
 AlienTeam.kUpgradeStructureClassNames = {[kTechId.Crag] = {"Crag", "MatureCrag"}, [kTechId.Shift] = {"Shift", "MatureShift"}, [kTechId.Shade] = {"Shade", "MatureShift"} }
 AlienTeam.kUpgradedStructureTechTable = {[kTechId.Crag] = {kTechId.MatureCrag}, [kTechId.Shift] = {kTechId.MatureShift}, [kTechId.Shade] = {kTechId.MatureShade}}
@@ -55,6 +58,9 @@ function AlienTeam:OnInit()
     self.upgradeStructureManager:Initialize(AlienTeam.kSupportingStructureClassNames, AlienTeam.kUpgradeStructureClassNames, AlienTeam.kUpgradedStructureTechTable)
 
     PlayingTeam.OnInit(self)    
+    
+    // workaround for spawn bug
+    self.timeLastAlienSpectatorCheck = 0
 
 end
 
@@ -63,7 +69,7 @@ function AlienTeam:SpawnInitialStructures(teamLocation)
     PlayingTeam.SpawnInitialStructures(self, teamLocation)
     
     // Aliens start the game with all their eggs
-    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), self:GetTeamType(), false)
+    local nearestTechPoint = GetNearestTechPoint(teamLocation:GetOrigin(), false)
     if(nearestTechPoint ~= nil) then
     
         local attached = nearestTechPoint:GetAttached()
@@ -93,30 +99,16 @@ function AlienTeam:Update(timePassed)
     PROFILE("AlienTeam:Update")
 
     PlayingTeam.Update(self, timePassed)
-
-    self:UpdateAutoBuild(timePassed)
     
     self:UpdateTeamAutoHeal(timePassed)
     
     self:UpdateAlienResearchProgress()
     
-end
-
-function AlienTeam:UpdateAutoBuild(timePassed)
-
-    PROFILE("AlienTeam:UpdateTeamAutoBuild")
-
-    // Update build fraction every tick to be smooth
-    for index, structureId in ipairs(self.structures) do
-        local structure = Shared.GetEntity(structureId)          
-        if (structure ~= nil) and (not structure:GetIsBuilt()) then        
-            // Account for metabolize game effects
-            local autoBuildTime = GetAlienEvolveResearchTime(timePassed, structure)
-            structure:Construct(autoBuildTime)
-        
-        end
-        
+    if self.timeLastAlienSpectatorCheck + AlienTeam.kAlienSpectatorUpdateIntervall < Shared.GetTime() then
+        self:UpdateAlienSpectators(timePassed)    
+        self.timeLastAlienSpectatorCheck = Shared.GetTime()
     end
+    
     
 end
 
@@ -161,22 +153,6 @@ function AlienTeam:UpdateTeamAutoHeal(timePassed)
         self.timeOfLastAutoHeal = time
         
     end
-    
-    // Hurt structures if they require infestation and aren't on it
-   /* if self.timeOfLastInfestationHurt == nil or (time > (self.timeOfLastInfestationHurt + AlienTeam.kInfestationHurtInterval)) then
-    
-        for index, structureId in ipairs(self.structures) do
-            local structure = Shared.GetEntity(structureId)
-            if (structure ~= nil) then
-              if LookupTechData(structure:GetTechId(), kTechDataRequiresInfestation) and not structure:GetGameEffectMask(kGameEffect.OnInfestation) then            
-                
-              end
-            end         
-        end
-        
-        self.timeOfLastInfestationHurt = time
-        
-    end */
     
 end
 
@@ -228,6 +204,37 @@ function AlienTeam:UpdateAlienResearchProgress()
 
 end
 
+
+// this function is a work around for the respawn bug, appearing since build 184 (or earlier), but happens much more
+// often now in build 187 (more eggs at once present?)
+// flaw of this method: there are no oldest players. Respawn order can occur randomly. But assuming that entity Ids
+// are ascending numbers, this should be fine
+function AlienTeam:UpdateAlienSpectators(deltaTime)
+
+    // i don't know where the problem is, so i simply don't trust the table in Team.lua
+    local alienSpectators = GetEntitiesForTeam("AlienSpectators", self:GetTeamNumber())
+    
+    // find for every unassigned alien spectator a free egg. OnThink at the eggs is disabled
+    for index, alienSpectator in ipairs(alienSpectators) do
+    
+        local egg = alienSpectator:GetHostEgg()
+        
+        // player has no egg assigned, check for free egg
+        if egg == nil then
+        
+            local success = self:QueuePlayerForAnotherEgg(nil, alienSpectator:GetId(), false)
+            
+            // we have no eggs currently, makes no sense to check for every spectator now
+            if not success then
+                return
+            end
+        
+        end
+    
+    
+    end
+
+end
 
 function AlienTeam:GetUmbraCrags()
 
@@ -430,11 +437,11 @@ function AlienTeam:InitTechTree()
     self.techTree:AddTargetedActivation(kTechId.WhipBombard,                  kTechId.MatureWhip, kTechId.None)
     
     // Tier 1 lifeforms
-    self.techTree:AddBuyNode(kTechId.Skulk,                     kTechId.None,                kTechId.None)
-    self.techTree:AddBuyNode(kTechId.Gorge,                     kTechId.None,                kTechId.None)
-    self.techTree:AddBuyNode(kTechId.Lerk,                      kTechId.None,                kTechId.None)
-    self.techTree:AddBuyNode(kTechId.Fade,                      kTechId.TwoHives,            kTechId.None)
-    self.techTree:AddBuyNode(kTechId.Onos,                      kTechId.ThreeHives,          kTechId.None)
+    self.techTree:AddAction(kTechId.Skulk,                     kTechId.None,                kTechId.None)
+    self.techTree:AddAction(kTechId.Gorge,                     kTechId.None,                kTechId.None)
+    self.techTree:AddAction(kTechId.Lerk,                      kTechId.None,                kTechId.None)
+    self.techTree:AddAction(kTechId.Fade,                      kTechId.TwoHives,            kTechId.None)
+    self.techTree:AddAction(kTechId.Onos,                      kTechId.ThreeHives,          kTechId.None)
     
     // Special alien upgrade structures. These tech nodes are modified at run-time, depending when they are built, so don't modify prereqs.
     self.techTree:AddBuildNode(kTechId.Crag,                      kTechId.None,          kTechId.None)
@@ -678,7 +685,9 @@ function AlienTeam:QueuePlayerForAnotherEgg(currentEggId, playerId, reverse)
             eggIndex = table.find(self.eggList, currentEggId)
         end
         
-        ASSERT(eggIndex ~= nil, "Player used an invalid eggId.")
+        if eggIndex == nil then
+            eggIndex = 1
+        end
         
         for index = 1, eggCount do
             

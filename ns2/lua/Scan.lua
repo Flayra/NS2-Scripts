@@ -8,9 +8,9 @@
 // the particle system to.
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
-Script.Load("lua/Structure.lua")
+Script.Load("lua/LOSMixin.lua")
 
-class 'Scan' (Structure)
+class 'Scan' (ScriptActor)
 
 Scan.kMapName = "scan"
 
@@ -18,9 +18,13 @@ Scan.kScanEffect = PrecacheAsset("cinematics/marine/observatory/scan.cinematic")
 
 Scan.kScanDistance = kScanRadius
 
+PrepareClassForMixin(Structure, LOSMixin)
+
 function Scan:OnInit()
 
-    Structure.OnInit(self)
+    ScriptActor.OnInit(self)
+    
+    InitMixin(self, LOSMixin)
     
     if Client then
     
@@ -54,7 +58,7 @@ function Scan:OnDestroy()
         self.scanEffect = nil
     end
     
-    Structure.OnDestroy(self)
+    ScriptActor.OnDestroy(self)
 
 end
 
@@ -64,7 +68,7 @@ if Client then
     
         if self.scanEffect ~= nil and self:GetId() ~= Entity.invalidId then
         
-            Structure.OnUpdate(self, deltaTime)
+            ScriptActor.OnUpdate(self, deltaTime)
             
             local coords = Coords.GetIdentity()
             coords.origin = self:GetOrigin()

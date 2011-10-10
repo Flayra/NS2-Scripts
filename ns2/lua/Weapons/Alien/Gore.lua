@@ -14,45 +14,16 @@ class 'Gore' (Ability)
 
 Gore.kMapName = "gore"
 
-Gore.kAttackSound = PrecacheAsset("sound/ns2.fev/alien/onos/gore")
-Gore.kHitMaterialSoundSpec = "sound/ns2.fev/alien/onos/gore_hit_%s"
-
-Gore.kDoorHitEffect = PrecacheAsset("cinematics/alien/onos/door_hit.cinematic")
-
-// View model animations
-Gore.kAnimAttackTable = {{1, "attack"}/*, {1, "attack2"}, {1, "attack3"}, {1, "attack4"}*/}
-
-// Player animations
-Gore.kAnimPlayerAttack = "gore"
-
 // Balance
-Gore.kDamage = kGoreDamage
 Gore.kRange = 2.2           // From NS1
-Gore.kStunTime = 2.5        
 Gore.kKnockbackForce = 8
 
-// Primary
-Gore.kPrimaryEnergyCost = kGoreEnergyCost
-Gore.kPrimaryAttackDelay = kGoreFireDelay
-
-// Secondary
-Gore.kSecondaryEnergyCost = 10
-Gore.kSecondaryAttackDelay = 3         
-
-function Gore:GetPrimaryEnergyCost(player)
-    return Gore.kPrimaryEnergyCost
-end
-
-function Gore:GetSecondaryEnergyCost(player)
-    return Gore.kSecondaryEnergyCost
+function Gore:GetEnergyCost(player)
+    return kGoreEnergyCost
 end
 
 function Gore:GetPrimaryAttackDelay()
-    return Gore.kPrimaryAttackDelay
-end
-
-function Gore:GetSecondaryAttackDelay()
-    return Gore.kSecondaryAttackDelay
+    return kGoreFireDelay
 end
 
 function Gore:GetHUDSlot()
@@ -65,58 +36,28 @@ end
 
 function Gore:PerformPrimaryAttack(player)
     
-    // Play random animation
-    player:SetViewAnimation( Gore.kAnimAttackTable, nil, nil, 1 / player:AdjustAttackDelay(1) )
-    player:SetActivityEnd(player:AdjustAttackDelay(self:GetPrimaryAttackDelay()))
-    
-    player:SetOverlayAnimation(Gore.kAnimPlayerAttack)
-
-    Shared.PlaySound(player, Gore.kAttackSound)
+    player:SetActivityEnd( player:AdjustAttackDelay(self:GetPrimaryAttackDelay()) )
     
     // Trace melee attack
-    local didHit, trace = self:AttackMeleeCapsule(player, Gore.kDamage, Gore.kRange)
-    if didHit then
+    local didHit, trace = self:AttackMeleeCapsule(player, kGoreDamage, Gore.kRange)
+    if didHit and Server then
 
-        local hitObject = trace.entity
-        local materialName = trace.surface
+        if trace.entity and trace.entity:isa("Door") then
         
-        // Play special hit sound depending on material
-        local surface = trace.surface
-        if(surface ~= "") then
-            Shared.PlayWorldSound(nil, string.format(Gore.kHitMaterialSoundSpec, surface), nil, trace.endPoint)
-        end
+            self:TriggerEffects("onos_door_hit")
         
-        if hitObject and hitObject:isa("Door") then
-            Shared.CreateEffect(nil, Gore.kDoorHitEffect, nil, Coords.GetTranslation(trace.endPoint))
-        end
-        
-        // Send marine flying back
-        if Server and trace.entity and trace.entity:isa("Player") then
+        // Send marine flying back    
+        elseif trace.entity and trace.entity:isa("Player") then
         
             local player = trace.entity
-            
-            local velocity = GetNormalizedVector(player:GetEyePos() - self:GetParent():GetOrigin()) * Gore.kKnockbackForce
+            local onosToPlayer = player:GetEyePos() - self:GetParent():GetOrigin()
+            local velocity = GetNormalizedVector(onosToPlayer) * Gore.kKnockbackForce
             
             player:Knockback(velocity)
             
         end
         
     end
-    
-    return true
-    
-end
-
-function Gore:PerformSecondaryAttack(player)
-    
-    // Play random animation
-    player:SetViewAnimation(Gore.kAnimAttackTable, nil, nil, 1 / player:AdjustAttackDelay(1))
-    player:SetActivityEnd(self:GetSecondaryAttackDelay())
-
-    // Play the attack animation on the character.
-    player:SetOverlayAnimation( chooseWeightedEntry(Onos.kAnimPlayerAttack) )
-
-    Shared.PlaySound(player, Gore.kStabSound)
     
     return true
     

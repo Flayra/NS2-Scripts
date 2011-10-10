@@ -15,10 +15,10 @@ function OnCommandSetName(client, name)
 
         local player = client:GetControllingPlayer()
 
-        name = StringTrim(name)
+        name = TrimName(name)
         
         // Treat "NsPlayer" as special
-        if (name ~= player:GetName()) and (name ~= kDefaultPlayerName) and string.len(name) > 0 then
+        if name ~= player:GetName() and name ~= kDefaultPlayerName and string.len(name) > 0 then
         
             local prevName = player:GetName()
             player:SetName(name)

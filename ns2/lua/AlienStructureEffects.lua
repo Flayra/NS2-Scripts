@@ -21,7 +21,8 @@ kAlienStructureEffects =
         {
             //"cinematics/alien/harvester/glow.cinematic"?
             {parented_sound = "sound/ns2.fev/alien/structures/harvester_active", classname = "Harvester"},
-            {animation = "active", classname = "Harvester", done = true},
+            // Don't play deploy for marine structures here, that happens as part of power changing
+            {animation = "deploy", isalien = true},
             {sound = "sound/ns2.fev/alien/structures/hive_idle", classname = "Hive"},
         },
     },
@@ -178,7 +179,7 @@ kAlienStructureEffects =
         hiveLogoutEffects =
         {
             {sound = "sound/ns2.fev/alien/structures/hive_exit"},
-            {animation = "deploy"},            
+            {animation = "unload"},            
         },
     },
     

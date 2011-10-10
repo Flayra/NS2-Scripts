@@ -101,6 +101,8 @@ end
  */
 function ControllerMixin:GetIsColliding()
 
+    PROFILE("ControllerMixin:GetIsColliding")
+
     if self.controller then
         self:UpdateControllerFromEntity()
         return self.controller:Test(self:GetMovePhysicsMask())
@@ -114,6 +116,8 @@ end
  * Moves by the player by the specified offset, colliding and sliding with the world.
  */
 function ControllerMixin:PerformMovement(offset, maxTraces, velocity)
+
+    PROFILE("ControllerMixin:PerformMovement")
 
     local hitEntities   = nil
     local completedMove = true

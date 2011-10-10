@@ -40,6 +40,32 @@ gActorAnimDebugClass = ""
 
 PrepareClassForMixin(Actor, TimedCallbackMixin)
 
+// Cache frequently used globals for greater efficiency
+local Shared_GetModel         = Shared.GetModel
+local Model_GetPoseParamIndex = Model.GetPoseParamIndex
+local PoseParams_Set          = PoseParams.Set
+
+/**
+ * Returns the index of the named pose parameter on the actor's model. If the
+ * actor doesn't have a model set or the pose parameter doesn't exist, the
+ * method returns -1
+ */
+local function _GetPoseParamIndex(self, name)
+  
+    local model = Shared_GetModel(self.modelIndex)
+    
+    if model ~= nil then
+        return Model_GetPoseParamIndex(model, name)
+    else
+        return -1
+    end
+        
+end
+
+local function _GetAnimationsLocked(self)
+    return (gProcessMovePlayer ~= nil) and (gProcessMovePlayer ~= self) and (self:GetParent() ~= gProcessMovePlayer)
+end
+
 /**
  * Don't allow setting of new animations when actor is locked. Lock actor when 
  * we're inside OnProcessMove() to make sure animations aren't reverted during
@@ -265,7 +291,7 @@ end
  */
 function Actor:GetModelOrigin()
 
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
         return self:GetOrigin() + model:GetOrigin()
@@ -275,10 +301,6 @@ function Actor:GetModelOrigin()
     
 end
 
-function Actor:GetAnimationsLocked()
-    return (gProcessMovePlayer ~= nil) and (gProcessMovePlayer ~= self) and (self:GetParent() ~= gProcessMovePlayer)
-end
-
 /**
  * Sets the animation currently playing on the actor. The sequence name is the
  * name stored in the current model. Returns true of the animation was set (false
@@ -286,7 +308,7 @@ end
  */
 function Actor:SetAnimation(sequenceName, force, animSpeed)
     
-    if self:GetAnimationsLocked() then
+    if _GetAnimationsLocked(self) then
     
         if self.queuedSequenceName ~= nil and self.queuedSequenceName ~= sequenceName then
             Print("%s:SetAnimation(%s): Actor animations locked during OnProcessMove() and previous animation (%s) already queued.", self:GetClassName(), sequenceName, self.queuedSequenceName)
@@ -306,7 +328,7 @@ function Actor:SetAnimation(sequenceName, force, animSpeed)
 
     local success = false
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     local animationSequence = Model.invalidSequence
     
     if (model ~= nil) then
@@ -344,7 +366,7 @@ end
  */
 function Actor:GetAnimation(animationIndex)
 
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
         
@@ -372,7 +394,7 @@ end
  */
 function Actor:GetAnimationLength(sequenceName)
 
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
     
@@ -401,7 +423,7 @@ end
  */
 function Actor:GetAnimationIndex(sequenceName)
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
         return model:GetSequenceIndex(sequenceName)
@@ -420,27 +442,19 @@ end
  */
 function Actor:SetPoseParam(name, value)
 
-    if self:GetAnimationsLocked() then
+    if _GetAnimationsLocked(self) then
         Print("%s:SetPoseParam(%s): Actor animations locked during OnProcessMove().", self:GetClassName(), ToString(name))
         return false
     end
+    
+    local paramIndex = _GetPoseParamIndex(self, name)
 
-    local success = false
-    
-    local paramIndex = self:GetPoseParamIndex(name)
-
-    if (paramIndex ~= -1) then
-
-        self.poseParams:Set(paramIndex, value)
-        success = true
-    
-    elseif displayErrors then
-    
-        Print("%s:SetPoseParam(%s) - Couldn't find pose parameter with name.", self:GetClassName(), tostring(name)) 
-    
+    if paramIndex ~= -1 then
+        PoseParams_Set(self.poseParams, paramIndex, value)
+        return true
     end
     
-    return success
+    return false
     
 end
 
@@ -452,7 +466,7 @@ end
  */
 function Actor:GetPoseParam(name)
 
-    local paramIndex = self:GetPoseParamIndex(name)
+    local paramIndex = _GetPoseParamIndex(self, name)
 
     if (paramIndex ~= -1) then
         return self.poseParams:Get(paramIndex)
@@ -462,23 +476,6 @@ function Actor:GetPoseParam(name)
     
     return -1
 
-end
-
-/**
- * Returns the index of the named pose parameter on the actor's model. If the
- * actor doesn't have a model set or the pose parameter doesn't exist, the
- * method returns -1
- */
-function Actor:GetPoseParamIndex(name)
-  
-    local model = Shared.GetModel(self.modelIndex)
-    
-    if (model ~= nil) then
-        return model:GetPoseParamIndex(name)
-    else
-        return -1
-    end
-        
 end
     
 // Called whenever actor is created (if no animation playing) and when animation
@@ -545,7 +542,7 @@ function Actor:OnUpdate(deltaTime)
         self:UpdateTags()
     end
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
 
     if (model ~= nil) then
 
@@ -632,7 +629,7 @@ function Actor:UpdateBoneCoords()
     
     PROFILE("Actor:UpdateBoneCoords")
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
     
@@ -733,7 +730,7 @@ end
  */
 function Actor:GetAttachPointIndex(attachPointName)
 
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
         return model:GetAttachPointIndex(attachPointName)
@@ -757,7 +754,7 @@ function Actor:GetAttachPointCoords(attachPoint)
     
     if (attachPointIndex ~= -1) then
    
-        local model = Shared.GetModel(self.modelIndex)
+        local model = Shared_GetModel(self.modelIndex)
     
         if (model ~= nil) then
                 
@@ -814,7 +811,7 @@ function Actor:UpdateTags()
 
     PROFILE("Actor:UpdateTags")
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
 
     if (model ~= nil and self.animationSequence ~= Model.invalidSequence) then
     
@@ -877,7 +874,7 @@ function Actor:SetPhysicsDirty()
 
     PROFILE("Actor:SetPhysicsDirty")
     
-    local model = Shared.GetModel(self.modelIndex)
+    local model = Shared_GetModel(self.modelIndex)
     
     if (model ~= nil) then
         self:SetPhysicsBoundingBox(model)

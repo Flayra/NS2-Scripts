@@ -46,7 +46,7 @@ Fade.kJumpHeight = 1
 Fade.kMaxSpeed = 6.5
 Fade.kStabSpeed = .5
 Fade.kEtherealSpeed = 20
-Fade.kEtherealAcceleration = 60
+Fade.kEtherealAcceleration = 300
 
 if(Server) then
     Script.Load("lua/Fade_Server.lua")

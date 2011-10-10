@@ -28,7 +28,7 @@ GUIMinimap.kBackgroundSize = GUIScale(300)
 GUIMinimap.kBackgroundWidth = GUIMinimap.kBackgroundSize
 GUIMinimap.kBackgroundHeight = GUIMinimap.kBackgroundSize
 
-GUIMinimap.kMapMinMax	= 55
+GUIMinimap.kMapMinMax = 55
 GUIMinimap.kMapRatio = function() return ConditionalValue(Client.minimapExtentScale.z > Client.minimapExtentScale.x, Client.minimapExtentScale.z / Client.minimapExtentScale.x, Client.minimapExtentScale.x / Client.minimapExtentScale.z) end
 
 GUIMinimap.kMinimapSmallSize = Vector(GUIMinimap.kBackgroundWidth, GUIMinimap.kBackgroundHeight, 0)
@@ -70,78 +70,7 @@ GUIMinimap.kAttackBlipFadeOutTime = 1
 
 GUIMinimap.kLocationFontSize = 12
 
-local ClassToGrid = { }
-
-ClassToGrid["TechPoint"] = { 1, 1 }
-ClassToGrid["ResourcePoint"] = { 2, 1 }
-ClassToGrid["Door"] = { 3, 1 }
-ClassToGrid["DoorLocked"] = { 4, 1 }
-ClassToGrid["DoorWelded"] = { 5, 1 }
-ClassToGrid["Grenade"] = { 6, 1 }
-ClassToGrid["PowerPoint"] = { 7, 1 }
-
-ClassToGrid["ReadyRoomPlayer"] = { 1, 2 }
-ClassToGrid["Marine"] = { 1, 2 }
-ClassToGrid["Heavy"] = { 2, 2 }
-ClassToGrid["Jetpack"] = { 3, 2 }
-ClassToGrid["MAC"] = { 4, 2 }
-ClassToGrid["CommandStationOccupied"] = { 5, 2 }
-ClassToGrid["CommandStationL2Occupied"] = { 6, 2 }
-ClassToGrid["CommandStationL3Occupied"] = { 7, 2 }
-ClassToGrid["Death"] = { 8, 2 }
-
-ClassToGrid["Skulk"] = { 1, 3 }
-ClassToGrid["Gorge"] = { 2, 3 }
-ClassToGrid["Lerk"] = { 3, 3 }
-ClassToGrid["Fade"] = { 4, 3 }
-ClassToGrid["Onos"] = { 5, 3 }
-ClassToGrid["Drifter"] = { 6, 3 }
-ClassToGrid["HiveOccupied"] = { 7, 3 }
-ClassToGrid["Kill"] = { 8, 3 }
-
-ClassToGrid["CommandStation"] = { 1, 4 }
-ClassToGrid["CommandStationL2"] = { 2, 4 }
-ClassToGrid["CommandStationL3"] = { 3, 4 }
-ClassToGrid["Extractor"] = { 4, 4 }
-ClassToGrid["Sentry"] = { 5, 4 }
-ClassToGrid["ARC"] = { 6, 4 }
-ClassToGrid["ARCDeployed"] = { 7, 4 }
-
-ClassToGrid["InfantryPortal"] = { 1, 5 }
-ClassToGrid["Armory"] = { 2, 5 }
-ClassToGrid["AdvancedArmory"] = { 3, 5 }
-ClassToGrid["AdvancedArmoryModule"] = { 4, 5 }
-ClassToGrid["Observatory"] = { 6, 5 }
-
-ClassToGrid["HiveBuilding"] = { 1, 6 }
-ClassToGrid["Hive"] = { 2, 6 }
-ClassToGrid["Harvester"] = { 5, 6 }
-ClassToGrid["Hydra"] = { 6, 6 }
-ClassToGrid["Egg"] = { 7, 6 }
-
-ClassToGrid["Crag"] = { 1, 7 }
-ClassToGrid["MatureCrag"] = { 2, 7 }
-ClassToGrid["Whip"] = { 3, 7 }
-ClassToGrid["MatureWhip"] = { 4, 7 }
-
-ClassToGrid["WaypointMove"] = { 1, 8 }
-ClassToGrid["WaypointDefend"] = { 2, 8 }
-ClassToGrid["PlayerFOV"] = { 4, 8 }
-
-/**
- * Returns Column and Row to find the minimap icon for the passed in class.
- */
-local function GetSpriteGridByClass(class)
-
-    // This really shouldn't happen but lets return something just in case.
-    if not ClassToGrid[class] then
-        return 8, 1
-    end
-    
-    return unpack(ClassToGrid[class])
-    
-end
-AddFunctionContract(GetSpriteGridByClass, { Arguments = { "string" }, Returns = { "number", "number" } })
+local ClassToGrid = BuildClassToGrid()
 
 local function PlotToMap(posX, posZ, comMode)
 
@@ -239,29 +168,29 @@ function GUIMinimap:InitializeCameraLines()
 end
 
 function GUIMinimap:InitializePlayerIcon()
-	
+    
     self.playerIcon = GUIManager:CreateGraphicItem()
     self.playerIcon:SetSize(Vector(GUIMinimap.kBlipSize, GUIMinimap.kBlipSize, 0))
-	self.playerIcon:SetAnchor(GUIItem.Middle, GUIItem.Center)
+    self.playerIcon:SetAnchor(GUIItem.Middle, GUIItem.Center)
     self.playerIcon:SetTexture(GUIMinimap.kIconFileName)
-	iconCol, iconRow = GetSpriteGridByClass(PlayerUI_GetPlayerClass())
+	iconCol, iconRow = GetSpriteGridByClass(PlayerUI_GetPlayerClass(), ClassToGrid)
     self.playerIcon:SetTexturePixelCoordinates(GUIGetSprite(iconCol, iconRow, GUIMinimap.kIconWidth, GUIMinimap.kIconHeight))
     self.playerIcon:SetIsVisible(false)
     self.playerIcon:SetLayer(GUIMinimap.kPlayerIconLayer)
-	self.playerIcon:SetColor(Color(0, 1, 0, 1))
+    self.playerIcon:SetColor(Color(0, 1, 0, 1))
     self.minimap:AddChild(self.playerIcon)
     
     self.playerIconFov = GUIManager:CreateGraphicItem()
-	self.playerIconFov:SetSize(Vector(GUIMinimap.kBlipSize*2, GUIMinimap.kBlipSize, 0))
-	self.playerIconFov:SetAnchor(GUIItem.Middle, GUIItem.Top)
-	self.playerIconFov:SetPosition(Vector(-GUIMinimap.kBlipSize, -GUIMinimap.kBlipSize, 0))
-	self.playerIconFov:SetTexture(GUIMinimap.kIconFileName)
-	local iconCol, iconRow = GetSpriteGridByClass('PlayerFOV')
-	local gridPosX, gridPosY, gridWidth, gridHeight = GUIGetSprite(iconCol, iconRow, GUIMinimap.kIconWidth, GUIMinimap.kIconHeight)
-	self.playerIconFov:SetTexturePixelCoordinates(gridPosX-GUIMinimap.kIconWidth, gridPosY, gridWidth, gridHeight)
-	self.playerIconFov:SetIsVisible(false)
-	self.playerIconFov:SetLayer(GUIMinimap.kPlayerIconLayer)
-	self.playerIcon:AddChild(self.playerIconFov)
+    self.playerIconFov:SetSize(Vector(GUIMinimap.kBlipSize*2, GUIMinimap.kBlipSize, 0))
+    self.playerIconFov:SetAnchor(GUIItem.Middle, GUIItem.Top)
+    self.playerIconFov:SetPosition(Vector(-GUIMinimap.kBlipSize, -GUIMinimap.kBlipSize, 0))
+    self.playerIconFov:SetTexture(GUIMinimap.kIconFileName)
+    local iconCol, iconRow = GetSpriteGridByClass('PlayerFOV', ClassToGrid)
+    local gridPosX, gridPosY, gridWidth, gridHeight = GUIGetSprite(iconCol, iconRow, GUIMinimap.kIconWidth, GUIMinimap.kIconHeight)
+    self.playerIconFov:SetTexturePixelCoordinates(gridPosX-GUIMinimap.kIconWidth, gridPosY, gridWidth, gridHeight)
+    self.playerIconFov:SetIsVisible(false)
+    self.playerIconFov:SetLayer(GUIMinimap.kPlayerIconLayer)
+    self.playerIcon:AddChild(self.playerIconFov)
 
 end
 
@@ -309,7 +238,7 @@ function GUIMinimap:InitializeLocationNames()
         locationItem:SetTextAlignmentX(GUIItem.Align_Center)
         locationItem:SetTextAlignmentY(GUIItem.Align_Center)
 
-	    local posX, posY = PlotToMap(location.Origin.x, location.Origin.z, self.comMode)
+        local posX, posY = PlotToMap(location.Origin.x, location.Origin.z, self.comMode)
 
         // Locations only supported on the big mode.
         locationItem:SetPosition(Vector(posX, posY, 0))
@@ -366,15 +295,15 @@ function GUIMinimap:Update(deltaTime)
  
     // Commander always sees the minimap.
     if PlayerUI_IsACommander() then
+    
         self.background:SetIsVisible(true)
+        
         if CommanderUI_IsAlienCommander() then
             self.background:SetTexture(GUIMinimap.kBackgroundTextureAlien)
         else
             self.background:SetTexture(GUIMinimap.kBackgroundTextureMarine)
         end
-    elseif self.comMode == GUIMinimap.kModeMini then
-        // No minimap for non-commaders
-        self.background:SetIsVisible(false)
+        
     end
     
 
@@ -388,11 +317,9 @@ function GUIMinimap:Update(deltaTime)
         
         self:UpdateInput()
         
-        if self.minimap:GetIsVisible() then
-            // The color cannot be attained right away in some cases so
-            // we need to make sure it is the correct color.
-            self.minimap:SetColor(PlayerUI_GetTeamColor())
-        end
+        // The color cannot be attained right away in some cases so
+        // we need to make sure it is the correct color.
+        self.minimap:SetColor(PlayerUI_GetTeamColor())
     
         if self.scanlines then
             self.scanlines:Update(deltaTime)
@@ -434,36 +361,35 @@ function GUIMinimap:UpdateIcon()
         // No icons for ready room players.
         self.cameraLines:SetIsVisible(false)
         self.playerIcon:SetIsVisible(false)
-		self.playerIconFov:SetIsVisible(false)
+        self.playerIconFov:SetIsVisible(false)
 
     else
     
         // Draw a player icon representing this player's position.
-		local playerOrigin = PlayerUI_GetOrigin()
-		local playerRotation = PlayerUI_GetMinimapPlayerDirection()
+        local playerOrigin = PlayerUI_GetOrigin()
+        local playerRotation = PlayerUI_GetMinimapPlayerDirection()
 
-		local posX, posY = PlotToMap(playerOrigin.x, playerOrigin.z, self.comMode)
+        local posX, posY = PlotToMap(playerOrigin.x, playerOrigin.z, self.comMode)
 
         self.cameraLines:SetIsVisible(false)
         self.playerIcon:SetIsVisible(true)
         // Disabled until rotation is correct.
-		//self.playerIconFov:SetIsVisible(true)
+        //self.playerIconFov:SetIsVisible(true)
 
-		posX = posX - (GUIMinimap.kIconWidth / 2)
-		posY = posY - (GUIMinimap.kIconHeight / 2)
+        posX = posX - (GUIMinimap.kIconWidth / 2)
+        posY = posY - (GUIMinimap.kIconHeight / 2)
 
         self.playerIcon:SetPosition(Vector(posX, posY, 0))
-		self.playerIcon:SetRotation(Vector(0, 0, playerRotation))
+        self.playerIcon:SetRotation(Vector(0, 0, playerRotation))
 
-		local playerClass = PlayerUI_GetPlayerClass()
-		if GUIMinimap.playerClass ~= playerClass then
+        local playerClass = PlayerUI_GetPlayerClass()
+        if GUIMinimap.playerClass ~= playerClass then
 
-			local iconCol, iconRow = GetSpriteGridByClass(playerClass)
-			self.playerIcon:SetTexturePixelCoordinates(GUIGetSprite(iconCol, iconRow, GUIMinimap.kIconWidth, GUIMinimap.kIconHeight))
+            local iconCol, iconRow = GetSpriteGridByClass(playerClass, ClassToGrid)
+            self.playerIcon:SetTexturePixelCoordinates(GUIGetSprite(iconCol, iconRow, GUIMinimap.kIconWidth, GUIMinimap.kIconHeight))
+            GUIMinimap.playerClass = playerClass
 
-			GUIMinimap.playerClass = playerClass
-
-		end
+        end
 
     end
     
@@ -491,8 +417,8 @@ function GUIMinimap:UpdateStaticBlips(deltaTime)
     end    
     
     while numBlips > 0 do
-		local xPos, yPos = PlotToMap(staticBlips[currentIndex], staticBlips[currentIndex + 1], self.comMode)
-		local rotation = staticBlips[currentIndex + 2]
+        local xPos, yPos = PlotToMap(staticBlips[currentIndex], staticBlips[currentIndex + 1], self.comMode)
+        local rotation = staticBlips[currentIndex + 2]
         local xTexture = staticBlips[currentIndex + 3]
         local yTexture = staticBlips[currentIndex + 4]
         local blipType = staticBlips[currentIndex + 5]
@@ -516,8 +442,8 @@ function GUIMinimap:SetStaticBlip(foundBlip, xPos, yPos, rotation, xTexture, yTe
     local textureName = GUIMinimap.kIconFileName
     local iconWidth = GUIMinimap.kIconWidth
     local iconHeight = GUIMinimap.kIconHeight
-	local iconCol = 0
-	local iconRow = 0
+    local iconCol = 0
+    local iconRow = 0
     local blipColor = GUIMinimap.kTeamColors[blipTeam]
     local blendTechnique = GUIItem.Default
     local blipSize = GUIMinimap.kBlipSize
@@ -530,27 +456,28 @@ function GUIMinimap:SetStaticBlip(foundBlip, xPos, yPos, rotation, xTexture, yTe
         local pulseAmount = (math.sin(Shared.GetTime()) + 1) / 2
         blipColor.a = 0.5 + (pulseAmount * 0.5)
     
-		iconCol, iconRow = GetSpriteGridByClass('PowerPoint')
+        iconCol, iconRow = GetSpriteGridByClass('PowerPoint', ClassToGrid)
 
     // Everything else is handled here.
     elseif table.contains(kMinimapBlipType, blipType) ~= nil then
-    
-        iconCol, iconRow = GetSpriteGridByClass(EnumToString(kMinimapBlipType, blipType))
-
+        iconCol, iconRow = GetSpriteGridByClass(EnumToString(kMinimapBlipType, blipType), ClassToGrid)
     end
     
-	if self.comMode == GUIMinimap.kModeMini then
-		
-		blipSize = blipSize / 2
-		
-	end
+    // Make eggs smaller than everything else.
+    if blipType == kMinimapBlipType.Egg then
+        blipSize = blipSize / 2
+    end
+    
+    if self.comMode == GUIMinimap.kModeMini then
+        blipSize = blipSize / 2
+    end
 
-	foundBlip:SetTexture(textureName)
-	foundBlip:SetTexturePixelCoordinates(GUIGetSprite(iconCol, iconRow, iconWidth, iconHeight))
+    foundBlip:SetTexture(textureName)
+    foundBlip:SetTexturePixelCoordinates(GUIGetSprite(iconCol, iconRow, iconWidth, iconHeight))
     foundBlip:SetIsVisible(true)
     foundBlip:SetSize(Vector(blipSize, blipSize, 0))
-	foundBlip:SetPosition(Vector(xPos - (blipSize / 2), yPos - (blipSize / 2), 0))
-	foundBlip:SetRotation(Vector(0, 0, rotation))
+    foundBlip:SetPosition(Vector(xPos - (blipSize / 2), yPos - (blipSize / 2), 0))
+    foundBlip:SetRotation(Vector(0, 0, rotation))
     foundBlip:SetColor(blipColor)
     foundBlip:SetBlendTechnique(blendTechnique)
     
@@ -559,7 +486,7 @@ end
 function GUIMinimap:AddStaticBlip()
 
     addedBlip = GUIManager:CreateGraphicItem()
-	addedBlip:SetAnchor(GUIItem.Center, GUIItem.Middle)
+    addedBlip:SetAnchor(GUIItem.Center, GUIItem.Middle)
     addedBlip:SetLayer(GUIMinimap.kStaticBlipsLayer)
     self.minimap:AddChild(addedBlip)
     table.insert(self.staticBlips, addedBlip)
@@ -572,16 +499,20 @@ function GUIMinimap:UpdateDynamicBlips(deltaTime)
     PROFILE("GUIMinimap:UpdateDynamicBlips")
 
     if PlayerUI_IsACommander() then
+    
         local newDynamicBlips = CommanderUI_GetDynamicMapBlips()
         local blipItemCount = 3
         local numBlips = table.count(newDynamicBlips) / blipItemCount
         local currentIndex = 1
         while numBlips > 0 do
+        
             local blipType = newDynamicBlips[currentIndex + 2]
             self:AddDynamicBlip(newDynamicBlips[currentIndex], newDynamicBlips[currentIndex + 1], blipType)
             currentIndex = currentIndex + blipItemCount
             numBlips = numBlips - 1
+            
         end
+        
     end
     
     local removeBlips = { }
@@ -692,7 +623,7 @@ function GUIMinimap:GetFreeDynamicBlip(xPos, yPos, blipType)
         returnBlip["Item"]:SetLayer(GUIMinimap.kDynamicBlipsLayer)
         returnBlip["Item"]:SetTexture(GUIMinimap.kBlipTexture)
         returnBlip["Item"]:SetBlendTechnique(GUIItem.Add)
-		returnBlip["Item"]:SetAnchor(GUIItem.Center, GUIItem.Middle)
+        returnBlip["Item"]:SetAnchor(GUIItem.Center, GUIItem.Middle)
         self.minimap:AddChild(returnBlip["Item"])
         table.insert(self.inuseDynamicBlips, returnBlip)
         
@@ -706,7 +637,7 @@ function GUIMinimap:GetFreeDynamicBlip(xPos, yPos, blipType)
     returnBlip["Item"]:SetColor(Color(1, 1, 1, 1))
     local minimapSize = self:GetMinimapSize()
     local plotX, plotY = PlotToMap(xPos, yPos, self.comMode)
-	returnBlip["Item"]:SetPosition(Vector(plotX, plotY, 0))
+    returnBlip["Item"]:SetPosition(Vector(plotX, plotY, 0))
     GUISetTextureCoordinatesTable(returnBlip["Item"], GUIMinimap.kBlipTextureCoordinates[blipType])
     return returnBlip
     
@@ -715,10 +646,13 @@ end
 function GUIMinimap:UpdateInput()
 
     if PlayerUI_IsACommander() then
+    
         local mouseX, mouseY = Client.GetCursorPosScreen()
         if self.mousePressed["LMB"]["Down"] then
+        
             local containsPoint, withinX, withinY = GUIItemContainsPoint(self.minimap, mouseX, mouseY)
             if containsPoint then
+            
                 local minimapSize = self:GetMinimapSize()
                 local backgroundScreenPosition = self.minimap:GetScreenPosition(Client.GetScreenWidth(), Client.GetScreenHeight())
                 
@@ -734,16 +668,19 @@ function GUIMinimap:UpdateInput()
                 local moveY = (cameraPosition.y / minimapSize.y) * verticalScale
 
                 CommanderUI_MapMoveView(moveX, moveY)
+                
             end
+            
         end
+        
     end
 
 end
 
-function GUIMinimap:SetBackgroundMode(setMode)
+function GUIMinimap:SetBackgroundMode(setMode, forceReset)
 
-    if self.comMode ~= setMode then
-    
+    if self.comMode ~= setMode or forceReset then
+        
         self.comMode = setMode
         local modeIsMini = self.comMode == GUIMinimap.kModeMini
         
@@ -753,15 +690,19 @@ function GUIMinimap:SetBackgroundMode(setMode)
         local modeSize = self:GetMinimapSize()
         
         if self.background then
+        
             if modeIsMini then
                 self.background:SetAnchor(GUIItem.Left, GUIItem.Bottom)
                 self.background:SetPosition(Vector(GUIMinimap.kMapBackgroundXOffset, -GUIMinimap.kBackgroundHeight - GUIMinimap.kMapBackgroundYOffset, 0))
-                self.background:SetColor(Color(1, 1, 1, 1))
+                // Only commanders see the background.
+                local alphaValue = (PlayerUI_IsACommander() and 1) or 0
+                self.background:SetColor(Color(1, 1, 1, alphaValue))
             else
                 self.background:SetAnchor(GUIItem.Center, GUIItem.Middle)
                 self.background:SetPosition(Vector(-modeSize.x / 2, -modeSize.y / 2, 0))
                 self.background:SetColor(Color(1, 1, 1, 0))
             end
+            
         end
         self.minimap:SetSize(modeSize)
         
@@ -772,14 +713,15 @@ function GUIMinimap:SetBackgroundMode(setMode)
         local modePosition = ConditionalValue(modeIsMini, defaultPosition, Vector(0, 0, 0))
         self.minimap:SetPosition(modePosition)
         
+        // Make sure everything is in sync in case this function is called after GUIMinimap:Update() is called.
+        self:Update(0)
+    
     end
     
 end
 
 function GUIMinimap:GetMinimapSize()
-
     return ConditionalValue(self.comMode == GUIMinimap.kModeMini, GUIMinimap.kMinimapSmallSize, GUIMinimap.kMinimapBigSize)
-    
 end
 
 function GUIMinimap:GetPositionOnBackground(xPos, yPos, currentSize)
@@ -792,33 +734,25 @@ end
 
 // Shows or hides the big map.
 function GUIMinimap:ShowMap(showMap)
-    
-    // Non-commander players only see the map when the key is held down.
-    if not PlayerUI_IsACommander() then
-        self.background:SetIsVisible(showMap)
-    end
-    
-    local previousComMode = self.comMode
-    
-    self:SetBackgroundMode(ConditionalValue(showMap, GUIMinimap.kModeBig, GUIMinimap.kModeMini))
 
-    // Only call Update when the state changes 
-    if previousComMode ~= self.comMode then
-        // Make sure everything is in sync in case this function is called after GUIMinimap:Update() is called.
+    self.background:SetIsVisible(showMap)
+    if showMap then
         self:Update(0)
     end
-
+    
 end
 
 function GUIMinimap:SendKeyEvent(key, down)
     
     if PlayerUI_IsACommander() then
+    
         if key == InputKey.MouseButton0 and self.mousePressed["LMB"]["Down"] ~= down then
             
             self.mousePressed["LMB"]["Down"] = down
             local mouseX, mouseY = Client.GetCursorPosScreen()
             local containsPoint, withinX, withinY = GUIItemContainsPoint(self.minimap, mouseX, mouseY)
             if down and containsPoint then
+            
                 local buttonIndex = nil
                 // $AS Left click now just moves the mini map the old behavior was confusing and not consistent              
                /* if self.buttonsScript then
@@ -834,21 +768,30 @@ function GUIMinimap:SendKeyEvent(key, down)
                     result = true
                 end */
                 return false
+                
             end
+            
         elseif key == InputKey.MouseButton1 and self.mousePressed["RMB"]["Down"] ~= down then
+        
             self.mousePressed["RMB"]["Down"] = down
             local mouseX, mouseY = Client.GetCursorPosScreen()
             local containsPoint, withinX, withinY = GUIItemContainsPoint(self.minimap, mouseX, mouseY)
             if down and containsPoint then
+            
                 if self.buttonsScript then
+                
                     // Cancel just in case the user had a targeted action selected before this press.
                     CommanderUI_ActionCancelled()
                     self.buttonsScript:SetTargetedButton(nil)
+                    
                 end
                 CommanderUI_MapClicked(withinX / self:GetMinimapSize().x, withinY / self:GetMinimapSize().y, 1, nil)
                 return true
+                
             end
+            
         end
+        
     end
     
     return false

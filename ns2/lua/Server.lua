@@ -78,7 +78,6 @@ local function LoadServerMapEntity(mapName, groupName, values)
         and mapName ~= "color_grading"
         and mapName ~= "cinematic"
         and mapName ~= "skybox"
-        and mapName ~= "navigation_waypoint"
         and mapName ~= "pathing_settings"
         // Temporarily remove IPs placed in levels
         and mapName ~= InfantryPortal.kMapName
@@ -133,34 +132,15 @@ local function LoadServerMapEntity(mapName, groupName, values)
         // Make it not block selection and structure placement (GetCommanderPickTarget)
         if renderModelCommAlpha < 1 then
             physicsModel:SetGroup(PhysicsGroup.CommanderPropsGroup)
+        end       
+        
+        if (values.pathInclude ~= nil) then
+            if (values.pathInclude == true)then
+                Pathing.CreatePathingObject(values.model, coords)
+            end
         end
         
-        // Only create Pathing objects if we are told too
-        /*if (values.pathInclude ~= nil) then
-          if (values.pathInclude == true)then
-            Pathing.CreatePathingObject(values.model, coords)
-          end
-        end*/
-        
-        Pathing.CreatePathingObject(values.model, coords)
-
-    elseif (mapName == "navigation_waypoint") then
-       
-        if (groupName == "") then
-            groupName = kDefaultWaypointGroup
-        end
-        
-        // $AS - HACK: REMOVE ME!!! This is horrible not going to lie
-        // right now mappers have to place down waypoints and sometimes
-        // get put into the floor :/ which prevents proper connections
-        // from being made; until we make uber pathing we move the ground
-        // nodes up a little to make sure they are not in the ground thus
-        // preventing proper pathing
-        if (groupName == kDefaultWaypointGroup) then        
-            values.origin.y = values.origin.y + 0.2
-        end
-
-        Server.AddNavigationWaypoint( groupName, values.origin )
+        //Pathing.CreatePathingObject(values.model, coords)
 
     elseif (mapName == ReadyRoomSpawn.kMapName) then
 
@@ -255,75 +235,6 @@ function CreateLiveMapEntities()
 
 end
 
-// Use minimap extents object to create grid of waypoints throughout map
-function GenerateWaypoints()
-
-    local ents = Shared.GetEntitiesWithClassname("MinimapExtents")
-
-    if ents:GetSize() == 1 then
-
-        local minimapExtents = ents:GetEntityAtIndex(0)
-
-        local kWaypointGridSizeXZ = 2
-        local kWaypointGridSizeY = 1
-
-        local worldOrigin = Vector(minimapExtents:GetOrigin())
-        local worldExtents = Vector(minimapExtents:GetExtents())
-
-        local origin = Vector()
-        local numWaypoints = 0
-
-        local y = worldOrigin.y - worldExtents.y
-        while y < (worldOrigin.y + worldExtents.y) do
-
-            origin.y = y
-            local z = worldOrigin.z - worldExtents.z
-            while z < (worldOrigin.z + worldExtents.z) do
-
-                origin.z = z
-                local x = worldOrigin.x - worldExtents.x
-                while x < (worldOrigin.x + worldExtents.x) do
-
-                    origin.x = x
-
-                    // TODO: If they're close to the ground, they are ground waypoints
-                    local groupName = kAirWaypointsGroup
-
-                    Server.AddNavigationWaypoint( groupName, origin )
-
-                    numWaypoints = numWaypoints + 1
-
-                    x = x + kWaypointGridSizeXZ
-
-                end
-
-                z = z + kWaypointGridSizeXZ
-
-            end
-
-            y = y + kWaypointGridSizeY
-
-        end
-
-        // Return dimensions of waypoint grid
-        local dimensions = {
-                math.floor((worldExtents.x * 2)/kWaypointGridSizeXZ),
-                math.floor((worldExtents.y * 2)/kWaypointGridSizeY),
-                math.floor((worldExtents.z * 2)/kWaypointGridSizeXZ)
-                }
-
-        Print("Auto-generated %s waypoints (%d, %d, %d)", ToString(numWaypoints), dimensions[1], dimensions[2], dimensions[3])
-
-        return dimensions
-
-    elseif ents:GetSize() > 1 then
-        Print("Server:GenerateWaypoints() - Error, multiple minimap extents objects found.")
-    else
-        Print("Server:GenerateWaypoints() - Couldn't find minimap_extents entity, no waypoints generated.")
-    end
-
-end
-
 /**
  * Callback handler for when the map is finished loading.
  */
@@ -342,16 +253,9 @@ function OnMapPostLoad()
         end
     end
     Server.mapPostLoadEntities = { }
-    
-    // Build the data for pathing around the map.
-    /*local dimensions = GenerateWaypoints()
-    if dimensions then
-        //Print("Server.BuildNavigation(%d, %d, %d)", dimensions[1], dimensions[2], dimensions[3])
-        Server.BuildNavigation(dimensions[1], dimensions[2], dimensions[3])
-    end*/
+        
 
-    InitializePathing()
-    Server.BuildNavigation()
+    InitializePathing()    
 
     GetGamerules():OnMapPostLoad()
 

@@ -41,7 +41,9 @@ end
 function AmmoPack:OnTouch(recipient)
 
     local weapon = recipient:GetActiveWeapon()
-    if weapon and weapon:GiveAmmo(AmmoPack.kNumClips) then
+    
+    // Give ammo to reserves and clip, to make them extra effective
+    if weapon and weapon:GiveAmmo(AmmoPack.kNumClips, true) then
         recipient:PlaySound(AmmoPack.kPickupSound)
     end
     
@@ -49,8 +51,9 @@ end
 
 function AmmoPack:GetIsValidRecipient(recipient)
 
+    // Ammo packs give ammo to clip as well (so pass true to GetNeedsAmmo())
     local weapon = recipient:GetActiveWeapon()
-    return weapon ~= nil and weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo()
+    return weapon ~= nil and weapon:isa("ClipWeapon") and weapon:GetNeedsAmmo(true)
     
 end
 

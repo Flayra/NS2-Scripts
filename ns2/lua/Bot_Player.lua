@@ -324,12 +324,12 @@ function BotPlayer:GenerateMove()
             local moved = false            
             
             
-            Server.MoveToTarget(PhysicsMask.AIMovement, player, GetWaypointGroupName(player), orderLocation, 1.5)
+           // player:MoveToTarget(PhysicsMask.AIMovement, orderLocation, Player.kWalkMaxSpeed, Shared.GetTime())
             
-            if self:GetNumPoints() ~= 0 then
-                self:MoveToPoint(player:GetCurrentPathPoint(), move)
-                moved = true
-            end
+          //  if self:GetNumPoints() ~= 0 then
+          //      self:MoveToPoint(player:GetNextPoint(Shared.GetTime(), Player.kWalkMaxSpeed), move)
+           //     moved = true
+          //  end
             
             if not moved then
                 // Generate naive move towards point

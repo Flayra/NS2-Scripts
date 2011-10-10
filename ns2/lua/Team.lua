@@ -57,7 +57,7 @@ function Team:AddPlayer(player)
         end
         
     else    
-        Print("%s", ConditionalValue(player == nil, "Team:AddPlayer(nil): Player is nil.", string.format("Team:AddPlayer(): Tried to add entity of type \"%s\"", player:GetMapName())))
+        Print("Team:AddPlayer(): Entity must be player (was %s)", SafeClassName(player))
     end
     
     return false
@@ -84,7 +84,7 @@ function Team:GetPlayer(playerIndex)
         return Shared.GetEntity( self.playerIds[playerIndex] )
     end
     
-    Print("Team:GetPlayer(%d): Invalid index specified (%d players on team, starts at index 1)", playerIndex, table.count(self.playerIds))
+    Print("Team:GetPlayer(%d): Invalid index specified (1 to %d)", playerIndex, table.count(self.playerIds))
     return nil
     
 end
@@ -97,7 +97,8 @@ function Team:RemovePlayer(player)
     ASSERT(player)
     
     if not table.removevalue(self.playerIds, player:GetId()) then
-        Print("Team:RemovePlayer(%s): Player %s with Id %d not in playerId list.", player:GetClassName(), player:GetName(), player:GetId())
+        Print(  "Team:RemovePlayer(%s): Player %s with Id %d not in playerId list.", 
+                player:GetClassName(), player:GetName(), player:GetId())
     end
     
     self:RemovePlayerFromRespawnQueue(player)
@@ -108,11 +109,17 @@ function Team:GetNumPlayers()
 
     local numPlayers = 0
     
-    function CountPlayer(player)
-        numPlayers = numPlayers + 1
+    // Player may have been deleted this tick, so check id to make sure player count is correct)
+    for index, playerId in ipairs(self.playerIds) do
+
+        local player = Shared.GetEntity(playerId)
+        if player ~= nil and player:GetId() ~= Entity.invalidId then
+        
+            numPlayers = numPlayers + 1
+            
+        end
+        
     end
-    
-    self:ForEachPlayer(CountPlayer)
     
     return numPlayers
     
@@ -143,23 +150,6 @@ function Team:AddTooltip(tooltipText)
     end
     
     self:ForEachPlayer(t)
-    
-end
-
-function Team:tostring()
-
-    local numPlayers = self:GetNumPlayers()
-    local s = string.format("Team num players: %d ", numPlayers)
-    
-    for index, playerId in ipairs(self.playerIds) do
-    
-        local player = Shared.GetEntity(playerId)
-        s = s .. string.format("Player %d, entId %d, mapName %s ", index, playerId, player:GetMapName())
-    end
-    
-    s = s .. " respawnQueue: (" .. table.tostring(self.respawnQueue) .. ")"
-    
-    return s
     
 end
 
@@ -274,7 +264,7 @@ function Team:GetOldestQueuedPlayer()
 
     for i, playerId in ipairs(self.respawnQueue) do
         local player = Shared.GetEntity(playerId)
-        if (player ~= nil) then
+        if (player ~= nil) and player.GetRespawnQueueEntryTime then
             local currentPlayerTime = player:GetRespawnQueueEntryTime()
             
             if((currentPlayerTime ~= nil) and ((earliestTime == -1) or (currentPlayerTime < earliestTime))) then
@@ -298,9 +288,6 @@ end
 
 // Structure was created. May or may not be built or active.
 function Team:StructureCreated(entity)
-end
-
-function Team:StructureDestroyed(entity)
 end
 
 // Entity that supports the tech tree was just added (it's built/active).
@@ -392,7 +379,15 @@ end
 
 function Team:UpdateHelp()
 
-    if(self.timeOfLastHelpCheck == nil or (Shared.GetTime() > self.timeOfLastHelpCheck + PlayingTeam.kTooltipHelpInterval)) then
+    local updateHelp = false
+    
+    if self.timeOfLastHelpCheck == nil then
+        updateHelp = true
+    elseif Shared.GetTime() > (self.timeOfLastHelpCheck + PlayingTeam.kTooltipHelpInterval) then
+        updateHelp = true
+    end
+
+    if updateHelp then
     
         function ProcessPlayerHelp(player)
             if(player:AddTooltipOnce("WELCOME_TOOLTIP")) then
@@ -467,7 +462,7 @@ function Team:RespawnPlayer(player, origin, angles)
             return true
             
         else
-            Print("Team:RespawnPlayer(player, %s, %s) - No origin/angles specified and no ReadyRoomSpawn entities found.", ToString(origin), ToString(angles))
+            Print("Team:RespawnPlayer(player, %s, %s) - Must specify origin.", ToString(origin), ToString(angles))
         end
         
     else

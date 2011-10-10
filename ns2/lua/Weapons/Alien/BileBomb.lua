@@ -30,7 +30,7 @@ function BileBomb:GetDeathIconIndex()
 end
 
 function BileBomb:GetHUDSlot()
-    return 3
+    return 4
 end
 
 function BileBomb:PerformPrimaryAttack(player)

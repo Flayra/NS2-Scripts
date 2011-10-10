@@ -6,7 +6,31 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
+// Utility functions below.
+if Server then
+
+    function StartSoundEffectAtOrigin(soundEffectName, atOrigin)
+    
+        local soundEffectEntity = Server.CreateEntity(SoundEffect.kMapName)
+        soundEffectEntity:SetOrigin(atOrigin)
+        soundEffectEntity:SetAsset(soundEffectName)
+        soundEffectEntity:Start()
+        
+    end
+    
+    function StartSoundEffectOnEntity(soundEffectName, onEntity)
+
+        local soundEffectEntity = Server.CreateEntity(SoundEffect.kMapName)
+        soundEffectEntity:SetParent(onEntity)
+        soundEffectEntity:SetAsset(soundEffectName)
+        soundEffectEntity:Start()
+
+    end
+    
+end
+
 local kDefaultMaxAudibleDistance = 50
+local kSoundEndBufferTime = 0.5
 
 class 'SoundEffect' (Entity)
 
@@ -29,9 +53,11 @@ function SoundEffect:OnCreate()
     self:SetRelevancyDistance(kDefaultMaxAudibleDistance)
     
     if Server then
+    
         self.assetLength = 0
         self.startTime = 0
         self:SetUpdates(true)
+        
     end
     
     if Client then
@@ -50,6 +76,10 @@ function SoundEffect:OnDestroy()
         self:_DestroySoundEffect()
     end
     
+end
+
+function SoundEffect:GetIsPlaying()
+    return self.playing
 end
 
 if Server then
@@ -83,8 +113,14 @@ if Server then
     function SoundEffect:OnUpdate(deltaTime)
     
         // If the assetLength is < 0, it is a looping sound and needs to be manually destroyed.
-        if self.playing and self.assetLength >= 0 and self.startTime + self.assetLength > Shared.GetTime() then
-            Server.DestroyEntity(self)
+        if self.playing and self.assetLength >= 0 then
+        
+            // Add in a bit of time to make sure the Client has had enough time to fully play.
+            local endTime = self.startTime + self.assetLength + kSoundEndBufferTime
+            if Shared.GetTime() > endTime then
+                Server.DestroyEntity(self)
+            end
+            
         end
     
     end
@@ -117,8 +153,7 @@ if Client then
                 if self.assetIndex ~= -1 then
                 
                     self.soundEffectInstance = Client.CreateSoundEffect(self.assetIndex)
-                    local parentId = (self:GetParent() and self:GetParent():GetId()) or Entity.invalidId
-                    self.soundEffectInstance:SetParent(parentId)
+                    self.soundEffectInstance:SetParent(self:GetId())
                     
                 end
             
@@ -143,6 +178,22 @@ if Client then
             
         end
     
+    end
+    
+    function SoundEffect:SetParameter(paramName, paramValue, paramSpeed)
+    
+        ASSERT(type(paramName) == "string")
+        ASSERT(type(paramValue) == "number")
+        ASSERT(type(paramSpeed) == "number")
+        
+        local success = false
+        
+        if self.soundEffectInstance and self.playing then
+            success = self.soundEffectInstance:SetParameter(paramName, paramValue, paramSpeed)
+        end
+        
+        return success
+        
     end
 
 end

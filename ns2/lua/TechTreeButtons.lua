@@ -74,7 +74,6 @@ function InitTechTreeMaterialOffsets()
     kMarineTechIdToMaterialOffset[kTechId.Sentry] = 5
     kMarineTechIdToMaterialOffset[kTechId.RoboticsFactory] = 6
     kMarineTechIdToMaterialOffset[kTechId.Observatory] = 7
-    kMarineTechIdToMaterialOffset[kTechId.PrototypeLab] = 9
     kMarineTechIdToMaterialOffset[kTechId.PowerPoint] = 10    
     // TODO: Change this
     kMarineTechIdToMaterialOffset[kTechId.PowerPack] = 10
@@ -159,8 +158,9 @@ function InitTechTreeMaterialOffsets()
     kMarineTechIdToMaterialOffset[kTechId.JetpackFuelTech] = 73      
     kMarineTechIdToMaterialOffset[kTechId.JetpackArmorTech] = 74
     kMarineTechIdToMaterialOffset[kTechId.ExoskeletonTech] = 75
-    kMarineTechIdToMaterialOffset[kTechId.Exoskeleton] = 76
-    kMarineTechIdToMaterialOffset[kTechId.ExoskeletonLockdownTech] = 77    
+    kMarineTechIdToMaterialOffset[kTechId.Exoskeleton] = 77
+    kMarineTechIdToMaterialOffset[kTechId.ExoskeletonLockdownTech] = 77
+    kMarineTechIdToMaterialOffset[kTechId.ExoskeletonUpgradeTech] = 83
     kMarineTechIdToMaterialOffset[kTechId.ARCDeploy] = 78     
     kMarineTechIdToMaterialOffset[kTechId.ARCUndeploy] = 79
     
@@ -180,8 +180,8 @@ function InitTechTreeMaterialOffsets()
     // Robotics factory menus
     kMarineTechIdToMaterialOffset[kTechId.RoboticsFactoryARCUpgradesMenu] = 91
     kMarineTechIdToMaterialOffset[kTechId.RoboticsFactoryMACUpgradesMenu] = 93
-    kMarineTechIdToMaterialOffset[kTechId.PrototypeLab] = 93
-    kMarineTechIdToMaterialOffset[kTechId.PrototypeLabUpgradesMenu] = 94        
+    kMarineTechIdToMaterialOffset[kTechId.PrototypeLab] = 94
+    kMarineTechIdToMaterialOffset[kTechId.PrototypeLabUpgradesMenu] = 95
     
     kMarineTechIdToMaterialOffset[kTechId.SelectRedSquad] = 96
     kMarineTechIdToMaterialOffset[kTechId.SelectBlueSquad] = 97

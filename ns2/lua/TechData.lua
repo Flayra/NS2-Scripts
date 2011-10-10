@@ -9,9 +9,6 @@
 //
 // ========= For more information, visit us at http://www.unknownworlds.com =====================
 
-// Commands
-kBuildStructureCommand                  = "buildstructure"
-
 // Set up structure data for easy use by Server.lua and model classes
 // Store whatever data is necessary here and use LookupTechData to access
 // Store any data that needs to used on both client and server here
@@ -30,10 +27,11 @@ kTechDataMaxHealth                      = "maxhealth"
 kTechDataMaxArmor                       = "maxarmor"
 kTechDataDamageType                     = "damagetype"
 // Class that structure must be placed on top of (resource towers on resource points)
-// If adding more attach classes, add them to GetIsAttachment()
+// If adding more attach classes, add them to GetIsAttachment(). When attaching entities
+// to this attach class, ignore class.
 kStructureAttachClass                   = "attachclass"
 // Structure must be placed within kStructureAttachRange of this class, but it isn't actually attached.
-// This can be a table of strings as well.
+// This can be a table of strings as well. Near class must have the same team number.
 kStructureBuildNearClass                = "buildnearclass"
 // Structure attaches to wall/roof
 kStructureBuildOnWall                   = "buildonwall"
@@ -51,7 +49,8 @@ kTechDataGestateName                    = "gestateclass"
 kTechDataGestateTime                    = "gestatetime"
 // If specified, object spawns this far off the ground
 kTechDataSpawnHeightOffset              = "spawnheight"
-// All player tech ids should have this, nothing else uses it
+// All player tech ids should have this, nothing else uses it. Pre-computed by looking at the min and max extents of the model, 
+// adding their absolute values together and dividing by 2. 
 kTechDataMaxExtents                     = "maxextents"
 // If specified, is amount of energy structure starts with
 kTechDataInitialEnergy                  = "initialenergy"
@@ -205,7 +204,7 @@ function BuildTechData()
         
         // Marine advanced structures
         { [kTechDataId] = kTechId.AdvancedArmory,        [kTechDataMapName] = AdvancedArmory.kMapName,                   [kTechDataDisplayName] = "ADVANCED_ARMORY",     [kTechDataCostKey] = kAdvancedArmoryUpgradeCost,  [kTechDataModel] = Armory.kModelName,                     [kTechDataMaxHealth] = kAdvancedArmoryHealth,   [kTechDataMaxArmor] = kAdvancedArmoryArmor,  [kTechDataEngagementDistance] = kArmoryEngagementDistance,  [kTechDataUpgradeTech] = kTechId.Armory, [kTechDataPointValue] = kAdvancedArmoryPointValue},
-        { [kTechDataId] = kTechId.Observatory,           [kTechDataMapName] = Observatory.kMapName,    [kTechDataDisplayName] = "OBSERVATORY",  [kTechDataCostKey] = kObservatoryCost,       [kTechDataModel] = Observatory.kModelName,            [kTechDataBuildTime] = kObservatoryBuildTime, [kTechDataMaxHealth] = kObservatoryHealth,   [kTechDataEngagementDistance] = kObservatoryEngagementDistance, [kTechDataMaxArmor] = kObservatoryArmor,   [kTechDataInitialEnergy] = kObservatoryInitialEnergy,      [kTechDataMaxEnergy] = kObservatoryMaxEnergy, [kTechDataPointValue] = kObservatoryPointValue, [kTechDataHotkey] = Move.O, [kTechDataNotOnInfestation] = true, [kTechDataTooltipInfo] = "OBSERVATORY_TOOLTIP"},
+        { [kTechDataId] = kTechId.Observatory,           [kTechDataMapName] = Observatory.kMapName,    [kTechDataDisplayName] = "OBSERVATORY",  [kVisualRange] = Observatory.kDetectionRange, [kTechDataCostKey] = kObservatoryCost,       [kTechDataModel] = Observatory.kModelName,            [kTechDataBuildTime] = kObservatoryBuildTime, [kTechDataMaxHealth] = kObservatoryHealth,   [kTechDataEngagementDistance] = kObservatoryEngagementDistance, [kTechDataMaxArmor] = kObservatoryArmor,   [kTechDataInitialEnergy] = kObservatoryInitialEnergy,      [kTechDataMaxEnergy] = kObservatoryMaxEnergy, [kTechDataPointValue] = kObservatoryPointValue, [kTechDataHotkey] = Move.O, [kTechDataNotOnInfestation] = true, [kTechDataTooltipInfo] = "OBSERVATORY_TOOLTIP"},
         { [kTechDataId] = kTechId.Scan,                  [kTechDataMapName] = Scan.kMapName,           [kTechDataModel] = "", [kTechDataDisplayName] = "SCAN",      [kTechDataHotkey] = Move.S,   [kTechDataCostKey] = kObservatoryScanCost, [kTechDataTooltipInfo] = "SCAN_TOOLTIP"},
         { [kTechDataId] = kTechId.DistressBeacon,        [kTechDataDisplayName] = "DISTRESS_BEACON",   [kTechDataHotkey] = Move.B, [kTechDataCostKey] = kObservatoryDistressBeaconCost, [kTechDataTooltipInfo] =  "DISTRESS_BEACON_TOOLTIP"},
         { [kTechDataId] = kTechId.RoboticsFactory,       [kTechDataDisplayName] = "ROBOTICS_FACTORY",  [kTechDataMapName] = RoboticsFactory.kMapName, [kTechDataCostKey] = kRoboticsFactoryCost,       [kTechDataModel] = RoboticsFactory.kModelName,    [kTechDataEngagementDistance] = kRoboticsFactorEngagementDistance,        [kTechDataSpecifyOrientation] = true, [kTechDataBuildTime] = kRoboticsFactoryBuildTime, [kTechDataMaxHealth] = kRoboticsFactoryHealth,    [kTechDataMaxArmor] = kRoboticsFactoryArmor, [kTechDataPointValue] = kRoboticsFactoryPointValue, [kTechDataHotkey] = Move.R, [kTechDataNotOnInfestation] = true, [kTechDataTooltipInfo] = "ROBOTICS_FACTORY_TOOLTIP"},        
@@ -221,7 +220,7 @@ function BuildTechData()
         { [kTechDataId] = kTechId.PhaseGate,             [kTechDataMapName] = PhaseGate.kMapName,                    [kTechDataDisplayName] = "PHASE_GATE",  [kTechDataCostKey] = kPhaseGateCost,       [kTechDataModel] = PhaseGate.kModelName, [kTechDataBuildTime] = kPhaseGateBuildTime, [kTechDataMaxHealth] = kPhaseGateHealth,   [kTechDataEngagementDistance] = kPhaseGateEngagementDistance, [kTechDataMaxArmor] = kPhaseGateArmor,   [kTechDataPointValue] = kPhaseGatePointValue, [kTechDataHotkey] = Move.P, [kTechDataNotOnInfestation] = true, [kTechDataSpecifyOrientation] = true, [kTechDataTooltipInfo] = "PHASE_GATE_TOOLTIP"},
         { [kTechDataId] = kTechId.AdvancedArmoryUpgrade, [kTechDataCostKey] = kAdvancedArmoryUpgradeCost,            [kTechDataResearchTimeKey] = kAdvancedArmoryResearchTime,  [kTechDataHotkey] = Move.U, [kTechDataDisplayName] = "ADVANCED_ARMORY_UPGRADE", [kTechDataTooltipInfo] =  "ADVANCED_ARMORY_TOOLTIP"},
         //{ [kTechDataId] = kTechId.WeaponsModule,         [kTechDataCostKey] = kWeaponsModuleAddonCost,               [kTechDataResearchTimeKey] = kWeaponsModuleAddonTime,      [kTechDataDisplayName] = "Armory with Weapons module", [kTechDataMaxHealth] = kAdvancedArmoryHealth, [kTechDataUpgradeTech] = kTechId.AdvancedArmory, [kTechDataHotkey] = Move.W, [kTechDataTooltipInfo] = "Allows access to advanced weaponry", [kTechDataModel] = Armory.kModelName},
-        { [kTechDataId] = kTechId.PrototypeLab,          [kTechDataCostKey] = kPrototypeLabCost,                     [kTechDataResearchTimeKey] = kPrototypeLabBuildTime,       [kTechDataDisplayName] = "PROTOTYPE_LAB", [kTechDataModel] = PrototypeLab.kModelName, [kTechDataMaxHealth] = kPrototypeLabHealth, [kTechDataPointValue] = kPrototypeLabPointValue, [kTechDataImplemented] = false, [kTechDataHotkey] = Move.P, [kTechDataTooltipInfo] = "PROTOTYPE_LAB_TOOLTIP"},
+        { [kTechDataId] = kTechId.PrototypeLab,          [kTechDataMapName] = PrototypeLab.kMapName,                        [kTechDataCostKey] = kPrototypeLabCost,                     [kTechDataResearchTimeKey] = kPrototypeLabBuildTime,       [kTechDataDisplayName] = "PROTOTYPE_LAB", [kTechDataModel] = PrototypeLab.kModelName, [kTechDataMaxHealth] = kPrototypeLabHealth, [kTechDataPointValue] = kPrototypeLabPointValue, [kTechDataImplemented] = false, [kTechDataHotkey] = Move.P, [kTechDataTooltipInfo] = "PROTOTYPE_LAB_TOOLTIP"},
        
         // Weapons
         { [kTechDataId] = kTechId.Rifle,                 [kTechDataMapName] = Rifle.kMapName,                    [kTechDataDisplayName] = "RIFLE",         [kTechDataModel] = Rifle.kModelName, [kTechDataDamageType] = kRifleDamageType, [kTechDataCostKey] = kRifleCost,                                     },

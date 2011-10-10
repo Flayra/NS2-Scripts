@@ -183,7 +183,7 @@ function Commander:HandleButtons(input)
     end
     
     if Client then
-        self:ShowMap(bit.band(input.commands, Move.ShowMap) ~= 0)
+        self:ShowMap(true, bit.band(input.commands, Move.ShowMap) ~= 0)
     end
     
 end
@@ -426,7 +426,7 @@ function Commander:OnEntityChange(oldEntityId, newEntityId)
                 pair[1] = newEntityId
             else
                 table.remove(newSelection, index)                
-            end  
+            end
             
             selectionChanged = true
             
@@ -468,7 +468,9 @@ function Commander:OnUpdate(deltaTime)
     Player.OnUpdate(self, deltaTime)
 
     // Remove selected units that are no longer valid for selection
-    self:UpdateSelection(deltaTime)
+    if Server or (Client and (Client.GetLocalPlayer() == self)) then
+        self:UpdateSelection(deltaTime)
+    end
     
     if Server then
     

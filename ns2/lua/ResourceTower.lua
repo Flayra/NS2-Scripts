@@ -45,7 +45,6 @@ function ResourceTower:OnInit()
 
     Structure.OnInit(self)
     
-    self.playingSound = false
     self.upgradeLevel = 0
     
 end

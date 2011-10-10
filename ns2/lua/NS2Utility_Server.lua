@@ -15,19 +15,24 @@ function CreateEntityForTeam(techId, position, teamNumber, player)
     local newEnt = nil
     
     local mapName = LookupTechData(techId, kTechDataMapName)
+    if mapName ~= nil then
     
-    // Allow entities to be positioned off ground (eg, hive hovers over tech point)        
-    local spawnHeight = LookupTechData(techId, kTechDataSpawnHeightOffset, .05)
-    local spawnHeightPosition = Vector( position.x, 
-                                        position.y + LookupTechData(techId, kTechDataSpawnHeightOffset, .05), 
-                                        position.z)
-    
-    newEnt = CreateEntity( mapName, spawnHeightPosition, teamNumber )
-    
-    // Hook it up to attach entity
-    local attachEntity = GetAttachEntity(techId, position)    
-    if attachEntity then    
-        newEnt:SetAttached(attachEntity)        
+        // Allow entities to be positioned off ground (eg, hive hovers over tech point)        
+        local spawnHeight = LookupTechData(techId, kTechDataSpawnHeightOffset, .05)
+        local spawnHeightPosition = Vector( position.x, 
+                                            position.y + LookupTechData(techId, kTechDataSpawnHeightOffset, .05), 
+                                            position.z)
+        
+        newEnt = CreateEntity( mapName, spawnHeightPosition, teamNumber )
+        
+        // Hook it up to attach entity
+        local attachEntity = GetAttachEntity(techId, position)    
+        if attachEntity then    
+            newEnt:SetAttached(attachEntity)        
+        end
+        
+    else
+        Print("CreateEntityForTeam(%s): Couldn't kTechDataMapName for entity.", EnumToString(kTechId, techId))
     end
     
     return newEnt
@@ -37,6 +42,7 @@ end
 function CreateEntityForCommander(techId, position, commander)
     
     local newEnt = CreateEntityForTeam(techId, position, commander:GetTeamNumber(), commander)
+    ASSERT(newEnt ~= nil, "Didn't create entity for techId: " .. EnumToString(kTechId, techId))
     
     if newEnt then
         newEnt:SetOwner(commander)
@@ -174,9 +180,12 @@ function GetRandomSpawnForCapsule(capsuleHeight, capsuleRadius, origin, minRange
             
                 VectorCopy(trace.endPoint, spawnPoint)
                 
-                trace = Shared.TraceRay(trace.endPoint + Vector(0, capsuleHeight / 2, 0), origin, PhysicsMask.AllButPCs, filter)
+                local endPoint = trace.endPoint + Vector(0, capsuleHeight / 2, 0)
+                // Trace in both directions to make sure no walls are being ignored.
+                trace = Shared.TraceRay(endPoint, origin, PhysicsMask.AllButPCs, filter)
+                local traceOriginToEnd = Shared.TraceRay(origin, endPoint, PhysicsMask.AllButPCs, filter)
                 
-                if (trace.fraction == 1) then
+                if trace.fraction == 1 and traceOriginToEnd.fraction == 1 then
                 
                     // Return origin for player
                     return spawnPoint - Vector(0, capsuleHeight / 2, 0)

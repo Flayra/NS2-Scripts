@@ -24,7 +24,10 @@ function MapBlip:OnCreate()
 
     Entity.OnCreate(self)
     
+    // Prevent let the engine from calling OnSynchronize or OnUpdate for improved performance
+    // since we create a lot of map blips.
     self:SetUpdates(false)
+    self:SetSynchronizes(false)
     
     self.mapBlipType = kMinimapBlipType.TechPoint
     self.mapBlipTeam = kTeamReadyRoom

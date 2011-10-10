@@ -16,10 +16,11 @@ Infestation.kGrowthRate = 0.25
 
 Infestation.kHealPerSecond = 5
 
-
 function Infestation:AddToInfestationMap()
+
     Server.infestationMap:AddInfestation(self)
     self.addedToMap = true
+    
 end
 
 // Update radius of infestation according to if they are connected or not! If not connected to hive, we shrink.
@@ -33,6 +34,7 @@ function Infestation:UpdateInfestation(deltaTime)
     local newGrowthRate = 0
     local dt = deltaTime
     if not self.growthRate or now >= self.lastUpdateThinkTime + self.thinkTime then
+    
         if not self.addedToMap then
             self:AddToInfestationMap()
         end
@@ -49,38 +51,43 @@ function Infestation:UpdateInfestation(deltaTime)
         self.growthRate = newGrowthRate * self.growthRateScalar
         // Always regenerating (5 health/sec)
         self.health = Clamp(self.health + deltaUpdateThinkTime * Infestation.kHealPerSecond, 0, self.maxHealth)
+        
     end
     
 
     if self.growthRate ~= 0 then
+    
         // Update radius based on lifetime
         self.radius = Clamp(self.radius + dt * self.growthRate, 0, self:GetMaxRadius())
     
         // Mark as fully grown
         if self.radius == self:GetMaxRadius() then
+        
             if not self.fullyGrown then
+            
                 self:TriggerEffects("infestation_grown")
                 self.fullyGrown = true
+                
             end
+            
         else
             self.fullyGrown = false
         end
       
         // Kill us off when we get too small!    
-        if (self.growthRate < 0 and self.radius <= 0) then
+        if self.growthRate < 0 and self.radius <= 0 then
+        
             self:TriggerEffects("death")
             DestroyEntity(self)
+            
         end
         
     end
 
-
 end
-
 
 // Infestation can only take damage from flames.
 function Infestation:ComputeDamageOverride(attacker, damage, damageType, time) 
     // Returning nil for the damage type will cause no damage.
     return 0, nil
 end
-

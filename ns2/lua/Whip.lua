@@ -173,6 +173,31 @@ function Whip:OnOverrideDoorInteraction(inEntity)
     return true, 4
 end
 
+function Whip:OnUpdate(deltaTime)
+
+    PROFILE("Whip:OnUpdate")
+    Structure.OnUpdate(self, deltaTime)
+    
+if Server then        
+    self:UpdateRootState()
+    
+    // Handle sentry state changes
+    self:UpdateMode(deltaTime)
+    
+    self:UpdateOrders(deltaTime)
+end
+    if (not self:GetIsRooted()) then
+        self:RemoveFromMesh()
+    elseif (self:GetObstacleId() == nil and self:GetIsRooted()) then
+        self:AddToMesh()     
+    end
+end
+
+function Whip:AdjustPathingLocation(location)
+  location = GetGroundAt(self, location, PhysicsMask.AIMovement)
+  return location
+end
+
 Shared.LinkClassToMap("Whip", Whip.kMapName, networkVars)
 
 class 'MatureWhip' (Whip)

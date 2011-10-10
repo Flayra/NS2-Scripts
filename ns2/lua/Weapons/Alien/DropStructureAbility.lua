@@ -214,6 +214,11 @@ function DropStructureAbility:GetPositionForStructure(player)
         validPosition = false
     end
     
+    // Don't allow dropped structures to go too close to techpoints and resource nozzles
+    if GetPointBlocksAttachEntities(displayOrigin) then
+        validPosition = false
+    end
+    
     // Don't allow placing above or below us and don't draw either
     local structureFacing = player:GetViewAngles():GetCoords().zAxis
     local coords = BuildCoords(trace.normal, structureFacing, displayOrigin)    

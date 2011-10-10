@@ -40,15 +40,15 @@ function GrenadeLauncher:GetWeight()
     return Rifle.GetWeight(self) + ((self:GetAmmo() + self:GetClip()) / self:GetClipSize()) * 0.01
 end
 
-function GrenadeLauncher:GetNeedsAmmo()
-    return Rifle.GetNeedsAmmo(self) or (not self.auxClipFull) or (self.auxAmmo < kGrenadeLauncherClipSize)
+function GrenadeLauncher:GetNeedsAmmo(includeClip)
+    return Rifle.GetNeedsAmmo(self, includeClip) or (not self.auxClipFull) or (self.auxAmmo < kGrenadeLauncherClipSize)
 end
 
 function GrenadeLauncher:GetHUDSlot()
     return kPrimaryWeaponSlot
 end
 
-function GrenadeLauncher:GiveAmmo(clips)
+function GrenadeLauncher:GiveAmmo(clips, includeClip)
     
     // Give all to GL and any not used, give to rifle. Put in reserves before clip.
     local success = false
@@ -74,7 +74,7 @@ function GrenadeLauncher:GiveAmmo(clips)
     // Convert back into clips and give the rest to the rifle ammo    
     clips = grenadesToGive / GrenadeLauncher.kGrenadesPerAmmoClip
     
-    if clips > 0 and Rifle.GiveAmmo(self, clips) then
+    if clips > 0 and Rifle.GiveAmmo(self, clips, includeClip) then
         success = true        
     end
     
@@ -158,10 +158,9 @@ function GrenadeLauncher:OnInit()
 
     Rifle.OnInit(self)
     
-    self.auxAmmo = (kGrenadeLauncherClipSize / 2)
+    self.auxAmmo = kGrenadeLauncherClipSize    
+    self.auxClipFull = true
     
-    // Start empty to show player initial reload - ie, to draw their attention to them having a GL
-    self.auxClipFull = false
     self.justShotGrenade = false
     
 end

@@ -43,7 +43,7 @@ Hive.kHealthPercentage = .08
 Hive.kHealthUpdateTime = 1
 
 // A little bigger than we might expect because the hive origin isn't on the ground
-Hive.kHiveNumEggs = 12
+Hive.kHiveNumEggs = 9
 Hive.kEggMinRange = 4
 Hive.kEggMaxRange = 22
 

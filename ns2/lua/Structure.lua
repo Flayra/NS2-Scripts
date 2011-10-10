@@ -26,6 +26,7 @@ Script.Load("lua/WeldableMixin.lua")
 Script.Load("lua/PathingMixin.lua")
 Script.Load("lua/HiveSightBlipMixin.lua")
 Script.Load("lua/PowerMixin.lua")
+Script.Load("lua/DetectableMixin.lua")
 
 class 'Structure' (ScriptActor)
 
@@ -86,11 +87,11 @@ PrepareClassForMixin(Structure, GameEffectsMixin)
 PrepareClassForMixin(Structure, FuryMixin)
 PrepareClassForMixin(Structure, FlinchMixin)
 PrepareClassForMixin(Structure, OrdersMixin)
-PrepareClassForMixin(Structure, FireMixin)
 PrepareClassForMixin(Structure, CloakableMixin)
 PrepareClassForMixin(Structure, SelectableMixin)
 PrepareClassForMixin(Structure, LOSMixin)
 PrepareClassForMixin(Structure, PowerMixin)
+PrepareClassForMixin(Structure, DetectableMixin)
 
 function Structure:OnCreate()
 
@@ -110,12 +111,14 @@ function Structure:OnCreate()
     InitMixin(self, PathingMixin)
     InitMixin(self, LOSMixin)
     InitMixin(self, PowerMixin)
+    InitMixin(self, DetectableMixin)
     
     if Server then
+    
         InitMixin(self, TargetMixin)
-        
         InitMixin(self, WeldableMixin)
         InitMixin(self, HiveSightBlipMixin)
+        
     end
     
     self:SetLagCompensated(true)
@@ -228,7 +231,7 @@ function Structure:GetCanBeUsed(player)
 end
 
 function Structure:GetIsCloakable()
-    return self:GetIsAlienStructure()
+    return self:GetIsAlienStructure() and not self:GetIsDetected()
 end
 
 // Assumes all structures are marine or alien
@@ -328,6 +331,24 @@ function Structure:OnUpdate(deltaTime)
     // Pose parameters calculated on server from current order
     self:UpdatePoseParameters(deltaTime)
     
+    if Server then
+    
+        local shouldUpdate = self:GetIsBuilt() or self:GetRecycleActive()
+        
+        if shouldUpdate then
+            self:UpdateResearch(deltaTime)
+        end
+        
+        if self:GetIsBuilt() then
+            self:UpdateEnergy(deltaTime)
+        end
+        
+        self:UpdateRecycle(deltaTime)
+        
+        self:UpdateAutoBuild(deltaTime)
+    
+    end
+    
 end
 
 function Structure:UpdatePoseParameters(deltaTime)
@@ -375,6 +396,14 @@ end
 
 function Structure:GetRecycleActive()
     return self.researchingId == kTechId.Recycle
+end
+
+function Structure:OnDetectedChange(state)
+
+    if not state and self:GetIsAlienStructure() then
+        self:TriggerUncloak()
+    end
+    
 end
 
 Shared.LinkClassToMap("Structure", Structure.kMapName, Structure.networkVars)

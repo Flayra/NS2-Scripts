@@ -60,7 +60,7 @@ function GUIFlamethrowerDisplay:Initialize()
     
     self.background:AddChild(self.ammoDisplayBg)
     self.background:AddChild(self.clipDisplayBg)
-    self.background:AddChild(self.ammodisplay)
+    self.background:AddChild(self.ammoDisplay)
     self.background:AddChild(self.clipDisplay)
     
     // Force an update so our initial state is correct.

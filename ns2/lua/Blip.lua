@@ -23,6 +23,8 @@ Blip.networkVars =
 
 function Blip:OnCreate()
 
+    self:SetSynchronizes(false)
+    
     self.blipType = kBlipType.Undefined
     self.entId    = Entity.invalidId
     

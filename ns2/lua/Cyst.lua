@@ -18,6 +18,8 @@ Cyst.kMapName = "cyst"
 Cyst.kModelName = PrecacheAsset("models/alien/pustule/pustule.model")
 Cyst.kOffModelName = PrecacheAsset("models/alien/pustule/pustule_off.model")
 
+local kCystBuildSound = PrecacheAsset("sound/ns2.fev/alien/infestation/build")
+
 Cyst.kEnergyCost = 25
 Cyst.kPointValue = 5
 // how fast the impulse moves
@@ -36,7 +38,8 @@ Cyst.kCystParentRange = kCystParentRange
 // size of infestation patch
 Cyst.kInfestationRadius = kInfestationRadius
 
-local networkVars = {
+local networkVars =
+{
     // Track our parentId
     parentId         = "entityid",    
         
@@ -53,6 +56,7 @@ local networkVars = {
 }
 
 function CreateBetween(trackStart, trackEnd)
+
     trackStart = trackStart + Vector(0, 0.25, 0)
     trackEnd   = trackEnd 
     local points = FindConnectionPath(trackEnd, trackStart)
@@ -62,6 +66,7 @@ function CreateBetween(trackStart, trackEnd)
     end
 
     return nil
+    
 end
 
 
@@ -74,7 +79,38 @@ function Cyst:OnCreate()
     Structure.OnCreate(self)
     
     InitMixin(self, RagdollMixin)
+    
+    if Server then
+    
+        self.cystBuildSound = Server.CreateEntity(SoundEffect.kMapName)
+        self.cystBuildSound:SetAsset(kCystBuildSound)
+        self.cystBuildSound:SetRelevancyDistance(10)
+        self.cystBuildSound:SetParent(self)
+        self.cystBuildSound:Start()
+    
+    end
 
+end
+
+function Cyst:OnDestroy()
+
+    if Client then
+    
+        if self.light ~= nil then
+            Client.DestroyRenderLight(self.light)
+        end
+        
+    end
+    
+    if Server then
+    
+        Server.DestroyEntity(self.cystBuildSound)
+        self.cystBuildSound = nil
+    
+    end
+    
+    Structure.OnDestroy(self)
+    
 end
 
 function Cyst:OnInit()
@@ -83,8 +119,8 @@ function Cyst:OnInit()
     
     Structure.OnInit(self)
     
-    self.parentId = Entity.invalidId    
- 
+    self.parentId = Entity.invalidId
+    
     if Server then
     
         // start out as disconnected; wait for impulse to arrive
@@ -223,20 +259,11 @@ function Cyst:GetIsConnected()
 end
 
 function Cyst:GetDescription()
+
     local prePendText = ConditionalValue(self:GetIsConnected(), "", "Unconnected ")
     return prePendText .. Structure.GetDescription(self)
-end
-
-function Cyst:OnDestroy()
-    if (Client) then    
-        if (self.light ~= nil) then
-            Client.DestroyRenderLight(self.light)
-        end        
-    end
     
-    Structure.OnDestroy(self)    
 end
-
 
 function Cyst:GetIsAlienStructure()
     return true

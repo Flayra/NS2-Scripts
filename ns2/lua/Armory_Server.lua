@@ -36,7 +36,7 @@ function Armory:GetShouldResupplyPlayer(player)
         // Do any weapons need ammo?
         for i, child in ientitychildren(player, "ClipWeapon") do
         
-            if child:GetNeedsAmmo() then
+            if child:GetNeedsAmmo(false) then
                 inNeed = true
                 break
             end
@@ -99,7 +99,7 @@ function Armory:ResupplyPlayer(player)
     
         if weapon:isa("ClipWeapon") then
         
-            if weapon:GiveAmmo(1) then
+            if weapon:GiveAmmo(1, false) then
             
                 self:TriggerEffects("armory_ammo", {effecthostcoords = Coords.GetTranslation(player:GetOrigin())})
                 

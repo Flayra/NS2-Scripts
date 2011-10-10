@@ -9,29 +9,17 @@
 FireMixin = { }
 FireMixin.type = "Fire"
 
-function FireMixin.__prepareclass(toClass)
-
-     ASSERT(toClass.networkVars ~= nil, "FireMixin expects the class to have network fields")
-    
-    local addNetworkFields =
-    {        
-        stopChance                      = "float",
-        timeLastUpdateStopChance        = "float"          
-    }
-    
-    for k, v in pairs(addNetworkFields) do
-        toClass.networkVars[k] = v
-    end
-    
-end
-
 function FireMixin:__initmixin()
 
-    self.fireAttackerId             = Entity.invalidId
-    self.fireDoerId                 = Entity.invalidId
+    if Server then
     
-    self.stopChance                 = 0
-    self.timeLastUpdateStopChance   = 0
+        self.fireAttackerId = Entity.invalidId
+        self.fireDoerId = Entity.invalidId
+        
+        self.stopChance = kStopFireProbability
+        self.timeLastUpdateStopChance = 0
+        
+    end
     
 end
 
@@ -52,11 +40,11 @@ function FireMixin:ClearFire()
 
     self:SetGameEffectMask(kGameEffect.OnFire, false)
     
-    self.fireAttackerId             = Entity.invalidId
-    self.fireDoerId                 = Entity.invalidId
+    self.fireAttackerId = Entity.invalidId
+    self.fireDoerId = Entity.invalidId
     
-    self.stopChance                 = 0
-    self.timeLastUpdateStopChance   = nil
+    self.stopChance = kStopFireProbability
+    self.timeLastUpdateStopChance = nil
     
 end
 
@@ -76,11 +64,11 @@ end
 
 function FireMixin:GetCanBeSetOnFire()
 
-  if self.OnOverrideCanSetFire then
-    return self:OnOverrideCanSetFire(attacker, doer)
-  else
-    return true
-  end
+    if self.OnOverrideCanSetFire then
+        return self:OnOverrideCanSetFire(attacker, doer)
+    else
+        return true
+    end
   
 end
 
@@ -97,65 +85,73 @@ function FireMixin:OnUpdate(deltaTime)
         
         // See if we put ourselves out
         local stopFireChance = deltaTime * self:_GetStopChance()
-        if (NetworkRandom() < stopFireChance) then
+        if NetworkRandom() < stopFireChance then
             self:ClearFire()
         end
         
     elseif Client then
     
         if self.updateClientSideFireEffects == true then
+        
             self:_UpdateClientFireEffects()
             self.updateClientSideFireEffects = false
+            
         end
         
     end
     
 end
 
-function FireMixin:OnSynchronized()
+if Client then
 
-    PROFILE("FireMixin:OnSynchronized")
-    
-    if Client then
+    function FireMixin:OnSynchronized()
+
+        PROFILE("FireMixin:OnSynchronized")
+        
         self.updateClientSideFireEffects = true
+        
     end
     
+    function FireMixin:_UpdateClientFireEffects()
+
+        // Play on-fire cinematic every so often if we're on fire
+        if self:GetGameEffectMask(kGameEffect.OnFire) and self:GetIsAlive() and self:GetIsVisible() then
+        
+            // If we haven't played effect for a bit
+            local time = Shared.GetTime()
+            
+            if not self.timeOfLastFireEffect or (time > (self.timeOfLastFireEffect + .5)) then
+            
+                local firstPerson = (Client.GetLocalPlayer() == self)
+                local cinematicName = GetOnFireCinematic(self, firstPerson)
+                
+                if firstPerson then
+                    local viewModel = self:GetViewModelEntity()
+                    if viewModel then
+                        Shared.CreateAttachedEffect(self, cinematicName, viewModel, Coords.GetTranslation(Vector(0, 0, 0)), "", true, false)
+                    end
+                else
+                    Shared.CreateEffect(self, cinematicName, self, self:GetAngles():GetCoords())
+                end
+                
+                self.timeOfLastFireEffect = time
+                
+            end
+            
+        end
+        
+    end
+
 end
 
 function FireMixin:OnEntityChange(entityId, newEntityId)
-    
+
     if entityId == self.fireAttackerId then
-        self.fireAttackerId = newEntityId
+        self.fireAttackerId = newEntityId or Entity.invalidId
     end
     
-end
-
-function FireMixin:_UpdateClientFireEffects()
-
-    // Play on-fire cinematic every so often if we're on fire
-    if self:GetGameEffectMask(kGameEffect.OnFire) and self:GetIsAlive() and self:GetIsVisible() then
-    
-        // If we haven't played effect for a bit
-        local time = Shared.GetTime()
-        
-        if not self.timeOfLastFireEffect or (time > (self.timeOfLastFireEffect + .5)) then
-        
-            local firstPerson = (Client.GetLocalPlayer() == self)
-            local cinematicName = GetOnFireCinematic(self, firstPerson)
-            
-            if firstPerson then
-                local viewModel = self:GetViewModelEntity()
-                if viewModel then
-                    Shared.CreateAttachedEffect(self, cinematicName, viewModel, Coords.GetTranslation(Vector(0, 0, 0)), "", true, false)
-                end
-            else
-                Shared.CreateEffect(self, cinematicName, self, self:GetAngles():GetCoords())
-            end
-            
-            self.timeOfLastFireEffect = time
-            
-        end
-        
+    if entityId == self.fireDoerId then
+        self.fireDoerId = newEntityId or Entity.invalidId
     end
     
 end

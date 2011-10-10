@@ -200,26 +200,32 @@ end
 
 // Save this setting if we set it via a console command
 function OnCommandSetName(nickname)
+
     local player = Client.GetLocalPlayer()
-    nickname = StringTrim(nickname)
+    nickname = TrimName(nickname)
     
-    if (nickname == nil) then
+    if nickname == nil then
         return
     end
     
-    if (player ~= nil) then        
-        if (nickname == player:GetName()) or (nickname == kDefaultPlayerName) or string.len(nickname) < 0 then                    
+    if player ~= nil then
+    
+        if nickname == player:GetName() or nickname == kDefaultPlayerName or string.len(nickname) < 0 then
             return
-        end      
+        end
+        
     end
     
-    Client.SetOptionString( kNicknameOptionsKey, nickname )     
+    Client.SetOptionString(kNicknameOptionsKey, nickname)
+    
 end
 
 local function OnCommandFunctionContractsEnabled(enabled)
-
     SetFunctionContractsEnabled(enabled == "true")
+end
 
+local function OnCommandClearDebugLines()
+    Client.ClearDebugLines()
 end
 
 function OnLocalizedTooltip(once, isTech, message, ...)
@@ -238,6 +244,11 @@ function OnLocalizedTooltip(once, isTech, message, ...)
   end
 end
 
+function OnCommandPathingFill()
+    local player = Client.GetLocalPlayer()
+    Pathing.FloodFill(player:GetOrigin())
+end
+
 Event.Hook("Console_tooltip",                   OnCommandTooltip)
 Event.Hook("Console_localizedtooltip",          OnLocalizedTooltip)
 Event.Hook("Console_reset",                     OnCommandRoundReset)
@@ -252,6 +263,7 @@ Event.Hook("Console_debugtext",                 OnCommandDebugText)
 Event.Hook("Console_locate",                    OnCommandLocate)
 Event.Hook("Console_name",                      OnCommandSetName)
 Event.Hook("Console_functioncontractsenabled",  OnCommandFunctionContractsEnabled)
+Event.Hook("Console_cleardebuglines",           OnCommandClearDebugLines)
 
 // Options Console Commands
 Event.Hook("Console_setsoundvolume",            OnCommandSetSoundVolume)
@@ -261,6 +273,7 @@ Event.Hook("Console_setmusicvolume",            OnCommandSetMusicVolume)
 Event.Hook("Console_setvoicevolume",            OnCommandSetVoiceVolume)
 Event.Hook("Console_setvv",                     OnCommandSetVoiceVolume)
 Event.Hook("Console_setsensitivity",            OnCommandSetMouseSensitivity)
+Event.Hook("Console_pathingfill",               OnCommandPathingFill)
 
 Client.HookNetworkMessage("Ping",               OnCommandPing)
 Client.HookNetworkMessage("Scores",             OnCommandScores)
