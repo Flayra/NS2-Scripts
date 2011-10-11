@@ -35,8 +35,6 @@ Client.particlesList = {}
 Client.tracersList = {}
 Client.rules = {}
 Client.cinematics = {}
-
-Client.timeOfLastPowerPoints = nil
     
 local gGUIManager = GUIManager()
 gGUIManager:Initialize()
@@ -321,33 +319,33 @@ end
 function UpdatePowerPointLights()
 
     PROFILE("UpdatePowerPointLights")
-
-    // Only get power nodes on client every so often for performance reasons
-    local time = Shared.GetTime()
-    
-    // Get power points that are relevant
-    local forceUpdate = false
-    
-    if (Client.timeOfLastPowerPoints == nil) or (time > Client.timeOfLastPowerPoints + 3) then
-        
-        Client.timeOfLastPowerPoints = time
-        
-        // If a power node wasn't relevant and becomes relevant, we need to update lights
-        forceUpdate = true
-        
-    end
     
     // Now update the lights every frame
-    local powerPoints = Shared.GetEntitiesWithClassname("PowerPoint")
-    for index, powerPoint in ientitylist(powerPoints) do
+    local player = Client.GetLocalPlayer()
+    if player then
     
-        // But only update lights when necessary for performance reasons
-        if powerPoint:GetIsAffectingLights() or forceUpdate then
+        local playerPos = player:GetOrigin()
+
+        local powerPoints = Shared.GetEntitiesWithClassname("PowerPoint")
         
-            powerPoint:UpdatePoweredLights()
-        
+        for index, powerPoint in ientitylist(powerPoints) do
+            
+            // PowerPoints are always loaded but in order to avoid running the light modification stuff
+            // for all of them at all times, we restrict it to powerpoints inside the updateRange. The
+            // updateRange should be long enough that players can't see the lights being updated by the
+            // powerpoint when outside this range, and short enough not to waste too much cpu.
+            local inRange = (powerPoint:GetOrigin() - playerPos):GetLength() < powerPoint.updateRange
+            
+            // A second performance optimization is that when all lights are stable, the powerpoint stops
+            // updating them (by returning false for GetIsAffectingLights)
+            if inRange and powerPoint:GetIsAffectingLights() then
+            
+                powerPoint:UpdatePoweredLights()
+                
+            end
+            
         end
-        
+    
     end
     
 end

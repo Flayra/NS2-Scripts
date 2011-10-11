@@ -57,12 +57,17 @@ PowerPoint.kDamagedMinIntensity = .7
 PowerPoint.kAuxPowerCycleTime = 3
 PowerPoint.kAuxPowerMinIntensity = 0
 
+// the default update range; if the local player is inside this range the 
+// lights will update.
+PowerPoint.kDefaultUpdateRange = 60
+
 local networkVars =
 {
     lightMode               = "enum kLightMode",
     timeOfLightModeChange   = "float",
     triggerName             = string.format("string (%d)", kMaxEntityStringLength),
-    attackTime              = "float"
+    attackTime              = "float",
+    updateRange             = "float"
 }
 
 // No spawn animation
@@ -96,6 +101,16 @@ function PowerPoint:OnInit()
         self.attackTime = 0.0
         
         self:SetIsPowerSource(true)
+        
+        // because a PowerPoint affects lights on the client, powerpoint state should
+        // always be propagated to the client becuase the lights affected by a powerpoint
+        // are visible very far from the powerpoint itself.
+        // To avoid updating all lights all the time, each power point has an update range 
+        // to allow it to not updates its lights if the player is further away than this. 
+        // This should be under the control of the mapper, but for now its just a constant
+        self.updateRange = PowerPoint.kDefaultUpdateRange 
+
+        self:SetPropagate(Entity.Propagate_Always)
 
     else 
     
