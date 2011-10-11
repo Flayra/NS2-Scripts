@@ -33,7 +33,7 @@ PowerPoint.kAuxLightFailTime = 20 // short .. should be like 600 (10 minues)
 PowerPoint.kAuxLightDyingTime = 20
 
 function PowerPoint:UpdatePoweredLights()
-    
+
     if not self.lightList then    
         self.lightList = GetLightsForPowerPoint(self)
         
