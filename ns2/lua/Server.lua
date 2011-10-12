@@ -623,6 +623,12 @@ local function OnCanPlayerHearPlayer(listener, speaker)
 end
 
 local function OnUpdateServer(deltaTime)
+    if Server.delayCount then
+        local count = Server.delayCount * 100000
+        while count > 0 do
+            count = count - 1
+        end
+    end
 end
 
 Event.Hook("ClientConnect",            OnConnectCheckBan)
