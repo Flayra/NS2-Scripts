@@ -22,7 +22,7 @@ Whip.kMapName = "whip"
 
 Whip.kModelName = PrecacheAsset("models/alien/whip/whip.model")
 
-Whip.kScanThinkInterval = .3
+Whip.kScanThinkInterval = .1
 Whip.kROF = 2.0
 Whip.kFov = 360
 Whip.kTargetCheckTime = .3
@@ -35,6 +35,14 @@ Whip.kMoveSpeed = 1.2
 Whip.kFuryRadius = 6
 Whip.kFuryDuration = 6
 Whip.kFuryDamageBoost = .1          // 10% extra damage
+
+// Whacking; throwing back grenades that comes into whackRange
+// need a little bit extra range to avoid getting hit by grenades going right at it
+Whip.kWhackRange = Whip.kRange
+// performance; we track grenades that are close enough every tick, but we update the
+// grenade list only 3 times per second. Grenades travel 15m/sec, so we grab those
+// inside 10m + whackRange and put them onto our list
+Whip.kWhackInterrestRange = Whip.kWhackRange + 10
 
 // Movement state - for uprooting and moving!
 Whip.kMode = enum( {'Rooted', 'Unrooting', 'UnrootedStationary', 'Rooting', 'StartMoving', 'Moving', 'EndMoving'} )
