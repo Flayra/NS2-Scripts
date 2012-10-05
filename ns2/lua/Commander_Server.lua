@@ -694,7 +694,11 @@ function Commander:GotoIdleWorker()
                     success = true
                     
                 end
-            
+            else
+                //reset to the first idle worker since lastGotoIdleWorker is no longer idle or no longer exists
+                self.lastGotoIdleWorker = workers[1]
+
+                success = true
             end
         
         end
