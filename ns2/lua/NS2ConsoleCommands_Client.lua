@@ -170,12 +170,29 @@ function OnCommandChangeGCSettingClient(settingName, newValue)
     
 end
 
+// force low frame rates on your computer by setting a minimum frame time
+function OnCommandClientDelay(count)
+
+    if Shared.GetCheatsEnabled() then
+        count = tonumber(count)
+        if count == 0 then
+            count = nil
+        end
+        Log("Client.delayCount set to %s", count)
+        
+        Client.delayCount = count
+    end
+    
+end
+
+
 Event.Hook("Console_hotgroup",              OnCommandHotgroup)
 Event.Hook("Console_tracereticle",          OnCommandTraceReticle)
 Event.Hook("Console_testsentry",            OnCommandTestSentry)
 Event.Hook("Console_random_debug",          OnCommandRandomDebug)
 Event.Hook("Console_location",              OnCommandLocation)
 Event.Hook("Console_changegcsettingclient", OnCommandChangeGCSettingClient)
+Event.Hook("Console_clientdelay",           OnCommandClientDelay)
 
 Client.HookNetworkMessage("SelectAndGoto",      OnCommandSelectAndGoto)
 Client.HookNetworkMessage("TakeDamageIndicator",    OnCommandTakeDamageIndicator)
