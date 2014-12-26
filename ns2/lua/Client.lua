@@ -483,6 +483,13 @@ function OnUpdateClient(deltaTime)
     GetEffectManager():OnUpdate(deltaTime)
     
     UpdatePowerPointLights()
+    
+    if Client.delayCount then
+        local count = Client.delayCount * 100000
+        while count > 0 do
+            count = count - 1
+        end
+    end
 
 end
 

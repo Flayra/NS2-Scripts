@@ -856,6 +856,20 @@ function OnCommandHasTech(client, cmd)
     
 end
 
+function OnCommandServerDelay(client, count)
+
+    if Shared.GetCheatsEnabled() then
+        count = tonumber(count)
+        if count == 0 then
+            count = nil
+        end     
+        Log("Server.delayCount set to %s", count)
+        Server.delayCount = count
+    end
+    
+end
+
+
 // GC commands
 Event.Hook("Console_changegcsettingserver", OnCommandChangeGCSettingServer)
 
@@ -898,6 +912,7 @@ Event.Hook("Console_squadspawn",            OnCommandSquadSpawn)
 Event.Hook("Console_flare",                 OnCommandFlare)
 Event.Hook("Console_tooltiponce",           OnCommandTooltipOnce)
 Event.Hook("Console_setfov",                OnCommandSetFOV)
+Event.Hook("Console_serverdelay",           OnCommandServerDelay)
 
 // For testing lifeforms
 Event.Hook("Console_skulk",                 OnCommandSkulk)

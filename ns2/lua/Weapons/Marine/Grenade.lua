@@ -76,6 +76,15 @@ if (Server) then
         DestroyEntity(self)
         
     end
+    
+    function Grenade:Whack(velocity)    
+        // whack the grenade back where it came from.
+        // can't just do a straight reverse of speed, physicsbody seems to do some extra calcs. 
+        // destroy the current physics body and create a new one
+        Shared.DestroyCollisionObject(self.physicsBody)
+        self.physicsBody = nil
+        self:SetVelocity(velocity)        
+    end
 
 end
 

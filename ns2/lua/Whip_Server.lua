@@ -10,6 +10,8 @@ local kUnrootSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/unroot")
 local kRootedSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/root")
 local kWalkingSound = PrecacheAsset("sound/ns2.fev/alien/structures/whip/walk")
 
+
+
 function Whip:OnConstructionComplete()
 
     Structure.OnConstructionComplete(self)
@@ -25,23 +27,51 @@ function Whip:AcquireTarget()
     if(self.timeOfLastTargetAcquisition == nil or (Shared.GetTime() > self.timeOfLastTargetAcquisition + Whip.kTargetCheckTime)) then
     
         finalTarget = self.targetSelector:AcquireTarget();
-
-        if finalTarget ~= nil then
-    
-            self:GiveOrder(kTechId.Attack, finalTarget:GetId(), nil)
-        
-        else
-        
-            self:ClearOrders()
-            
-        end
         
         self.timeOfLastTargetAcquisition = Shared.GetTime()
 
+        // look for any grenades flying around in our vicinity and update our grenade targeting list
+        self.grenadeTable = nil
+        local grenades = Shared.GetEntitiesWithClassname("Grenade")
+        for index, grenade in ientitylist(grenades) do
+            local range = (self:GetOrigin() - grenade:GetOrigin()):GetLength()
+            if range < Whip.kWhackInterrestRange then
+                self.grenadeTable = self.grenadeTable or {}
+                self.grenadeTable[grenade:GetId()] = true
+            end
+        end
+    end
+    
+    if finalTarget == nil and self.grenadeTable then
+        // check grenades. We are always ready to smack any grenades around us (waiting a third of a sec is just too long)
+        for grenadeId, _ in pairs(self.grenadeTable) do
+            local grenade = Shared.GetEntity(grenadeId)
+            if grenade then 
+                local range = (self:GetOrigin() - grenade:GetOrigin()):GetLength()
+                if range < Whip.kWhackRange then
+                    finalTarget = grenade
+                    break
+                end
+            end
+        end
+    end
+        
+    if finalTarget ~= nil then
+
+        self:GiveOrder(kTechId.Attack, finalTarget:GetId(), nil)
+    
+    else
+    
+        self:ClearOrders()
+        
     end
     
 end
 
+function Whip:TargetingGrenade() 
+    local target = self:GetTarget()
+    return target and target:isa("Grenade")
+end
 
 function Whip:AttackTarget()
 
@@ -58,7 +88,14 @@ function Whip:AttackTarget()
     
         self.timeOfLastStrikeStart = Shared.GetTime()
         
-        self.timeOfNextStrikeHit = Shared.GetTime() + self:AdjustAttackDelay(.5)
+        local delay = 0.5
+        if self:TargetingGrenade() then
+            // need to whip it pretty fast to keep it from touching us
+            local speedup = 3
+            delay = delay / speedup
+            self.animationSpeed = speedup
+        end
+        self.timeOfNextStrikeHit = Shared.GetTime() + self:AdjustAttackDelay(delay)
                 
     end
 
@@ -86,20 +123,35 @@ end
 
 function Whip:StrikeTarget(target)
 
-    // Hit main target
-    self:DamageTarget(target)
-    
-    // Try to hit other targets close by
-    local closestAttackPoint = self:GetClosestAttackPoint(target)
-    local nearbyEnts = self.targetSelector:AcquireTargets(1000, Whip.kAreaEffectRadius, closestAttackPoint)
-    for index, ent in ipairs(nearbyEnts) do
-    
-        if ent ~= target then
+    if self:TargetingGrenade() then
         
-            local direction = ent:GetModelOrigin() - closestAttackPoint
-            direction:Normalize()
+        // throw it back pretty hard, about 8ms/sec
+        // we try to throw it upwards if it is below us
+        local vec = target:GetOrigin() - self:GetOrigin()
+        vec.y = 0
+        vec:Normalize()
+        vec.y = 0.3
+        vec:Normalize()
+        target:Whack(20 * vec)
+        
+    else
+
+        // Hit main target
+        self:DamageTarget(target)
+        
+        // Try to hit other targets close by
+        local closestAttackPoint = self:GetClosestAttackPoint(target)
+        local nearbyEnts = self.targetSelector:AcquireTargets(1000, Whip.kAreaEffectRadius, closestAttackPoint)
+        for index, ent in ipairs(nearbyEnts) do
+        
+            if ent ~= target then
             
-            ent:TakeDamage(Whip.kDamage, self, self, closestAttackPoint, direction)
+                local direction = ent:GetModelOrigin() - closestAttackPoint
+                direction:Normalize()
+                
+                ent:TakeDamage(Whip.kDamage, self, self, closestAttackPoint, direction)
+                
+            end
             
         end
         
@@ -212,6 +264,14 @@ function Whip:UpdateOrders(deltaTime)
     
 end
 
+function Whip:ValidateTarget(target)
+    if self:TargetingGrenade() then
+        local range = (self:GetOrigin() - target:GetOrigin()):GetLength()
+        return range < Whip.kWhackRange
+    end
+    return self.targetSelector:ValidateTarget(target)
+end
+
 function Whip:UpdateAttack(deltaTime)
 
     // Check if alive because map-placed structures don't die when killed
@@ -221,9 +281,10 @@ function Whip:UpdateAttack(deltaTime)
         local time = Shared.GetTime()
         if not self.timeOfLastWhipAttack or (time > (self.timeOfLastWhipAttack + Whip.kScanThinkInterval)) then        
             local target = self:GetTarget()
-            local targetValid = self.targetSelector:ValidateTarget(target)
+            local targetValid = self:ValidateTarget(target)
             if targetValid then
                 local delay = self:AdjustAttackDelay(Whip.kROF)
+
                 if(self.timeOfLastStrikeStart == nil or (time > self.timeOfLastStrikeStart + delay)) then                
                     self:AttackTarget()
                 end
@@ -258,7 +319,7 @@ function Whip:UpdateAttack(deltaTime)
             
             if Shared.GetTime() > self.timeOfNextStrikeHit then
             
-                if self.targetSelector:ValidateTarget(target) then
+                if self:ValidateTarget(target) then
                 
                     self:StrikeTarget(target)
                     

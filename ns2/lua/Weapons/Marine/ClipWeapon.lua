@@ -267,8 +267,17 @@ function ClipWeapon:OnPrimaryAttack(player)
                 if(not player or not player:GetDarwinMode()) then
                     self.clip = self.clip - 1
                 end
-                            
-                player:SetActivityEnd( self:GetPrimaryAttackDelay() * player:GetCatalystFireModifier() )
+                   
+                // To make sure that ROF is not affected by when a client frame ticks in, we keep track of
+                // when the last shot delay actually ends and calculate the delay from that instead of Shared.GetTime()
+                local delayBeforeNextShot = self:GetPrimaryAttackDelay() * player:GetCatalystFireModifier()
+                if self.lastPrimaryAttackEndTime == nil then
+                    self.lastPrimaryAttackEndTime = Shared.GetTime()
+                end 
+                self.lastPrimaryAttackEndTime = self.lastPrimaryAttackEndTime + delayBeforeNextShot
+                delayBeforeNextShot = math.max(0, self.lastPrimaryAttackEndTime - Shared.GetTime())
+                             
+                player:SetActivityEnd( delayBeforeNextShot )
                 
             end
             
@@ -303,6 +312,8 @@ function ClipWeapon:OnPrimaryAttack(player)
     
 end
 
+
+
 function ClipWeapon:CreatePrimaryAttackEffect(player)
 end
 
@@ -327,6 +338,12 @@ function ClipWeapon:GetIsDroppable()
     return true
 end
 
+
+function ClipWeapon:OnPrimaryAttackEnd()
+    Weapon.OnPrimaryAttackEnd(self)
+    self.lastPrimaryAttackEndTime = nil
+end
+
 /**
  * Fires the specified number of bullets in a cone from the player's current view.
  */
@@ -344,6 +361,15 @@ function ClipWeapon:FireBullets(player)
     if Client then
         DbgTracer.MarkClientFire(player, startPoint)
     end
+    
+    // --- ROF calc - delete before checking
+    if self.bulletsFired == nil then
+        self.bulletsFired = 0
+        self.bulletAttackStart = Shared.GetTime()
+    end
+    self.bulletsFired = self.bulletsFired + numberBullets;
+    self.lastBulletFired = Shared.GetTime()
+    // --- ROF calc
     
     for bullet = 1, numberBullets do
     
